@@ -8,11 +8,11 @@ namespace NursingScheduler.API.Entities
 
         //fk to the bucket
         public int ScheduleId { get; set; }
-        public Schedule Schedule { get; set; }
+        public Schedule? Schedule { get; set; }
 
         //fk to the class event
         public int SectionId { get; set; }
-        public Section Section { get; set; }
+        public Section? Section { get; set; }
         
         
     }
