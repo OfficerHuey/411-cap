@@ -65,6 +65,8 @@ try
 {
     var context = services.GetRequiredService<DataContext>();
     await context.Database.MigrateAsync();
+    //seed the courses
+    await Seed.SeedCourses(context);
 }
 catch (Exception ex)
 {
