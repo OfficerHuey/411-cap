@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using NursingScheduler.API.DTOs.Section;
 using NursingScheduler.API.DTOs.Student; // Need to reference Student DTOs
 
 namespace NursingScheduler.API.DTOs.Schedule
@@ -14,5 +15,7 @@ namespace NursingScheduler.API.DTOs.Schedule
 
         //list of students inside specific bucket
         public List<StudentDto> Students { get; set; } = new();
+        //include list of linked sections
+        public List<SectionDto> Sections { get; set; } = new();
     }
 }
