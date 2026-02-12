@@ -1,3 +1,7 @@
+using System;
+using System.Net.Http;
+using System.Threading.Tasks;
+
 namespace API.Controllers
 {
     [ApiController]
@@ -11,13 +15,12 @@ namespace API.Controllers
             _dataContext = dataContext;
         }
 
-        [HttpGet("{semesterLevel}")]
+        [HttpGet("pallete/{semesterLevel}")] => api/courses/pallete/1
         public IActionResult GetPallete(int semesterLevel)
         {
             var respose = new Response();
 
-            var coursesToGet = _dataContext
-                .Set<Courses>()
+            var coursesToGet = _dataContext.Courses
                 .Where(Courses => (Courses.SemesterLevel == semesterLevel))
                 .Select(Courses => new CourseDto
                 {
@@ -25,9 +28,9 @@ namespace API.Controllers
                     Code = Courses.Code,
                     Name = Courses.Name,
                     SemesterLevel = Courses.SemesterLevel,
-                    CourseType = Courses.CourseType
+                    //CourseType = Courses.CourseType
                 }
-                ).ToList();
+                ).ToListAsync();
 
             if(coursesToGet.Count <= 0)
             {

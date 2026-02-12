@@ -59,6 +59,9 @@ namespace NursingScheduler.API.Data
                 .WithMany(c => c.Sections)
                 .HasForeignKey(s => s.CourseId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            
+
         }
     }
 }
