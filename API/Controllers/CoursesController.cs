@@ -29,6 +29,7 @@ namespace API.Controllers
                     Name = Courses.Name,
                     SemesterLevel = Courses.SemesterLevel,
                     //CourseType = Courses.CourseType
+                    Sections = Courses.Sections
                 }
                 ).ToListAsync();
 
