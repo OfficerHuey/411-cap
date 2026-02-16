@@ -1,6 +1,5 @@
 var builder = WebApplication.CreateBuilder(args); 
 
-//services
 builder.Services.AddControllers();
 
 builder.Services.AddEndpointsApiExplorer();
@@ -9,7 +8,6 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-//http request pipeline configuration
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -18,8 +16,27 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+app.UseRouting();
+app.UseAuthentication();
 app.UseAuthorization();
+app.UseEndpoints(x =>
+{
+    x.MapControllers();
+});
 
-app.MapControllers();
+app.UseStaticFiles();
+
+if (app.Environment.IsDevelopment())
+{
+    app.UseSpa(x =>
+    {
+        x.UseProxyToSpaDevelopmentServer("http://localhost:5173");
+    });
+}
+else
+{
+    app.MapFallbackToFile("/index.html");
+}
 
 app.Run();
+
