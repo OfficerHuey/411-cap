@@ -51,7 +51,7 @@ namespace NursingScheduler.API.Controllers
             var schedule = await _context.Schedules
                 .Include(s => s.Students)
                 .Include(s => s.ScheduleSections) //join the bridge
-                    .ThenInclude(ss => ss.Section) //join the Section table to get section details
+                    .ThenInclude(ss => ss.Section!) //join the Section table to get section details
                         .ThenInclude(sec => sec.Course) //join the course(for the name)
                 .FirstOrDefaultAsync(s => s.Id == id);
 
