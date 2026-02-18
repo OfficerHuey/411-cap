@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using NursingScheduler.API.Data;
 using NursingScheduler.API.DTOs.Auth;
 using NursingScheduler.API.Entities;
+using NursingScheduler.API.Interfaces; 
 using System.Security.Cryptography;
 using System.Text;
 
@@ -13,10 +14,12 @@ namespace NursingScheduler.API.Controllers
     public class AuthController : ControllerBase
     {
         private readonly DataContext _context;
+        private readonly ITokenService _tokenService; //add token service to generate JWT tokens
 
-        public AuthController(DataContext context)
+        public AuthController(DataContext context, ITokenService tokenService)
         {
             _context = context;
+            _tokenService = tokenService;
         }
 
         [HttpPost("register")]
@@ -44,7 +47,8 @@ namespace NursingScheduler.API.Controllers
             return new UserDto
             {
                 Username = user.UserName,
-                Token = "dummy-token-implement-jwt-service-here" //replace with actual token logic
+                //generate jwt token using token service and return it
+                Token = _tokenService.CreateToken(user) 
             };
         }
 
@@ -69,7 +73,8 @@ namespace NursingScheduler.API.Controllers
             return new UserDto
             {
                 Username = user.UserName,
-                Token = "dummy-token-implement-jwt-service-here" //return real jwt token here
+                //jwt token
+                Token = _tokenService.CreateToken(user)
             };
         }
     }

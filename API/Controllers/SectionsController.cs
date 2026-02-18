@@ -89,6 +89,33 @@ namespace NursingScheduler.API.Controllers
                 CourseType = sectionToLink.Course!.DefaultType
             });
         }
+        // get api/Sections/semester/1
+        // Returns EVERY section in the semester for the Viewer/ghost track that will be visible
+        //for the client on the calendar. SHows the course times put in so far so that they don;t double book
+        [HttpGet("semester/{semesterId}")]
+        public async Task<ActionResult<IEnumerable<SectionDto>>> GetAllSectionsForSemester(int semesterId)
+        {
+            var sections = await _context.Sections
+                .Include(s => s.Course)
+                .Where(s => s.SemesterId == semesterId)
+                .Select(s => new SectionDto
+                {
+                    Id = s.Id,
+                    SectionNumber = s.SectionNumber,
+                    DayOfWeek = s.DayOfWeek,
+                    StartTime = s.StartTime,
+                    EndTime = s.EndTime,
+                    Notes = s.Notes,
+                    DateRange = s.DateRange,
+                    CourseId = s.CourseId,
+                    CourseCode = s.Course!.Code,
+                    CourseName = s.Course.Name,
+                    CourseType = s.Course.DefaultType
+                })
+                .ToListAsync();
+
+            return Ok(sections);
+        }
 
         //update time or notes (dragging to a new time)
         [HttpPut("{id}")]
