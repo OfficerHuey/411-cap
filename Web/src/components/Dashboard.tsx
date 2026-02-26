@@ -1,17 +1,17 @@
-import { useEffect, useState } from 'react'
-import '../App.css'
-import { CreateSemesterModal } from './CreateSemesterModal';
-import { Plus, Calendar, Trash2 } from 'lucide-react';
-import { authService } from '../Lib/Auth';
-import  { dataStore } from '../Lib/Store';
-import type { Semester } from '../Lib/Types';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from "react";
+import "../App.css";
+import { CreateSemesterModal } from "./CreateSemesterModal";
+import { Plus, Calendar, Trash2 } from "lucide-react";
+import { authService } from "../Lib/Auth";
+import { dataStore } from "../Lib/Store";
+import type { Semester } from "../Lib/Types";
+import { useNavigate } from "react-router-dom";
 
 export function Dashboard() {
   const navigate = useNavigate();
   const [semesters, setSemesters] = useState<Semester[]>([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  
+
   const canEdit = authService.canEdit();
 
   useEffect(() => {
@@ -23,105 +23,351 @@ export function Dashboard() {
   };
 
   const handleDeleteSemester = (id: string) => {
-    if (confirm('Are you sure you want to delete this semester? This will delete all associated schedules.')) {
+    if (
+      confirm(
+        "Are you sure you want to delete this semester? This will delete all associated schedules.",
+      )
+    ) {
       dataStore.deleteSemester(id);
       loadSemesters();
     }
   };
 
   const formatDateRange = (startDate: string, endDate: string) => {
-    const start = new Date(startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    const end = new Date(endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    const start = new Date(startDate).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+    });
+    const end = new Date(endDate).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
     return `${start} - ${end}`;
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-semibold text-gray-900">Nursing Scheduler Dashboard</h1>
-          <p className="mt-2 text-gray-600">
-            Manage semesters and course schedules
-          </p>
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=DM+Sans:wght@300;400;500&display=swap');
+
+        .dash-root {
+          font-family: 'DM Sans', sans-serif;
+        }
+
+        /* Page header */
+        .dash-header {
+          display: flex;
+          align-items: flex-end;
+          justify-content: space-between;
+          margin-bottom: 2.5rem;
+          padding-bottom: 1.5rem;
+          border-bottom: 1px solid #e5e2db;
+        }
+
+        .dash-header-text h1 {
+          font-family: 'Playfair Display', serif;
+          font-size: 2rem;
+          font-weight: 600;
+          color: #0a1f14;
+          margin: 0 0 0.35rem 0;
+        }
+
+        .dash-header-divider {
+          width: 40px;
+          height: 3px;
+          background: #00563f;
+          border-radius: 2px;
+          margin-bottom: 0.6rem;
+        }
+
+        .dash-header-text p {
+          color: #6b7280;
+          font-size: 0.9rem;
+          margin: 0;
+          font-weight: 300;
+        }
+
+        /* Create button */
+        .btn-create {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 0.65rem 1.25rem;
+          background: #00563f;
+          color: #ffffff;
+          border: none;
+          border-radius: 8px;
+          font-family: 'DM Sans', sans-serif;
+          font-size: 0.88rem;
+          font-weight: 500;
+          cursor: pointer;
+          letter-spacing: 0.02em;
+          transition: background 0.15s, transform 0.1s;
+          white-space: nowrap;
+        }
+
+        .btn-create:hover { background: #003d2a; }
+        .btn-create:active { transform: scale(0.98); }
+
+        /* Grid */
+        .dash-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+          gap: 1.5rem;
+        }
+
+        /* Semester card */
+        .semester-card {
+          background: #ffffff;
+          border: 1px solid #e5e2db;
+          border-radius: 10px;
+          overflow: hidden;
+          transition: box-shadow 0.2s, transform 0.2s;
+        }
+
+        .semester-card:hover {
+          box-shadow: 0 8px 30px rgba(0,0,0,0.09);
+          transform: translateY(-2px);
+        }
+
+        .card-accent {
+          height: 4px;
+          background: linear-gradient(90deg, #00563f, #C8952C);
+        }
+
+        .card-body {
+          padding: 1.5rem;
+        }
+
+        .card-top {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          margin-bottom: 1rem;
+        }
+
+        .card-title-group {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+        }
+
+        .card-icon {
+          width: 38px;
+          height: 38px;
+          background: #f0faf5;
+          border: 1px solid #c6e8d8;
+          border-radius: 8px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+
+        .card-title {
+          font-family: 'Playfair Display', serif;
+          font-size: 1.1rem;
+          font-weight: 600;
+          color: #0a1f14;
+          margin: 0 0 0.2rem 0;
+        }
+
+        .card-dates {
+          font-size: 0.78rem;
+          color: #9ca3af;
+          margin: 0;
+        }
+
+        .btn-delete {
+          background: none;
+          border: none;
+          cursor: pointer;
+          color: #d1d5db;
+          padding: 0.25rem;
+          border-radius: 4px;
+          display: flex;
+          align-items: center;
+          transition: color 0.15s, background 0.15s;
+          flex-shrink: 0;
+        }
+
+        .btn-delete:hover {
+          color: #dc2626;
+          background: #fef2f2;
+        }
+
+        .card-clinical-badge {
+          display: inline-flex;
+          align-items: center;
+          padding: 0.25rem 0.75rem;
+          background: rgba(200, 149, 44, 0.1);
+          color: #926a10;
+          border: 1px solid rgba(200, 149, 44, 0.3);
+          border-radius: 20px;
+          font-size: 0.78rem;
+          font-weight: 500;
+          margin-bottom: 1.25rem;
+        }
+
+        .btn-open {
+          width: 100%;
+          padding: 0.65rem;
+          background: #f0faf5;
+          color: #00563f;
+          border: 1px solid #c6e8d8;
+          border-radius: 7px;
+          font-family: 'DM Sans', sans-serif;
+          font-size: 0.88rem;
+          font-weight: 500;
+          cursor: pointer;
+          transition: background 0.15s, border-color 0.15s;
+          box-sizing: border-box;
+        }
+
+        .btn-open:hover {
+          background: #00563f;
+          color: #ffffff;
+          border-color: #00563f;
+        }
+
+        /* Empty state */
+        .dash-empty {
+          grid-column: 1 / -1;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          padding: 4rem 2rem;
+          background: #ffffff;
+          border: 2px dashed #d1d5db;
+          border-radius: 10px;
+          text-align: center;
+        }
+
+        .dash-empty-icon {
+          width: 56px;
+          height: 56px;
+          background: #f0faf5;
+          border-radius: 12px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-bottom: 1rem;
+        }
+
+        .dash-empty h3 {
+          font-family: 'Playfair Display', serif;
+          font-size: 1.2rem;
+          color: #0a1f14;
+          margin: 0 0 0.5rem 0;
+        }
+
+        .dash-empty p {
+          color: #9ca3af;
+          font-size: 0.88rem;
+          margin: 0 0 1.5rem 0;
+          font-weight: 300;
+        }
+
+        /* Footer */
+        .dash-footer {
+          text-align: center;
+          padding: 2rem;
+          font-size: 0.75rem;
+          color: #c4c0b8;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+        }
+      `}</style>
+
+      <div className="dash-root">
+        <div className="dash-header">
+          <div className="dash-header-text">
+            <h1>Dashboard</h1>
+            <div className="dash-header-divider" />
+            <p>Manage semesters and course schedules</p>
+          </div>
+          {canEdit && (
+            <button
+              className="btn-create"
+              onClick={() => setShowCreateModal(true)}
+            >
+              <Plus size={16} />
+              Create New Semester
+            </button>
+          )}
         </div>
-        {canEdit && (
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Create New Semester
-          </button>
-        )}
-      </div>
 
-      {/* Semester Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {semesters.map(semester => (
-          <div
-            key={semester.id}
-            className="bg-white rounded-lg shadow hover:shadow-lg transition-shadow border border-gray-200 overflow-hidden"
-          >
-            <div className="p-6">
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center">
-                  <Calendar className="h-6 w-6 text-blue-600 mr-3" />
-                  <div>
-                    <h3 className="text-xl font-semibold text-gray-900">{semester.name}</h3>
-                    <p className="text-sm text-gray-600 mt-1">
-                      {formatDateRange(semester.startDate, semester.endDate)}
-                    </p>
+        <div className="dash-grid">
+          {semesters.map((semester) => (
+            <div key={semester.id} className="semester-card">
+              <div className="card-accent" />
+              <div className="card-body">
+                <div className="card-top">
+                  <div className="card-title-group">
+                    <div className="card-icon">
+                      <Calendar size={18} color="#00563f" />
+                    </div>
+                    <div>
+                      <h3 className="card-title">{semester.name}</h3>
+                      <p className="card-dates">
+                        {formatDateRange(semester.startDate, semester.endDate)}
+                      </p>
+                    </div>
                   </div>
+                  {canEdit && (
+                    <button
+                      className="btn-delete"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteSemester(semester.id);
+                      }}
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  )}
                 </div>
-                {canEdit && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteSemester(semester.id);
-                    }}
-                    className="text-gray-400 hover:text-red-600 transition-colors"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                )}
-              </div>
 
-              <div className="mb-4">
-                <div className="inline-flex items-center px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm font-medium">
+                <div className="card-clinical-badge">
                   Clinical Days: {semester.clinicalDays}
                 </div>
+
+                <button
+                  className="btn-open"
+                  onClick={() => navigate(`/semester/${semester.id}`)}
+                >
+                  Open Semester
+                </button>
               </div>
-
-              <button
-                onClick={() => navigate(`/semester/${semester.id}`)}
-                className="w-full px-4 py-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors font-medium"
-              >
-                Open Semester
-              </button>
             </div>
-          </div>
-        ))}
+          ))}
 
-        {/* Empty State */}
-        {semesters.length === 0 && (
-          <div className="col-span-full flex flex-col items-center justify-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
-            <Calendar className="h-12 w-12 text-gray-400 mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No Semesters Yet</h3>
-            <p className="text-gray-600 mb-4">Get started by creating your first semester</p>
-            {canEdit && (
-              <button
-                onClick={() => setShowCreateModal(true)}
-                className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Create Semester
-              </button>
-            )}
-          </div>
-        )}
+          {semesters.length === 0 && (
+            <div className="dash-empty">
+              <div className="dash-empty-icon">
+                <Calendar size={26} color="#00563f" />
+              </div>
+              <h3>No Semesters Yet</h3>
+              <p>Get started by creating your first semester</p>
+              {canEdit && (
+                <button
+                  className="btn-create"
+                  onClick={() => setShowCreateModal(true)}
+                >
+                  <Plus size={16} />
+                  Create Semester
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="dash-footer">
+          Southeastern Louisiana University · School of Nursing
+        </div>
       </div>
 
-      {/* Create Semester Modal */}
       {showCreateModal && (
         <CreateSemesterModal
           onClose={() => setShowCreateModal(false)}
@@ -131,6 +377,6 @@ export function Dashboard() {
           }}
         />
       )}
-    </div>
+    </>
   );
 }
