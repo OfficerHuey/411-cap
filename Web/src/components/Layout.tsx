@@ -1,56 +1,149 @@
+import "../App.css";
+import { Calendar, Shield, LogOut } from "lucide-react";
+import { useNavigate, Outlet } from "react-router-dom";
+import { authService } from "../Lib/Auth";
 
-import '../App.css'
-import { Link, Calendar, Shield, LogOut } from 'lucide-react';
-import { useLocation, useNavigate, Outlet } from 'react-router-dom';
-import  { authService } from '../Lib/Auth';
 export function Layout() {
-  const location = useLocation();
   const navigate = useNavigate();
   const currentUser = authService.getCurrentUser();
 
   const handleLogout = () => {
     authService.logout();
-    navigate('/login');
+    navigate("/login");
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <Link to="/" className="flex items-center">
-                <Calendar className="h-8 w-8 text-blue-600" />
-                <span className="ml-2 font-semibold text-xl">Nursing Scheduler</span>
-              </Link>
-            </div>
-            
-            {/* User Info and Logout */}
-            <div className="flex items-center space-x-4">
-              <div className="text-right">
-                <p className="text-sm font-medium text-gray-900">{currentUser?.name}</p>
-                <div className="flex items-center justify-end">
-                  {currentUser?.role === 'admin' && (
-                    <Shield className="h-3 w-3 text-purple-600 mr-1" />
-                  )}
-                  <p className="text-xs text-gray-500">{currentUser?.role}</p>
-                </div>
-              </div>
-              <button
-                onClick={handleLogout}
-                className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-              >
-                <LogOut className="h-4 w-4 mr-2" />
-                Logout
-              </button>
-            </div>
-          </div>
-        </div>
-      </nav>
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=DM+Sans:wght@300;400;500&display=swap');
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Outlet />
-      </main>
-    </div>
+        .layout-root {
+          min-height: 100vh;
+          background: #f8f7f4;
+          font-family: 'DM Sans', sans-serif;
+        }
+
+        .layout-nav {
+          background: #00563f;
+          height: 64px;
+          padding: 0 2.5rem;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+        }
+
+        .layout-nav-left {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          text-decoration: none;
+          cursor: pointer;
+        }
+
+        .layout-nav-icon {
+          width: 36px;
+          height: 36px;
+          background: rgba(255,255,255,0.12);
+          border: 1px solid rgba(255,255,255,0.2);
+          border-radius: 8px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .layout-nav-title {
+          font-family: 'Playfair Display', serif;
+          font-size: 1.1rem;
+          color: #ffffff;
+          letter-spacing: 0.01em;
+        }
+
+        .layout-nav-right {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+        }
+
+        .layout-user-info {
+          display: flex;
+          align-items: center;
+          gap: 0.6rem;
+        }
+
+        .layout-user-name {
+          font-size: 0.88rem;
+          font-weight: 500;
+          color: #ffffff;
+        }
+
+        .layout-role-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.3rem;
+          font-size: 0.68rem;
+          font-weight: 500;
+          padding: 0.2rem 0.6rem;
+          border-radius: 4px;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          background: rgba(200, 149, 44, 0.25);
+          color: #C8952C;
+          border: 1px solid rgba(200, 149, 44, 0.4);
+        }
+
+        .layout-logout-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.4rem;
+          padding: 0.45rem 1rem;
+          background: rgba(255,255,255,0.1);
+          border: 1px solid rgba(255,255,255,0.2);
+          border-radius: 7px;
+          color: #ffffff;
+          font-family: 'DM Sans', sans-serif;
+          font-size: 0.85rem;
+          cursor: pointer;
+          transition: background 0.15s;
+        }
+
+        .layout-logout-btn:hover {
+          background: rgba(255,255,255,0.2);
+        }
+
+        .layout-main {
+          padding: 2.5rem 2rem;
+        }
+      `}</style>
+
+      <div className="layout-root">
+        <nav className="layout-nav">
+          <div className="layout-nav-left" onClick={() => navigate("/")}>
+            <div className="layout-nav-icon">
+              <Calendar size={18} color="white" />
+            </div>
+            <span className="layout-nav-title">Nursing Scheduler</span>
+          </div>
+
+          <div className="layout-nav-right">
+            <div className="layout-user-info">
+              <span className="layout-user-name">{currentUser?.name}</span>
+              <span className="layout-role-badge">
+                {currentUser?.role === "admin" && <Shield size={10} />}
+                {currentUser?.role}
+              </span>
+            </div>
+            <button className="layout-logout-btn" onClick={handleLogout}>
+              <LogOut size={14} />
+              Logout
+            </button>
+          </div>
+        </nav>
+
+        <main className="layout-main">
+          <Outlet />
+        </main>
+      </div>
+    </>
   );
 }

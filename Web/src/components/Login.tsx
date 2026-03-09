@@ -1,149 +1,592 @@
-import { useState } from 'react'
-import '../App.css'
-import { Calendar, AlertCircle, Mail, Info } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import  { authService } from '../Lib/Auth';
-import { Lock } from "lucide-react";
+import { useState } from "react";
+import "../App.css";
+import {
+  Calendar,
+  AlertCircle,
+  Mail,
+  Info,
+  Lock,
+  Eye,
+  EyeOff,
+} from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { authService } from "../Lib/Auth";
 
 export function Login() {
   const navigate = useNavigate();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
   const [showCredentials, setShowCredentials] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showITPopup, setShowITPopup] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-
+    setError("");
     const user = authService.login(email, password);
-    
     if (user) {
-      navigate('/');
+      navigate("/");
     } else {
-      setError('Invalid email or password. Please try again.');
+      setError("Invalid email or password. Please try again.");
     }
   };
 
   const mockCredentials = authService.getMockCredentials();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-full mb-4">
-            <Calendar className="h-8 w-8 text-white" />
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=DM+Sans:wght@300;400;500&display=swap');
+
+        .login-root {
+          min-height: 100vh;
+          display: flex;
+          font-family: 'DM Sans', sans-serif;
+          background-color: #003d2a;
+          background-image:
+           radial-gradient(ellipse at 20% 50%, rgba(0, 86, 63, 0.6) 0%, transparent 60%),
+radial-gradient(ellipse at 80% 20%, rgba(0, 60, 40, 0.8) 0%, transparent 50%);
+        }
+
+        /* Left panel */
+        .login-panel-left {
+          display: none;
+          flex-direction: column;
+          justify-content: space-between;
+          padding: 3rem;
+          width: 45%;
+          position: relative;
+          overflow: hidden;
+        }
+
+        @media (min-width: 900px) {
+          .login-panel-left { display: flex; }
+        }
+
+        .login-panel-left::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+        }
+
+        .left-logo {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+        }
+
+        .left-logo-icon {
+          width: 40px;
+          height: 40px;
+          background: rgba(255,255,255,0.12);
+          border: 1px solid rgba(255,255,255,0.2);
+          border-radius: 10px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .left-logo-text {
+          font-family: 'Playfair Display', serif;
+          font-size: 1.1rem;
+          color: rgba(255,255,255,0.9);
+          letter-spacing: 0.01em;
+        }
+
+        .left-hero {
+          position: relative;
+          z-index: 1;
+        }
+
+        .left-hero h2 {
+          font-family: 'Playfair Display', serif;
+          font-size: 2.6rem;
+          font-weight: 500;
+          color: #ffffff;
+          line-height: 1.25;
+          margin: 0 0 1rem 0;
+        }
+
+        .left-hero h2 em {
+          font-style: italic;
+          color: #C8952C;
+        }
+
+        .left-hero p {
+          color: rgba(255,255,255,0.55);
+          font-size: 0.95rem;
+          line-height: 1.7;
+          margin: 0;
+          font-weight: 300;
+        }
+
+        .left-footer {
+          color: rgba(255,255,255,0.3);
+          font-size: 0.75rem;
+          letter-spacing: 0.05em;
+          text-transform: uppercase;
+        }
+
+        /* Right panel */
+        .login-panel-right {
+          flex: 1;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 2rem;
+          background: #f8f7f4;
+        }
+
+        .login-card {
+          width: 100%;
+          max-width: 420px;
+        }
+
+        .login-card-header {
+          margin-bottom: 2.5rem;
+        }
+
+        .login-card-header h1 {
+          font-family: 'Playfair Display', serif;
+          font-size: 2rem;
+          font-weight: 600;
+          color: #000000;
+          margin: 0 0 0.4rem 0;
+        }
+
+        .login-card-header p {
+          color: #6b7280;
+          font-size: 0.9rem;
+          margin: 0;
+          font-weight: 300;
+        }
+
+       
+
+        /* Error */
+        .error-box {
+          display: flex;
+          align-items: flex-start;
+          gap: 0.625rem;
+          background: #fef2f2;
+          border: 1px solid #fecaca;
+          border-left: 3px solid #dc2626;
+          border-radius: 6px;
+          padding: 0.75rem 1rem;
+          margin-bottom: 1.5rem;
+        }
+
+        .error-box p {
+          margin: 0;
+          font-size: 0.85rem;
+          color: #991b1b;
+        }
+
+        /* Form */
+        .form-group {
+          margin-bottom: 1.25rem;
+        }
+
+        .form-label {
+          display: block;
+          font-size: 0.8rem;
+          font-weight: 500;
+          color: #000000;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+          margin-bottom: 0.5rem;
+        }
+
+        .input-wrap {
+          position: relative;
+        }
+
+        .input-icon {
+          position: absolute;
+          left: 0.875rem;
+          top: 50%;
+          transform: translateY(-50%);
+          color: #000000;
+          pointer-events: none;
+        }
+
+        .input-field {
+          width: 100%;
+          padding: 0.75rem 0.875rem 0.75rem 2.75rem;
+          background: #ffffff;
+          border: 1.5px solid #e5e7eb;
+          border-radius: 8px;
+          font-family: 'DM Sans', sans-serif;
+          font-size: 0.9rem;
+          color: #C8952C;
+          outline: none;
+          transition: border-color 0.15s, box-shadow 0.15s;
+          box-sizing: border-box;
+        }
+
+        .input-field::placeholder {
+          color: #d1d5db;
+        }
+
+        .input-field:focus {
+          border-color: #00563f;
+          box-shadow: 0 0 0 3px rgba(0, 86, 63, 0.15);
+        }
+
+        .input-toggle {
+          position: absolute;
+          right: 0.875rem;
+          top: 50%;
+          transform: translateY(-50%);
+          background: none;
+          border: none;
+          cursor: pointer;
+          color: #9ca3af;
+          padding: 0;
+          display: flex;
+          align-items: center;
+        }
+
+        .input-toggle:hover { color: #6b7280; }
+
+        /* Submit button */
+        .btn-submit {
+          width: 100%;
+          padding: 0.8rem;
+          background: #00563f;
+          color: #ffffff;
+          border: none;
+          border-radius: 8px;
+          font-family: 'DM Sans', sans-serif;
+          font-size: 0.95rem;
+          font-weight: 500;
+          cursor: pointer;
+          letter-spacing: 0.02em;
+          transition: background 0.15s, transform 0.1s;
+          margin-top: 0.5rem;
+        }
+
+        .btn-submit:hover { background: #C8952C.; }
+        .btn-submit:active { transform: scale(0.99); }
+
+        /* Demo credentials */
+        .demo-section {
+          margin-top: 2rem;
+          padding-top: 1.5rem;
+          border-top: 1px solid #e9e7e2;
+        }
+
+        .demo-toggle {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          background: none;
+          border: none;
+          cursor: pointer;
+          font-family: 'DM Sans', sans-serif;
+          font-size: 0.82rem;
+          color: #C8952C;
+          padding: 0;
+          transition: color 0.15s;
+        }
+
+        .demo-toggle:hover { color: #0f1f3d; }
+
+        .demo-list {
+          margin-top: 1rem;
+          background: #ffffff;
+          border: 1px solid #e5e7eb;
+          border-radius: 8px;
+          overflow: hidden;
+        }
+
+        .demo-item {
+          padding: 0.875rem 1rem;
+          border-bottom: 1px solid #f3f4f6;
+        }
+
+        .demo-item:last-child { border-bottom: none; }
+
+        .demo-item-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 0.375rem;
+        }
+
+        .demo-name {
+          font-size: 0.85rem;
+          font-weight: 500;
+          color: #111827;
+        }
+
+        .role-badge {
+          font-size: 0.7rem;
+          font-weight: 500;
+          padding: 0.15rem 0.5rem;
+          border-radius: 4px;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+        }
+
+        .role-admin { background: #ede9fe; color: #5b21b6; }
+        .role-professor { background: #dbeafe; color: #1d4ed8; }
+        .role-student { background: #d1fae5; color: #065f46; }
+
+        .demo-creds {
+          display: flex;
+          gap: 1.5rem;
+        }
+
+        .demo-cred-item {
+          font-size: 0.78rem;
+          color: #6b7280;
+        }
+
+        .demo-cred-label {
+          font-size: 0.68rem;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          color: #9ca3af;
+          display: block;
+          margin-bottom: 0.1rem;
+        }
+
+        .demo-cred-value {
+          font-family: 'DM Mono', 'Courier New', monospace;
+          color: #374151;
+        }
+
+        .demo-note {
+          font-size: 0.75rem;
+          color: #9ca3af;
+          margin-top: 0.875rem;
+          line-height: 1.5;
+        }
+
+        /* Footer */
+        .login-footer {
+          margin-top: 2rem;
+          text-align: center;
+          font-size: 0.78rem;
+          color: #9ca3af;
+        }
+      `}</style>
+
+      <div className="login-root">
+        {/* Left decorative panel */}
+        <div className="login-panel-left">
+          <div></div> {/* spacer */}
+          <div className="left-hero">
+            <h2>
+              Nursing student scheduler <em>DEMO</em>
+            </h2>
+            <p>A scheduling tool for nursing students.</p>
           </div>
-          <h1 className="text-3xl font-semibold text-gray-900">Nursing Scheduler</h1>
-          <p className="text-gray-600 mt-2">School of Nursing Scheduling System</p>
-          <p className="text-sm text-gray-500 mt-1">Baton Rouge & Hammond North Shore</p>
+          <div className="left-footer">
+            Southeastern Louisiana University · School of Nursing
+          </div>
         </div>
 
-        {/* Login Card */}
-        <div className="bg-white rounded-lg shadow-xl p-8">
-          <h2 className="text-xl font-semibold text-gray-900 mb-6">Sign In</h2>
-          
-          {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start">
-              <AlertCircle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
-              <p className="text-sm text-red-800 ml-2">{error}</p>
+        {/* Right form panel */}
+        <div className="login-panel-right">
+          <div className="login-card">
+            <div className="login-card-header">
+              <h1>Sign In</h1>
+              <div className="divider" />
+              <p>Enter your credentials to continue</p>
             </div>
-          )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Email Address
-              </label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="professor@nursing.edu"
+            {error && (
+              <div className="error-box">
+                <AlertCircle
+                  size={16}
+                  color="#dc2626"
+                  style={{ flexShrink: 0, marginTop: 1 }}
                 />
+                <p>{error}</p>
               </div>
-            </div>
+            )}
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Password
-              </label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Enter your password"
-                />
+            <form onSubmit={handleSubmit}>
+              <div className="form-group">
+                <label className="form-label">Email Address</label>
+                <div className="input-wrap">
+                  <span className="input-icon">
+                    <Mail size={16} />
+                  </span>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className="input-field"
+                    placeholder="professor@nursing.edu"
+                  />
+                </div>
               </div>
-            </div>
 
-            <button
-              type="submit"
-              className="w-full py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
-            >
-              Sign In
-            </button>
-          </form>
+              <div className="form-group">
+                <label className="form-label">Password</label>
+                <div className="input-wrap">
+                  <span className="input-icon">
+                    <Lock size={16} />
+                  </span>
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    className="input-field"
+                    placeholder="Enter your password"
+                  />
+                  <button
+                    type="button"
+                    className="input-toggle"
+                    onClick={() => setShowPassword(!showPassword)}
+                    aria-label="Toggle password visibility"
+                  >
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
 
-          {/* Demo Credentials Toggle */}
-          <div className="mt-6 pt-6 border-t border-gray-200">
-            <button
-              onClick={() => setShowCredentials(!showCredentials)}
-              className="flex items-center text-sm text-gray-600 hover:text-gray-900 transition-colors"
-            >
-              <Info className="h-4 w-4 mr-2" />
-              {showCredentials ? 'Hide' : 'Show'} Demo Credentials
-            </button>
-            
-            {showCredentials && (
-              <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-                <p className="text-xs font-medium text-gray-700 mb-3">Demo Accounts:</p>
-                <div className="space-y-3">
+              <button type="submit" className="btn-submit">
+                Sign In
+              </button>
+            </form>
+
+            {/* Demo Credentials */}
+            <div className="demo-section">
+              <button
+                onClick={() => setShowCredentials(!showCredentials)}
+                className="demo-toggle"
+              >
+                <Info size={14} />
+                {showCredentials ? "Hide" : "Show"} demo credentials
+              </button>
+
+              {showCredentials && (
+                <div className="demo-list">
                   {mockCredentials.map((cred, idx) => (
-                    <div key={idx} className="text-xs space-y-1">
-                      <div className="flex items-center justify-between">
-                        <span className="font-medium text-gray-900">{cred.name}</span>
-                        <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-                          cred.role === 'admin' 
-                            ? 'bg-purple-100 text-purple-700' 
-                            : cred.role === 'professor'
-                            ? 'bg-blue-100 text-blue-700'
-                            : 'bg-green-100 text-green-700'
-                        }`}>
+                    <div key={idx} className="demo-item">
+                      <div className="demo-item-header">
+                        <span className="demo-name">{cred.name}</span>
+                        <span className={`role-badge role-${cred.role}`}>
                           {cred.role}
                         </span>
                       </div>
-                      <div className="text-gray-600">
-                        <span className="font-mono">{cred.email}</span>
-                      </div>
-                      <div className="text-gray-600">
-                        <span className="font-mono">{cred.password}</span>
+                      <div className="demo-creds">
+                        <div className="demo-cred-item">
+                          <span className="demo-cred-label">Email</span>
+                          <span className="demo-cred-value">{cred.email}</span>
+                        </div>
+                        <div className="demo-cred-item">
+                          <span className="demo-cred-label">Password</span>
+                          <span className="demo-cred-value">
+                            {cred.password}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   ))}
+                  <div
+                    style={{ padding: "0.75rem 1rem", background: "#fafafa" }}
+                  >
+                    <p className="demo-note">
+                      Only <strong>admin</strong> accounts can override
+                      schedules.
+                    </p>
+                  </div>
                 </div>
-                <p className="text-xs text-gray-500 mt-3">
-                  Note: Only <strong>admin</strong> role can override schedules. Students have view-only access.
-                </p>
+              )}
+            </div>
+
+            {/* IT Support Gag */}
+            {showITPopup && (
+              <div
+                style={{
+                  position: "fixed",
+                  inset: 0,
+                  background: "rgba(0,0,0,0.4)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  zIndex: 1000,
+                }}
+                onClick={() => setShowITPopup(false)}
+              >
+                <div
+                  style={{
+                    background: "#fff",
+                    borderRadius: 10,
+                    padding: "2rem",
+                    maxWidth: 320,
+                    textAlign: "center",
+                    boxShadow: "0 20px 60px rgba(0,0,0,0.2)",
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <p style={{ fontSize: "2rem", margin: "0 0 0.5rem" }}>🙃</p>
+                  <h3
+                    style={{
+                      margin: "0 0 0.5rem",
+                      color: "#0f1f3d",
+                      fontFamily: "Playfair Display, serif",
+                    }}
+                  >
+                    IT Support
+                  </h3>
+                  <p
+                    style={{
+                      margin: "0 0 1.25rem",
+                      color: "#6b7280",
+                      fontSize: "0.9rem",
+                    }}
+                  >
+                    We do not have an IT department.
+                  </p>
+                  <button
+                    onClick={() => setShowITPopup(false)}
+                    style={{
+                      background: "#0f1f3d",
+                      color: "#fff",
+                      border: "none",
+                      borderRadius: 6,
+                      padding: "0.5rem 1.25rem",
+                      cursor: "pointer",
+                      fontFamily: "DM Sans, sans-serif",
+                    }}
+                  >
+                    OK
+                  </button>
+                </div>
               </div>
             )}
+
+            <div className="login-footer">
+              Need help?{" "}
+              <button
+                onClick={() => setShowITPopup(true)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  color: "#6b7280",
+                  textDecoration: "underline",
+                  fontFamily: "DM Sans, sans-serif",
+                  fontSize: "0.78rem",
+                  padding: 0,
+                }}
+              >
+                Contact IT Support
+              </button>
+            </div>
           </div>
         </div>
-
-        {/* Info Box */}
-        <div className="mt-6 text-center text-sm text-gray-600">
-          <p>Need help? Contact IT Support</p>
-        </div>
       </div>
-    </div>
+    </>
   );
 }
