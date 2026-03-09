@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using NursingScheduler.API.Data;
 using NursingScheduler.API.DTOs.Student;
 using NursingScheduler.API.Entities;
+using ClosedXML.Excel;
 
 namespace NursingScheduler.API.Controllers
 {
@@ -38,6 +39,27 @@ namespace NursingScheduler.API.Controllers
                 WNumber = student.WNumber,
                 Email = student.Email
             });
+        }
+
+        public async void ImportCourses(string filePath)
+        {
+            using var workbook = new XLWorkbook(filePath);
+            var worksheet = workbook.Worksheet(1);
+
+            var headerRow = worksheet.FirstRowUsed();
+            var headers = headerRow.Cells()
+                .ToDictionary(c => c.GetString(), c => c.Address.ColumnNumber);
+
+            foreach (var row in worksheet.RowsUsed().Skip(1))
+            {
+                var dto = new CreateStudentDto
+                {
+                    Name = row.Cell(headers["First Name"]).GetString() + " " +  row.Cell(headers["Last Name"]).GetString(),
+                    WNumber = row.Cell(headers["W#"]).GetString(),
+                    Email = row.Cell(headers["Email Address"]).GetString()
+                };
+                await AddStudent(dto);
+            }
         }
     }
 }
