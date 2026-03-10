@@ -33,7 +33,12 @@ export function ScheduleViewer({
       .getScheduleGroups(semesterId)
       .filter((g) => g.id !== currentScheduleGroupId);
     setScheduleGroups(groups);
-    setScheduleSections(dataStore.getScheduleSections(currentScheduleGroupId));
+
+    // Load sections for ALL other groups, not just the current one
+    const allSections = groups.flatMap((g) =>
+      dataStore.getScheduleSections(g.id),
+    );
+    setScheduleSections(allSections);
   }, [semesterId, currentScheduleGroupId]);
 
   const getScheduleInfo = (scheduleGroupId: string) => {

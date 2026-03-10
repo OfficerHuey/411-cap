@@ -1,6 +1,6 @@
 import { useRef, useEffect, useState } from "react";
 import "../App.css";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Pencil } from "lucide-react";
 import { useDrop } from "react-dnd";
 import { dataStore } from "../Lib/Store";
 import type {
@@ -9,6 +9,7 @@ import type {
   CourseSection,
   ScheduleSection,
 } from "../Lib/Types";
+import { CourseDetailsModal } from "./CourseDetailsModal";
 
 interface ScheduleCanvasProps {
   scheduleGroup: ScheduleGroup;
@@ -51,6 +52,11 @@ interface DeleteConfirm {
   courseCode: string;
   dayOfWeek?: string;
   timeSlot?: string;
+}
+
+interface EditModal {
+  courseSection: CourseSection;
+  course: Course;
 }
 
 function DropZone({
@@ -156,6 +162,7 @@ export function ScheduleCanvas({
   const [deleteConfirm, setDeleteConfirm] = useState<DeleteConfirm | null>(
     null,
   );
+  const [editModal, setEditModal] = useState<EditModal | null>(null);
 
   const getCourseSectionsForSchedule = () => {
     return scheduleSections
@@ -176,8 +183,7 @@ export function ScheduleCanvas({
   };
 
   const getSectionForSlot = (day: string, time: string) => {
-    const sections = getCourseSectionsForSchedule();
-    return sections.find(
+    return getCourseSectionsForSchedule().find(
       ({ courseSection }) =>
         courseSection.dayOfWeek === day && courseSection.timeSlot === time,
     );
@@ -221,16 +227,9 @@ export function ScheduleCanvas({
           margin: 0;
         }
 
-        .canvas-body {
-          padding: 1rem;
-          overflow-x: auto;
-        }
+        .canvas-body { padding: 1rem; overflow-x: auto; }
 
-        .canvas-table {
-          width: 100%;
-          border-collapse: collapse;
-          font-size: 0.82rem;
-        }
+        .canvas-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
 
         .canvas-table th {
           padding: 0.6rem 0.75rem;
@@ -245,16 +244,8 @@ export function ScheduleCanvas({
           border: 1px solid #004d38;
         }
 
-        .canvas-table th.time-col {
-          background: #003d2a;
-          width: 80px;
-        }
-
-        .canvas-table td {
-          border: 1px solid #e5e2db;
-          vertical-align: top;
-          padding: 0;
-        }
+        .canvas-table th.time-col { background: #003d2a; width: 80px; }
+        .canvas-table td { border: 1px solid #e5e2db; vertical-align: top; padding: 0; }
 
         .canvas-table td.time-cell {
           padding: 0.5rem;
@@ -277,20 +268,23 @@ export function ScheduleCanvas({
           border-radius: 5px;
           color: #ffffff;
           font-size: 0.78rem;
-          cursor: pointer;
           transition: opacity 0.15s;
           position: relative;
         }
 
-        .course-block:hover .course-block-delete {
-          opacity: 1;
-        }
-
-        .course-block-delete {
+        .course-block-actions {
           position: absolute;
           top: 3px;
           right: 3px;
+          display: flex;
+          gap: 2px;
           opacity: 0;
+          transition: opacity 0.15s;
+        }
+
+        .course-block:hover .course-block-actions { opacity: 1; }
+
+        .course-block-btn {
           background: rgba(0,0,0,0.25);
           border: none;
           border-radius: 3px;
@@ -299,12 +293,13 @@ export function ScheduleCanvas({
           padding: 2px;
           display: flex;
           align-items: center;
-          transition: opacity 0.15s, background 0.15s;
+          transition: background 0.15s;
         }
 
-        .course-block-delete:hover { background: rgba(220, 38, 38, 0.7); }
+        .course-block-btn.edit:hover { background: rgba(0, 86, 63, 0.8); }
+        .course-block-btn.delete:hover { background: rgba(220, 38, 38, 0.7); }
 
-        .course-block-code { font-weight: 600; margin-bottom: 0.1rem; padding-right: 16px; }
+        .course-block-code { font-weight: 600; margin-bottom: 0.1rem; padding-right: 36px; }
         .course-block-sec { opacity: 0.85; font-size: 0.72rem; }
         .course-block-room { font-size: 0.7rem; opacity: 0.85; margin-top: 0.2rem; }
         .course-block-notes { font-size: 0.68rem; opacity: 0.75; margin-top: 0.1rem; }
@@ -327,10 +322,10 @@ export function ScheduleCanvas({
         .sem5-card-name { font-size: 0.82rem; color: #6b7280; margin: 0 0 0.2rem 0; }
         .sem5-card-date { font-size: 0.78rem; color: #9ca3af; margin: 0; }
         .sem5-card-room { font-size: 0.78rem; color: #00563f; margin: 0.2rem 0 0 0; }
-        .sem5-card-right { display: flex; align-items: center; gap: 0.75rem; }
+        .sem5-card-right { display: flex; align-items: center; gap: 0.5rem; }
         .sem5-section-badge { font-size: 0.75rem; font-weight: 500; color: #6b7280; background: #f3f4f6; padding: 0.2rem 0.6rem; border-radius: 4px; }
 
-        .sem5-delete-btn {
+        .sem5-action-btn {
           background: none;
           border: none;
           cursor: pointer;
@@ -342,9 +337,9 @@ export function ScheduleCanvas({
           transition: color 0.15s, background 0.15s;
         }
 
-        .sem5-delete-btn:hover { color: #dc2626; background: #fef2f2; }
+        .sem5-action-btn.edit:hover { color: #00563f; background: #f0faf5; }
+        .sem5-action-btn.delete:hover { color: #dc2626; background: #fef2f2; }
 
-        /* Delete confirm popup */
         .delete-overlay {
           position: fixed;
           inset: 0;
@@ -378,53 +373,25 @@ export function ScheduleCanvas({
           margin: 0 auto 1rem;
         }
 
-        .delete-box h3 {
-          font-family: 'Playfair Display', serif;
-          font-size: 1.1rem;
-          color: #0a1f14;
-          margin: 0 0 0.5rem 0;
-        }
-
-        .delete-box p {
-          font-size: 0.85rem;
-          color: #6b7280;
-          margin: 0 0 1.5rem 0;
-          line-height: 1.5;
-        }
-
-        .delete-box-actions {
-          display: flex;
-          gap: 0.75rem;
-        }
+        .delete-box h3 { font-family: 'Playfair Display', serif; font-size: 1.1rem; color: #0a1f14; margin: 0 0 0.5rem 0; }
+        .delete-box p { font-size: 0.85rem; color: #6b7280; margin: 0 0 1.5rem 0; line-height: 1.5; }
+        .delete-box-actions { display: flex; gap: 0.75rem; }
 
         .delete-btn-cancel {
-          flex: 1;
-          padding: 0.65rem;
-          border: 1.5px solid #e5e7eb;
-          border-radius: 8px;
-          background: #ffffff;
-          color: #6b7280;
-          font-family: 'DM Sans', sans-serif;
-          font-size: 0.85rem;
-          font-weight: 500;
-          cursor: pointer;
-          transition: background 0.15s;
+          flex: 1; padding: 0.65rem;
+          border: 1.5px solid #e5e7eb; border-radius: 8px;
+          background: #ffffff; color: #6b7280;
+          font-family: 'DM Sans', sans-serif; font-size: 0.85rem; font-weight: 500;
+          cursor: pointer; transition: background 0.15s;
         }
 
         .delete-btn-cancel:hover { background: #f9fafb; }
 
         .delete-btn-confirm {
-          flex: 1;
-          padding: 0.65rem;
-          background: #dc2626;
-          color: #ffffff;
-          border: none;
-          border-radius: 8px;
-          font-family: 'DM Sans', sans-serif;
-          font-size: 0.85rem;
-          font-weight: 500;
-          cursor: pointer;
-          transition: background 0.15s;
+          flex: 1; padding: 0.65rem;
+          background: #dc2626; color: #ffffff; border: none; border-radius: 8px;
+          font-family: 'DM Sans', sans-serif; font-size: 0.85rem; font-weight: 500;
+          cursor: pointer; transition: background 0.15s;
         }
 
         .delete-btn-confirm:hover { background: #b91c1c; }
@@ -475,7 +442,13 @@ export function ScheduleCanvas({
                         Section {courseSection.sectionNumber}
                       </span>
                       <button
-                        className="sem5-delete-btn"
+                        className="sem5-action-btn edit"
+                        onClick={() => setEditModal({ courseSection, course })}
+                      >
+                        <Pencil size={14} />
+                      </button>
+                      <button
+                        className="sem5-action-btn delete"
                         onClick={() =>
                           setDeleteConfirm({
                             scheduleSectionId: scheduleSection.id,
@@ -518,20 +491,34 @@ export function ScheduleCanvas({
                               className="course-block"
                               style={{ backgroundColor: section.course.color }}
                             >
-                              <button
-                                className="course-block-delete"
-                                onClick={() =>
-                                  setDeleteConfirm({
-                                    scheduleSectionId:
-                                      section.scheduleSection.id,
-                                    courseCode: section.course.code,
-                                    dayOfWeek: section.courseSection.dayOfWeek,
-                                    timeSlot: section.courseSection.timeSlot,
-                                  })
-                                }
-                              >
-                                <Trash2 size={10} />
-                              </button>
+                              <div className="course-block-actions">
+                                <button
+                                  className="course-block-btn edit"
+                                  onClick={() =>
+                                    setEditModal({
+                                      courseSection: section.courseSection,
+                                      course: section.course,
+                                    })
+                                  }
+                                >
+                                  <Pencil size={10} />
+                                </button>
+                                <button
+                                  className="course-block-btn delete"
+                                  onClick={() =>
+                                    setDeleteConfirm({
+                                      scheduleSectionId:
+                                        section.scheduleSection.id,
+                                      courseCode: section.course.code,
+                                      dayOfWeek:
+                                        section.courseSection.dayOfWeek,
+                                      timeSlot: section.courseSection.timeSlot,
+                                    })
+                                  }
+                                >
+                                  <Trash2 size={10} />
+                                </button>
+                              </div>
                               <div className="course-block-code">
                                 {section.course.code}
                               </div>
@@ -563,7 +550,6 @@ export function ScheduleCanvas({
         </div>
       </div>
 
-      {/* Delete Confirmation */}
       {deleteConfirm && (
         <div className="delete-overlay" onClick={() => setDeleteConfirm(null)}>
           <div className="delete-box" onClick={(e) => e.stopPropagation()}>
@@ -593,6 +579,21 @@ export function ScheduleCanvas({
             </div>
           </div>
         </div>
+      )}
+
+      {editModal && (
+        <CourseDetailsModal
+          scheduleGroupId={scheduleGroup.id}
+          courseId={editModal.course.id}
+          isSemester5={isSemester5}
+          courses={courses}
+          editSection={editModal.courseSection}
+          onClose={() => setEditModal(null)}
+          onSuccess={() => {
+            onRefresh();
+            setEditModal(null);
+          }}
+        />
       )}
     </>
   );

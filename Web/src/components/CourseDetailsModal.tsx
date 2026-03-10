@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { Course, CourseSection, ScheduleSection } from "../Lib/Types";
-import { X, AlertCircle, Link2 } from "lucide-react";
+import { X, AlertCircle, Link2, Pencil } from "lucide-react";
 import { dataStore } from "../Lib/Store";
 
 interface CourseDetailsModalProps {
@@ -11,6 +11,7 @@ interface CourseDetailsModalProps {
   dateRange?: string;
   isSemester5: boolean;
   courses: Course[];
+  editSection?: CourseSection; // if provided, we're editing not adding
   onClose: () => void;
   onSuccess: () => void;
 }
@@ -23,15 +24,18 @@ export function CourseDetailsModal({
   dateRange,
   isSemester5,
   courses,
+  editSection,
   onClose,
   onSuccess,
 }: CourseDetailsModalProps) {
   const course = courses.find((c) => c.id === courseId);
+  const isEditing = !!editSection;
+
   const [formData, setFormData] = useState({
-    sectionNumber: "01",
-    classroom: "",
-    notes: "",
-    dateRange: dateRange || "",
+    sectionNumber: editSection?.sectionNumber || "01",
+    classroom: editSection?.classroom || "",
+    notes: editSection?.notes || "",
+    dateRange: editSection?.dateRange || dateRange || "",
   });
 
   const [existingSection, setExistingSection] = useState<CourseSection | null>(
@@ -40,6 +44,7 @@ export function CourseDetailsModal({
   const [showLinkPrompt, setShowLinkPrompt] = useState(false);
 
   useEffect(() => {
+    if (isEditing) return; // skip link check when editing
     if (formData.sectionNumber && course) {
       const existing = dataStore.findCourseSection(
         courseId,
@@ -53,10 +58,21 @@ export function CourseDetailsModal({
         setShowLinkPrompt(false);
       }
     }
-  }, [formData.sectionNumber, courseId, course]);
+  }, [formData.sectionNumber, courseId, course, isEditing]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (isEditing && editSection) {
+      dataStore.updateCourseSection(editSection.id, {
+        sectionNumber: formData.sectionNumber,
+        classroom: formData.classroom,
+        notes: formData.notes,
+        dateRange: isSemester5 ? formData.dateRange : editSection.dateRange,
+      });
+      onSuccess();
+      return;
+    }
 
     let courseSectionId: string;
 
@@ -175,13 +191,9 @@ export function CourseDetailsModal({
 
         .cdm-close:hover { background: rgba(255,255,255,0.2); }
 
-        .cdm-body {
-          padding: 1.5rem;
-        }
+        .cdm-body { padding: 1.5rem; }
 
-        .cdm-form-group {
-          margin-bottom: 1.1rem;
-        }
+        .cdm-form-group { margin-bottom: 1.1rem; }
 
         .cdm-label {
           display: block;
@@ -193,10 +205,7 @@ export function CourseDetailsModal({
           margin-bottom: 0.4rem;
         }
 
-        .cdm-required {
-          color: #dc2626;
-          margin-left: 0.2rem;
-        }
+        .cdm-required { color: #dc2626; margin-left: 0.2rem; }
 
         .cdm-input {
           width: 100%;
@@ -240,10 +249,7 @@ export function CourseDetailsModal({
           transition: background 0.15s;
         }
 
-        .cdm-btn-cancel:hover {
-          background: #f9fafb;
-          color: #374151;
-        }
+        .cdm-btn-cancel:hover { background: #f9fafb; color: #374151; }
 
         .cdm-btn-submit {
           padding: 0.6rem 1.5rem;
@@ -261,7 +267,6 @@ export function CourseDetailsModal({
         .cdm-btn-submit:hover { background: #003d2a; }
         .cdm-btn-submit:active { transform: scale(0.98); }
 
-        /* Link prompt */
         .cdm-alert {
           display: flex;
           align-items: flex-start;
@@ -274,25 +279,10 @@ export function CourseDetailsModal({
           margin-bottom: 1.25rem;
         }
 
-        .cdm-alert-text h3 {
-          font-size: 0.85rem;
-          font-weight: 600;
-          color: #92400e;
-          margin: 0 0 0.25rem 0;
-        }
+        .cdm-alert-text h3 { font-size: 0.85rem; font-weight: 600; color: #92400e; margin: 0 0 0.25rem 0; }
+        .cdm-alert-text p { font-size: 0.8rem; color: #92400e; margin: 0 0 0.2rem 0; line-height: 1.5; }
 
-        .cdm-alert-text p {
-          font-size: 0.8rem;
-          color: #92400e;
-          margin: 0 0 0.2rem 0;
-          line-height: 1.5;
-        }
-
-        .cdm-link-actions {
-          display: flex;
-          flex-direction: column;
-          gap: 0.5rem;
-        }
+        .cdm-link-actions { display: flex; flex-direction: column; gap: 0.5rem; }
 
         .cdm-btn-link {
           width: 100%;
@@ -349,13 +339,28 @@ export function CourseDetailsModal({
         <div className="cdm-box" onClick={(e) => e.stopPropagation()}>
           <div className="cdm-header">
             <div className="cdm-header-info">
-              <h2>Add to Schedule</h2>
+              <h2>
+                {isEditing ? (
+                  <>
+                    <Pencil
+                      size={14}
+                      style={{ marginRight: "0.4rem", verticalAlign: "middle" }}
+                    />
+                    Edit Section
+                  </>
+                ) : (
+                  "Add to Schedule"
+                )}
+              </h2>
               <p>
                 {course?.code} — {course?.name}
                 {!isSemester5 &&
                   dayOfWeek &&
                   timeSlot &&
                   ` · ${dayOfWeek} at ${timeSlot}`}
+                {isEditing &&
+                  editSection &&
+                  ` · Section ${editSection.sectionNumber}`}
               </p>
             </div>
             <button className="cdm-close" onClick={onClose}>
@@ -472,7 +477,7 @@ export function CourseDetailsModal({
                     Cancel
                   </button>
                   <button type="submit" className="cdm-btn-submit">
-                    Add to Schedule
+                    {isEditing ? "Save Changes" : "Add to Schedule"}
                   </button>
                 </div>
               </form>
