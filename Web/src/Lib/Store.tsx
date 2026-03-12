@@ -76,7 +76,6 @@ const DEFAULT_COURSES: Course[] = [
     name: "Fundamentals of Nursing",
     code: "NURS 339",
     type: "Lecture",
-    semesterId: "sem1",
     color: "#3b82f6",
   },
   {
@@ -84,7 +83,6 @@ const DEFAULT_COURSES: Course[] = [
     name: "Fundamentals Lab",
     code: "NURS 339 Lab",
     type: "Lab",
-    semesterId: "sem1",
     color: "#10b981",
   },
   {
@@ -92,7 +90,6 @@ const DEFAULT_COURSES: Course[] = [
     name: "Clinical Rotation",
     code: "NURS 340",
     type: "Clinical",
-    semesterId: "sem1",
     color: "#8b5cf6",
   },
 ];
@@ -121,6 +118,7 @@ class DataStore {
   getSemesters(): Semester[] {
     return [...this.semesters];
   }
+
   getSemesterById(id: string): Semester | undefined {
     return this.semesters.find((s) => s.id === id);
   }
@@ -168,12 +166,9 @@ class DataStore {
     save(STORAGE_KEYS.scheduleGroups, this.scheduleGroups);
   }
 
-  // Courses
-  getCourses(semesterId?: string): Course[] {
-    let courses = [...this.courses];
-    if (semesterId)
-      courses = courses.filter((c) => c.semesterId === semesterId);
-    return courses;
+  // Courses — global, not tied to any semester
+  getCourses(): Course[] {
+    return [...this.courses];
   }
 
   addCourse(course: Course) {
@@ -185,6 +180,7 @@ class DataStore {
   getCourseSections(): CourseSection[] {
     return [...this.courseSections];
   }
+
   getCourseSectionById(id: string): CourseSection | undefined {
     return this.courseSections.find((cs) => cs.id === id);
   }

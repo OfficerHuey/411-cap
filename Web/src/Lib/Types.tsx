@@ -1,16 +1,21 @@
-export type Campus = 'Baton Rouge' | 'Hammond North Shore';
+export type Campus = "Baton Rouge" | "Hammond North Shore";
 
-export type CourseType = 'Lecture' | 'Lab' | 'Clinical';
+export type CourseType = "Lecture" | "Lab" | "Clinical";
 
-export type ClinicalDays = 'Thurs/Fri' | 'Tues/Wed';
+export type ClinicalDays = "Thurs/Fri" | "Tues/Wed";
 
-export type SemesterLevel = 'Semester 1' | 'Semester 2' | 'Semester 3' | 'Semester 4' | 'Semester 5';
+export type SemesterLevel =
+  | "Semester 1"
+  | "Semester 2"
+  | "Semester 3"
+  | "Semester 4"
+  | "Semester 5";
 
 export interface User {
   id: string;
   name: string;
   email: string;
-  role: 'admin' | 'professor' | 'student';
+  role: "admin" | "professor" | "student";
 }
 
 export interface Override {
@@ -44,7 +49,7 @@ export interface Course {
   name: string;
   code: string; // "NURS 339"
   type: CourseType;
-  semesterId: string;
+  semesterId?: string;
   color: string; // For visual distinction
 }
 
