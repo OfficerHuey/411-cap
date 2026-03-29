@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NursingScheduler.API.Data;
 
@@ -11,9 +12,11 @@ using NursingScheduler.API.Data;
 namespace API.Migrations
 {
     [DbContext(typeof(DataContext))]
-    partial class DataContextModelSnapshot : ModelSnapshot
+    [Migration("20260329215429_AddTermSupport")]
+    partial class AddTermSupport
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -76,37 +79,6 @@ namespace API.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Courses");
-                });
-
-            modelBuilder.Entity("NursingScheduler.API.Entities.Room", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Building")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Campus")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("Capacity")
-                        .HasColumnType("int");
-
-                    b.Property<string>("RoomNumber")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("Type")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Rooms");
                 });
 
             modelBuilder.Entity("NursingScheduler.API.Entities.Schedule", b =>
@@ -183,9 +155,6 @@ namespace API.Migrations
                     b.Property<string>("Notes")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int?>("RoomId")
-                        .HasColumnType("int");
-
                     b.Property<string>("SectionNumber")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -208,8 +177,6 @@ namespace API.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CourseId");
-
-                    b.HasIndex("RoomId");
 
                     b.HasIndex("SemesterId");
 
@@ -310,10 +277,6 @@ namespace API.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("NursingScheduler.API.Entities.Room", "Room")
-                        .WithMany("Sections")
-                        .HasForeignKey("RoomId");
-
                     b.HasOne("NursingScheduler.API.Entities.Semester", "Semester")
                         .WithMany("Sections")
                         .HasForeignKey("SemesterId")
@@ -321,8 +284,6 @@ namespace API.Migrations
                         .IsRequired();
 
                     b.Navigation("Course");
-
-                    b.Navigation("Room");
 
                     b.Navigation("Semester");
                 });
@@ -339,11 +300,6 @@ namespace API.Migrations
                 });
 
             modelBuilder.Entity("NursingScheduler.API.Entities.Course", b =>
-                {
-                    b.Navigation("Sections");
-                });
-
-            modelBuilder.Entity("NursingScheduler.API.Entities.Room", b =>
                 {
                     b.Navigation("Sections");
                 });

@@ -24,6 +24,19 @@ namespace NursingScheduler.API.Entities
         // notes field for classroom location
         public string? Notes { get; set; }
 
+        //term support for semester 4 split courses
+        public TermType? Term { get; set; }
+        public DateTime? TermStartDate { get; set; }
+        public DateTime? TermEndDate { get; set; }
+
+        //optional room assignment
+        public int? RoomId { get; set; }
+        public Room? Room { get; set; }
+
+        //optional instructor assignment
+        public int? InstructorId { get; set; }
+        public Instructor? Instructor { get; set; }
+
         //fk's
         public int CourseId { get; set; }
         public Course? Course { get; set; } // Navigation back to the Palette info

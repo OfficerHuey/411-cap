@@ -17,6 +17,8 @@ namespace NursingScheduler.API.Data
         public DbSet<Section> Sections { get; set; }
         public DbSet<ScheduleSection> ScheduleSections { get; set; }
         public DbSet<Student> Students { get; set; }
+        public DbSet<Room> Rooms { get; set; }
+        public DbSet<Instructor> Instructors { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

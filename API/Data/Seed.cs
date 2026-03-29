@@ -56,5 +56,28 @@ namespace NursingScheduler.API.Data
             await context.Courses.AddRangeAsync(courses);
             await context.SaveChangesAsync();
         }
+
+        //seed known rooms across campuses
+        public static async Task SeedRooms(DataContext context)
+        {
+            if (await context.Rooms.AnyAsync()) return;
+
+            var rooms = new List<Room>
+            {
+                //hammond campus - khsa building
+                new Room { RoomNumber = "1005", Building = "KHSA", Campus = "Hammond", Capacity = 36, Type = RoomType.Lecture },
+                new Room { RoomNumber = "1006", Building = "KHSA", Campus = "Hammond", Capacity = 36, Type = RoomType.Lecture },
+                new Room { RoomNumber = "2002", Building = "KHSA", Campus = "Hammond", Capacity = 8, Type = RoomType.Lab },
+                new Room { RoomNumber = "2007", Building = "KHSA", Campus = "Hammond", Capacity = 8, Type = RoomType.Lab },
+                new Room { RoomNumber = "2008", Building = "KHSA", Campus = "Hammond", Capacity = 8, Type = RoomType.SimLab },
+
+                //baton rouge campus
+                new Room { RoomNumber = "BRC-258", Building = "Baton Rouge Center", Campus = "Baton Rouge", Capacity = 30, Type = RoomType.Lecture },
+                new Room { RoomNumber = "BRC-260", Building = "Baton Rouge Center", Campus = "Baton Rouge", Capacity = 8, Type = RoomType.Lab }
+            };
+
+            await context.Rooms.AddRangeAsync(rooms);
+            await context.SaveChangesAsync();
+        }
     }
 }

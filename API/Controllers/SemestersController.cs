@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using NursingScheduler.API.Data;
@@ -8,6 +9,7 @@ namespace NursingScheduler.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class SemestersController : ControllerBase
     {
         private readonly DataContext _context;
@@ -58,6 +60,42 @@ namespace NursingScheduler.API.Controllers
                 EndDate = semester.EndDate,
                 ClinicalDays = semester.ClinicalDays
             });
+        }
+
+        //delete a semester and cascade to all related data
+        [HttpDelete("{id}")]
+        public async Task<ActionResult> DeleteSemester(int id)
+        {
+            var semester = await _context.Semesters
+                .Include(s => s.Schedules)
+                    .ThenInclude(sch => sch.ScheduleSections)
+                .Include(s => s.Schedules)
+                    .ThenInclude(sch => sch.Students)
+                .Include(s => s.Sections)
+                    .ThenInclude(sec => sec.ScheduleSections)
+                .FirstOrDefaultAsync(s => s.Id == id);
+
+            if (semester == null) return NotFound();
+
+            _context.Semesters.Remove(semester);
+            await _context.SaveChangesAsync();
+            return NoContent();
+        }
+
+        //update semester details
+        [HttpPut("{id}")]
+        public async Task<ActionResult> UpdateSemester(int id, CreateSemesterDto updateDto)
+        {
+            var semester = await _context.Semesters.FindAsync(id);
+            if (semester == null) return NotFound();
+
+            semester.Name = updateDto.Name;
+            semester.StartDate = updateDto.StartDate;
+            semester.EndDate = updateDto.EndDate;
+            semester.ClinicalDays = updateDto.ClinicalDays;
+
+            await _context.SaveChangesAsync();
+            return NoContent();
         }
     }
 }

@@ -12,5 +12,13 @@ namespace NursingScheduler.API.DTOs.Section
         public TimeSpan? EndTime { get; set; }
         public string? Notes { get; set; }
         public string? DateRange { get; set; }
+
+        //term support for semester 4 split courses
+        public TermType? Term { get; set; }
+        public DateTime? TermStartDate { get; set; }
+        public DateTime? TermEndDate { get; set; }
+
+        //optional room assignment
+        public int? RoomId { get; set; }
     }
 }

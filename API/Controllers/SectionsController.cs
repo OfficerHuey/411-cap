@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using NursingScheduler.API.Data;
@@ -8,6 +9,7 @@ namespace NursingScheduler.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class SectionsController : ControllerBase
     {
         private readonly DataContext _context;
@@ -49,6 +51,10 @@ namespace NursingScheduler.API.Controllers
                     EndTime = createDto.EndTime,
                     Notes = createDto.Notes,
                     DateRange = createDto.DateRange,
+                    Term = createDto.Term,
+                    TermStartDate = createDto.TermStartDate,
+                    TermEndDate = createDto.TermEndDate,
+                    RoomId = createDto.RoomId,
                     CourseId = createDto.CourseId,
                     SemesterId = createDto.SemesterId
                 };
@@ -68,11 +74,11 @@ namespace NursingScheduler.API.Controllers
             await _context.SaveChangesAsync();
 
             //return the dto for the frontend to render the block
-            //we might need to fetch course details if we just created it
-            if (sectionToLink.Course == null) 
-            {
+            //fetch course and room details if needed
+            if (sectionToLink.Course == null)
                 sectionToLink.Course = await _context.Courses.FindAsync(sectionToLink.CourseId);
-            }
+            if (sectionToLink.RoomId.HasValue && sectionToLink.Room == null)
+                sectionToLink.Room = await _context.Rooms.FindAsync(sectionToLink.RoomId);
 
             return Ok(new SectionDto
             {
@@ -83,6 +89,12 @@ namespace NursingScheduler.API.Controllers
                 EndTime = sectionToLink.EndTime,
                 Notes = sectionToLink.Notes,
                 DateRange = sectionToLink.DateRange,
+                Term = sectionToLink.Term,
+                TermStartDate = sectionToLink.TermStartDate,
+                TermEndDate = sectionToLink.TermEndDate,
+                RoomId = sectionToLink.RoomId,
+                RoomNumber = sectionToLink.Room?.RoomNumber,
+                RoomBuilding = sectionToLink.Room?.Building,
                 CourseId = sectionToLink.CourseId,
                 CourseCode = sectionToLink.Course!.Code,
                 CourseName = sectionToLink.Course!.Name,
@@ -97,6 +109,7 @@ namespace NursingScheduler.API.Controllers
         {
             var sections = await _context.Sections
                 .Include(s => s.Course)
+                .Include(s => s.Room)
                 .Where(s => s.SemesterId == semesterId)
                 .Select(s => new SectionDto
                 {
@@ -107,6 +120,12 @@ namespace NursingScheduler.API.Controllers
                     EndTime = s.EndTime,
                     Notes = s.Notes,
                     DateRange = s.DateRange,
+                    Term = s.Term,
+                    TermStartDate = s.TermStartDate,
+                    TermEndDate = s.TermEndDate,
+                    RoomId = s.RoomId,
+                    RoomNumber = s.Room != null ? s.Room.RoomNumber : null,
+                    RoomBuilding = s.Room != null ? s.Room.Building : null,
                     CourseId = s.CourseId,
                     CourseCode = s.Course!.Code,
                     CourseName = s.Course.Name,
@@ -131,6 +150,10 @@ namespace NursingScheduler.API.Controllers
             if (updateDto.EndTime.HasValue) section.EndTime = updateDto.EndTime;
             if (updateDto.Notes != null) section.Notes = updateDto.Notes;
             if (updateDto.DateRange != null) section.DateRange = updateDto.DateRange;
+            if (updateDto.Term.HasValue) section.Term = updateDto.Term;
+            if (updateDto.TermStartDate.HasValue) section.TermStartDate = updateDto.TermStartDate;
+            if (updateDto.TermEndDate.HasValue) section.TermEndDate = updateDto.TermEndDate;
+            if (updateDto.RoomId.HasValue) section.RoomId = updateDto.RoomId;
 
             await _context.SaveChangesAsync();
             return NoContent();

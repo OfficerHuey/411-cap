@@ -20,6 +20,14 @@ namespace NursingScheduler.API.DTOs.Section
         //handles the "jan 13 - feb 9" requirement for semester 5
          public string? DateRange { get; set; }
 
+        //term support for semester 4 split courses
+        public TermType? Term { get; set; }
+        public DateTime? TermStartDate { get; set; }
+        public DateTime? TermEndDate { get; set; }
+
+        //optional room assignment
+        public int? RoomId { get; set; }
+
         [Required]
         //link to side palette info
         public int CourseId { get; set; }
