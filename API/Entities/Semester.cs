@@ -18,6 +18,9 @@ namespace NursingScheduler.API.Entities
         //for the frontend to know which days to highlight.
         public string? ClinicalDays { get; set; } 
 
+        //prevents accidental changes to finalized semesters
+        public bool IsLocked { get; set; } = false;
+
         //navigation properties for the relationships
         //a semester contains many buckets (schedules) and many course sections
         public ICollection<Schedule> Schedules { get; set; } = new List<Schedule>();

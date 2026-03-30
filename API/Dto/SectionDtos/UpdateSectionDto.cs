@@ -20,5 +20,8 @@ namespace NursingScheduler.API.DTOs.Section
 
         //optional room assignment
         public int? RoomId { get; set; }
+
+        //optional instructor assignment
+        public int? InstructorId { get; set; }
     }
 }

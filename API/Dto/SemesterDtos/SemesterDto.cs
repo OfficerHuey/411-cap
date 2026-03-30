@@ -10,5 +10,6 @@ namespace NursingScheduler.API.DTOs.Semester
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
         public string? ClinicalDays { get; set; }
+        public bool IsLocked { get; set; }
     }
 }

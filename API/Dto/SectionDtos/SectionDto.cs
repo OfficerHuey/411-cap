@@ -26,6 +26,10 @@ namespace NursingScheduler.API.DTOs.Section
         public string? RoomNumber { get; set; }
         public string? RoomBuilding { get; set; }
 
+        //instructor assignment info
+        public int? InstructorId { get; set; }
+        public string? InstructorName { get; set; }
+
         // course info so frontend doesn't have to go look it up
         public int CourseId { get; set; }
         public required string CourseCode { get; set; } //nurs 339"

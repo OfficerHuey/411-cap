@@ -6,6 +6,7 @@ using NursingScheduler.API.DTOs.Schedule;
 using NursingScheduler.API.DTOs.Student;
 using NursingScheduler.API.Entities;
 using NursingScheduler.API.DTOs.Section;
+using NursingScheduler.API.Services;
 
 namespace NursingScheduler.API.Controllers
 {
@@ -15,16 +16,28 @@ namespace NursingScheduler.API.Controllers
     public class SchedulesController : ControllerBase
     {
         private readonly DataContext _context;
+        private readonly IAuditService _auditService;
 
-        public SchedulesController(DataContext context)
+        public SchedulesController(DataContext context, IAuditService auditService)
         {
             _context = context;
+            _auditService = auditService;
+        }
+
+        //check if semester is locked before allowing changes
+        private async Task<bool> IsSemesterLocked(int semesterId)
+        {
+            var semester = await _context.Semesters.FindAsync(semesterId);
+            return semester?.IsLocked ?? false;
         }
 
         //create a new bucket ("schedule 1")
         [HttpPost]
         public async Task<ActionResult<ScheduleDto>> CreateSchedule(CreateScheduleDto createDto)
         {
+            if (await IsSemesterLocked(createDto.SemesterId))
+                return BadRequest("This semester is locked and cannot be modified");
+
             var schedule = new Schedule
             {
                 Name = createDto.Name,
@@ -35,6 +48,9 @@ namespace NursingScheduler.API.Controllers
 
             _context.Schedules.Add(schedule);
             await _context.SaveChangesAsync();
+
+            var username = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "unknown";
+            await _auditService.LogChange("Schedule", schedule.Id, "Created", username, null, schedule.SemesterId);
 
             return Ok(new ScheduleDto
             {
@@ -58,6 +74,9 @@ namespace NursingScheduler.API.Controllers
                 .Include(s => s.ScheduleSections)
                     .ThenInclude(ss => ss.Section!)
                         .ThenInclude(sec => sec.Room)
+                .Include(s => s.ScheduleSections)
+                    .ThenInclude(ss => ss.Section!)
+                        .ThenInclude(sec => sec.Instructor)
                 .FirstOrDefaultAsync(s => s.Id == id);
 
             if (schedule == null) return NotFound();
@@ -92,6 +111,8 @@ namespace NursingScheduler.API.Controllers
                     RoomId = ss.Section!.RoomId,
                     RoomNumber = ss.Section!.Room != null ? ss.Section!.Room.RoomNumber : null,
                     RoomBuilding = ss.Section!.Room != null ? ss.Section!.Room.Building : null,
+                    InstructorId = ss.Section!.InstructorId,
+                    InstructorName = ss.Section!.Instructor != null ? ss.Section!.Instructor.Name : null,
                     CourseId = ss.Section!.CourseId,
                     CourseCode = ss.Section!.Course!.Code,
                     CourseName = ss.Section!.Course!.Name,
@@ -114,6 +135,9 @@ namespace NursingScheduler.API.Controllers
                 .Include(s => s.ScheduleSections)
                     .ThenInclude(ss => ss.Section!)
                         .ThenInclude(sec => sec.Room)
+                .Include(s => s.ScheduleSections)
+                    .ThenInclude(ss => ss.Section!)
+                        .ThenInclude(sec => sec.Instructor)
                 .Where(s => s.SemesterId == semesterId);
 
             if (level.HasValue)
@@ -148,6 +172,8 @@ namespace NursingScheduler.API.Controllers
                     RoomId = ss.Section.RoomId,
                     RoomNumber = ss.Section.Room != null ? ss.Section.Room.RoomNumber : null,
                     RoomBuilding = ss.Section.Room != null ? ss.Section.Room.Building : null,
+                    InstructorId = ss.Section.InstructorId,
+                    InstructorName = ss.Section.Instructor != null ? ss.Section.Instructor.Name : null,
                     CourseId = ss.Section.CourseId,
                     CourseCode = ss.Section.Course!.Code,
                     CourseName = ss.Section.Course.Name,
@@ -156,6 +182,47 @@ namespace NursingScheduler.API.Controllers
             }).ToListAsync();
 
             return Ok(schedules);
+        }
+
+        //clone a schedule within the same semester
+        [HttpPost("clone/{sourceScheduleId}")]
+        public async Task<ActionResult<ScheduleDto>> CloneSchedule(int sourceScheduleId, [FromBody] CloneScheduleDto cloneDto)
+        {
+            var source = await _context.Schedules
+                .Include(s => s.ScheduleSections)
+                .FirstOrDefaultAsync(s => s.Id == sourceScheduleId);
+
+            if (source == null) return NotFound();
+            if (await IsSemesterLocked(source.SemesterId))
+                return BadRequest("This semester is locked and cannot be modified");
+
+            var newSchedule = new Schedule
+            {
+                Name = cloneDto.NewName,
+                SemesterLevel = source.SemesterLevel,
+                LocationDisplay = cloneDto.NewLocation ?? source.LocationDisplay,
+                SemesterId = source.SemesterId,
+                Capacity = source.Capacity
+            };
+            _context.Schedules.Add(newSchedule);
+            await _context.SaveChangesAsync();
+
+            //link to the same sections (shared lecture references preserved)
+            foreach (var ss in source.ScheduleSections)
+            {
+                _context.ScheduleSections.Add(new ScheduleSection
+                {
+                    ScheduleId = newSchedule.Id,
+                    SectionId = ss.SectionId
+                });
+            }
+            await _context.SaveChangesAsync();
+
+            var username = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "unknown";
+            await _auditService.LogChange("Schedule", newSchedule.Id, "Cloned", username, $"Cloned from schedule {sourceScheduleId}", source.SemesterId);
+
+            //return the new schedule with full includes
+            return await GetSchedule(newSchedule.Id);
         }
 
         //delete a schedule and its links and students
@@ -168,9 +235,16 @@ namespace NursingScheduler.API.Controllers
                 .FirstOrDefaultAsync(s => s.Id == id);
 
             if (schedule == null) return NotFound();
+            if (await IsSemesterLocked(schedule.SemesterId))
+                return BadRequest("This semester is locked and cannot be modified");
 
+            var semesterId = schedule.SemesterId;
             _context.Schedules.Remove(schedule);
             await _context.SaveChangesAsync();
+
+            var username = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "unknown";
+            await _auditService.LogChange("Schedule", id, "Deleted", username, null, semesterId);
+
             return NoContent();
         }
 
@@ -180,11 +254,17 @@ namespace NursingScheduler.API.Controllers
         {
             var schedule = await _context.Schedules.FindAsync(id);
             if (schedule == null) return NotFound();
+            if (await IsSemesterLocked(schedule.SemesterId))
+                return BadRequest("This semester is locked and cannot be modified");
 
             schedule.Name = updateDto.Name;
             schedule.LocationDisplay = updateDto.LocationDisplay;
 
             await _context.SaveChangesAsync();
+
+            var username = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "unknown";
+            await _auditService.LogChange("Schedule", schedule.Id, "Updated", username, null, schedule.SemesterId);
+
             return NoContent();
         }
     }

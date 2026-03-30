@@ -10,6 +10,7 @@ namespace NursingScheduler.API.DTOs.Schedule
         public required string Name { get; set; }
 
         [Required]
+        [Range(1, 5)]
         //ensures this bucket only sees courses for its level
         public int SemesterLevel { get; set; } 
 
