@@ -7,6 +7,7 @@ using NursingScheduler.API.DTOs.Student;
 using NursingScheduler.API.Entities;
 using NursingScheduler.API.DTOs.Section;
 using NursingScheduler.API.Services;
+using ClosedXML.Excel;
 
 namespace NursingScheduler.API.Controllers
 {
@@ -266,6 +267,24 @@ namespace NursingScheduler.API.Controllers
             await _auditService.LogChange("Schedule", schedule.Id, "Updated", username, null, schedule.SemesterId);
 
             return NoContent();
+        }
+
+        //Export Schedules to Excel file
+        public void ScheduleExport(List<Student> data, string filePath)
+        {
+            using (var workbook = new XLWorkbook())
+            {
+                var worksheet = workbook.Worksheets.Add("Schedule");
+
+                // Add Data, Should automatically create headers
+                var table = worksheet.Cell(1, 1).InsertTable(data);
+
+                //Auto fit column size
+                worksheet.Columns().AdjustToContents();
+
+                //Save file
+                workbook.SaveAs(filePath);
+            }
         }
     }
 }
