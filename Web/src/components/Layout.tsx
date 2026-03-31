@@ -126,13 +126,7 @@ export function Layout() {
           </div>
 
           <div className="layout-nav-right">
-            <div className="layout-user-info">
-              <span className="layout-user-name">{currentUser?.name}</span>
-              <span className="layout-role-badge">
-                {currentUser?.role === "admin" && <Shield size={10} />}
-                {currentUser?.role}
-              </span>
-            </div>
+            <div className="layout-user-info"></div>
             <button className="layout-logout-btn" onClick={handleLogout}>
               <LogOut size={14} />
               Logout

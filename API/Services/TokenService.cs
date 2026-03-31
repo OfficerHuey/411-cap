@@ -22,9 +22,11 @@ namespace NursingScheduler.API.Services
         {
             //(what info is inside the token)
             //we store the username so the server knows who is calling
+            //include username and role in jwt claims
             var claims = new List<Claim>
             {
-                new Claim(JwtRegisteredClaimNames.NameId, user.UserName)
+                new Claim(JwtRegisteredClaimNames.NameId, user.UserName),
+                new Claim(ClaimTypes.Role, user.Role)
             };
 
             //create credentials (signing the token)

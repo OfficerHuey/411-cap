@@ -48,7 +48,8 @@ namespace NursingScheduler.API.Controllers
             {
                 Username = user.UserName,
                 //generate jwt token using token service and return it
-                Token = _tokenService.CreateToken(user) 
+                Token = _tokenService.CreateToken(user),
+                Role = user.Role
             };
         }
 
@@ -74,7 +75,8 @@ namespace NursingScheduler.API.Controllers
             {
                 Username = user.UserName,
                 //jwt token
-                Token = _tokenService.CreateToken(user)
+                Token = _tokenService.CreateToken(user),
+                Role = user.Role
             };
         }
     }

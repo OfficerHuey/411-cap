@@ -8,5 +8,8 @@ namespace NursingScheduler.API.DTOs.Auth
 
         //jwt token to authorize future request
         public required string Token { get; set; }
+
+        //user role returned after login
+        public required string Role { get; set; }
     }
 }

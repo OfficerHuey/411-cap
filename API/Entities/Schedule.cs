@@ -15,6 +15,9 @@ namespace NursingScheduler.API.Entities
         //a place to name the location for the whole group
         public string? LocationDisplay { get; set; }
 
+        //max students allowed in this lab group, editable after creation
+        public int Capacity { get; set; } = 8;
+
         //fk; defines what semester the bucket belongs to
         public int SemesterId { get; set; }
         public Semester? Semester { get; set; }

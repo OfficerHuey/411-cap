@@ -19,6 +19,12 @@ builder.Services.AddDbContext<DataContext>(options =>
 //jwt service
 builder.Services.AddScoped<ITokenService, TokenService>();
 
+//conflict detection engine
+builder.Services.AddScoped<IConflictService, ConflictService>();
+
+//audit trail service
+builder.Services.AddScoped<IAuditService, AuditService>();
+
 //cors policy, now allows react frontend
 builder.Services.AddCors(options =>
 {
@@ -87,6 +93,7 @@ try
     var context = services.GetRequiredService<DataContext>();
     await context.Database.MigrateAsync();
     await Seed.SeedCourses(context);
+    await Seed.SeedRooms(context);
 }
 catch (Exception ex)
 {

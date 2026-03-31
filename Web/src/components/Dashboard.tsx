@@ -11,6 +11,7 @@ export function Dashboard() {
   const navigate = useNavigate();
   const [semesters, setSemesters] = useState<Semester[]>([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
   const canEdit = authService.canEdit();
 
@@ -23,14 +24,9 @@ export function Dashboard() {
   };
 
   const handleDeleteSemester = (id: string) => {
-    if (
-      confirm(
-        "Are you sure you want to delete this semester? This will delete all associated schedules.",
-      )
-    ) {
-      dataStore.deleteSemester(id);
-      loadSemesters();
-    }
+    dataStore.deleteSemester(id);
+    setDeleteConfirm(null);
+    loadSemesters();
   };
 
   const formatDateRange = (startDate: string, endDate: string) => {
@@ -51,11 +47,8 @@ export function Dashboard() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=DM+Sans:wght@300;400;500&display=swap');
 
-        .dash-root {
-          font-family: 'DM Sans', sans-serif;
-        }
+        .dash-root { font-family: 'DM Sans', sans-serif; }
 
-        /* Page header */
         .dash-header {
           display: flex;
           align-items: flex-end;
@@ -81,14 +74,8 @@ export function Dashboard() {
           margin-bottom: 0.6rem;
         }
 
-        .dash-header-text p {
-          color: #6b7280;
-          font-size: 0.9rem;
-          margin: 0;
-          font-weight: 300;
-        }
+        .dash-header-text p { color: #6b7280; font-size: 0.9rem; margin: 0; font-weight: 300; }
 
-        /* Create button */
         .btn-create {
           display: inline-flex;
           align-items: center;
@@ -110,14 +97,12 @@ export function Dashboard() {
         .btn-create:hover { background: #003d2a; }
         .btn-create:active { transform: scale(0.98); }
 
-        /* Grid */
         .dash-grid {
           display: grid;
           grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
           gap: 1.5rem;
         }
 
-        /* Semester card */
         .semester-card {
           background: #ffffff;
           border: 1px solid #e5e2db;
@@ -131,14 +116,8 @@ export function Dashboard() {
           transform: translateY(-2px);
         }
 
-        .card-accent {
-          height: 4px;
-          background: linear-gradient(90deg, #00563f, #C8952C);
-        }
-
-        .card-body {
-          padding: 1.5rem;
-        }
+        .card-accent { height: 4px; background: linear-gradient(90deg, #00563f, #C8952C); }
+        .card-body { padding: 1.5rem; }
 
         .card-top {
           display: flex;
@@ -147,11 +126,7 @@ export function Dashboard() {
           margin-bottom: 1rem;
         }
 
-        .card-title-group {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-        }
+        .card-title-group { display: flex; align-items: center; gap: 0.75rem; }
 
         .card-icon {
           width: 38px;
@@ -165,19 +140,8 @@ export function Dashboard() {
           flex-shrink: 0;
         }
 
-        .card-title {
-          font-family: 'Playfair Display', serif;
-          font-size: 1.1rem;
-          font-weight: 600;
-          color: #0a1f14;
-          margin: 0 0 0.2rem 0;
-        }
-
-        .card-dates {
-          font-size: 0.78rem;
-          color: #9ca3af;
-          margin: 0;
-        }
+        .card-title { font-family: 'Playfair Display', serif; font-size: 1.1rem; font-weight: 600; color: #0a1f14; margin: 0 0 0.2rem 0; }
+        .card-dates { font-size: 0.78rem; color: #9ca3af; margin: 0; }
 
         .btn-delete {
           background: none;
@@ -192,10 +156,7 @@ export function Dashboard() {
           flex-shrink: 0;
         }
 
-        .btn-delete:hover {
-          color: #dc2626;
-          background: #fef2f2;
-        }
+        .btn-delete:hover { color: #dc2626; background: #fef2f2; }
 
         .card-clinical-badge {
           display: inline-flex;
@@ -225,13 +186,8 @@ export function Dashboard() {
           box-sizing: border-box;
         }
 
-        .btn-open:hover {
-          background: #00563f;
-          color: #ffffff;
-          border-color: #00563f;
-        }
+        .btn-open:hover { background: #00563f; color: #ffffff; border-color: #00563f; }
 
-        /* Empty state */
         .dash-empty {
           grid-column: 1 / -1;
           display: flex;
@@ -256,21 +212,9 @@ export function Dashboard() {
           margin-bottom: 1rem;
         }
 
-        .dash-empty h3 {
-          font-family: 'Playfair Display', serif;
-          font-size: 1.2rem;
-          color: #0a1f14;
-          margin: 0 0 0.5rem 0;
-        }
+        .dash-empty h3 { font-family: 'Playfair Display', serif; font-size: 1.2rem; color: #0a1f14; margin: 0 0 0.5rem 0; }
+        .dash-empty p { color: #9ca3af; font-size: 0.88rem; margin: 0 0 1.5rem 0; font-weight: 300; }
 
-        .dash-empty p {
-          color: #9ca3af;
-          font-size: 0.88rem;
-          margin: 0 0 1.5rem 0;
-          font-weight: 300;
-        }
-
-        /* Footer */
         .dash-footer {
           text-align: center;
           padding: 2rem;
@@ -279,6 +223,75 @@ export function Dashboard() {
           letter-spacing: 0.04em;
           text-transform: uppercase;
         }
+
+        .delete-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(0,0,0,0.5);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 9999;
+          backdrop-filter: blur(2px);
+        }
+
+        .delete-box {
+          background: #ffffff;
+          border-radius: 12px;
+          padding: 1.75rem;
+          max-width: 360px;
+          width: 100%;
+          box-shadow: 0 24px 60px rgba(0,0,0,0.2);
+          font-family: 'DM Sans', sans-serif;
+          text-align: center;
+        }
+
+        .delete-box-icon {
+          width: 48px;
+          height: 48px;
+          background: #fef2f2;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin: 0 auto 1rem;
+        }
+
+        .delete-box h3 { font-family: 'Playfair Display', serif; font-size: 1.1rem; color: #0a1f14; margin: 0 0 0.5rem 0; }
+        .delete-box p { font-size: 0.85rem; color: #6b7280; margin: 0 0 1.5rem 0; line-height: 1.5; }
+        .delete-box-actions { display: flex; gap: 0.75rem; }
+
+        .delete-btn-cancel {
+          flex: 1;
+          padding: 0.65rem;
+          border: 1.5px solid #e5e7eb;
+          border-radius: 8px;
+          background: #ffffff;
+          color: #6b7280;
+          font-family: 'DM Sans', sans-serif;
+          font-size: 0.85rem;
+          font-weight: 500;
+          cursor: pointer;
+          transition: background 0.15s;
+        }
+
+        .delete-btn-cancel:hover { background: #f9fafb; }
+
+        .delete-btn-confirm {
+          flex: 1;
+          padding: 0.65rem;
+          background: #dc2626;
+          color: #ffffff;
+          border: none;
+          border-radius: 8px;
+          font-family: 'DM Sans', sans-serif;
+          font-size: 0.85rem;
+          font-weight: 500;
+          cursor: pointer;
+          transition: background 0.15s;
+        }
+
+        .delete-btn-confirm:hover { background: #b91c1c; }
       `}</style>
 
       <div className="dash-root">
@@ -321,7 +334,7 @@ export function Dashboard() {
                       className="btn-delete"
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleDeleteSemester(semester.id);
+                        setDeleteConfirm(semester.id);
                       }}
                     >
                       <Trash2 size={15} />
@@ -376,6 +389,35 @@ export function Dashboard() {
             setShowCreateModal(false);
           }}
         />
+      )}
+
+      {deleteConfirm && (
+        <div className="delete-overlay" onClick={() => setDeleteConfirm(null)}>
+          <div className="delete-box" onClick={(e) => e.stopPropagation()}>
+            <div className="delete-box-icon">
+              <Trash2 size={20} color="#dc2626" />
+            </div>
+            <h3>Delete Semester?</h3>
+            <p>
+              This will permanently delete this semester and all associated
+              schedules and data.
+            </p>
+            <div className="delete-box-actions">
+              <button
+                className="delete-btn-cancel"
+                onClick={() => setDeleteConfirm(null)}
+              >
+                Cancel
+              </button>
+              <button
+                className="delete-btn-confirm"
+                onClick={() => handleDeleteSemester(deleteConfirm)}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );

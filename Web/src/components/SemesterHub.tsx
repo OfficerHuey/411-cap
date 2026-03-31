@@ -22,6 +22,7 @@ export function SemesterHub() {
   const [activeLevel, setActiveLevel] = useState<SemesterLevel>("Semester 1");
   const [scheduleGroups, setScheduleGroups] = useState<ScheduleGroup[]>([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
   const canEdit = authService.canEdit();
 
@@ -39,10 +40,9 @@ export function SemesterHub() {
   };
 
   const handleDeleteSchedule = (id: string) => {
-    if (confirm("Are you sure you want to delete this schedule group?")) {
-      dataStore.deleteScheduleGroup(id);
-      loadScheduleGroups();
-    }
+    dataStore.deleteScheduleGroup(id);
+    setDeleteConfirm(null);
+    loadScheduleGroups();
   };
 
   if (!semester) {
@@ -65,11 +65,8 @@ export function SemesterHub() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=DM+Sans:wght@300;400;500&display=swap');
 
-        .hub-root {
-          font-family: 'DM Sans', sans-serif;
-        }
+        .hub-root { font-family: 'DM Sans', sans-serif; }
 
-        /* Page header */
         .hub-header {
           display: flex;
           align-items: center;
@@ -87,30 +84,30 @@ export function SemesterHub() {
           gap: 1rem;
         }
 
-.btn-back {
-  height: 36px;
-  padding: 0 1rem;
-  gap: 0.4rem;
-  background: #ffffff;
-  border: 1.5px solid #e5e2db;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  color: #6b7280;
-  font-family: 'DM Sans', sans-serif;
-  font-size: 0.88rem;
-  font-weight: 500;
-  transition: background 0.15s, color 0.15s;
-  flex-shrink: 0;
-}
+        .btn-back {
+          height: 36px;
+          padding: 0 1rem;
+          gap: 0.4rem;
+          background: #ffffff;
+          border: 1.5px solid #e5e2db;
+          border-radius: 8px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          color: #6b7280;
+          font-family: 'DM Sans', sans-serif;
+          font-size: 0.88rem;
+          font-weight: 500;
+          transition: background 0.15s, color 0.15s;
+          flex-shrink: 0;
+        }
 
-.btn-back:hover {
-  background: #00563f;
-  color: #ffffff;
-  border-color: #00563f;
-}
+        .btn-back:hover {
+          background: #00563f;
+          color: #ffffff;
+          border-color: #00563f;
+        }
 
         .hub-title h1 {
           font-family: 'Playfair Display', serif;
@@ -127,7 +124,6 @@ export function SemesterHub() {
           font-weight: 300;
         }
 
-        /* Add button */
         .btn-add {
           display: inline-flex;
           align-items: center;
@@ -148,7 +144,6 @@ export function SemesterHub() {
         .btn-add:hover { background: #003d2a; }
         .btn-add:active { transform: scale(0.98); }
 
-        /* Level tabs */
         .hub-tabs {
           display: flex;
           background: #ffffff;
@@ -173,10 +168,7 @@ export function SemesterHub() {
           white-space: nowrap;
         }
 
-        .hub-tab:hover {
-          background: #f8f7f4;
-          color: #0a1f14;
-        }
+        .hub-tab:hover { background: #f8f7f4; color: #0a1f14; }
 
         .hub-tab.active {
           color: #00563f;
@@ -184,14 +176,12 @@ export function SemesterHub() {
           background: #f0faf5;
         }
 
-        /* Grid */
         .hub-grid {
           display: grid;
           grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
           gap: 1.5rem;
         }
 
-        /* Schedule card */
         .schedule-card {
           background: #ffffff;
           border: 1px solid #e5e2db;
@@ -210,9 +200,7 @@ export function SemesterHub() {
           background: linear-gradient(90deg, #00563f, #C8952C);
         }
 
-        .schedule-card-body {
-          padding: 1.5rem;
-        }
+        .schedule-card-body { padding: 1.5rem; }
 
         .schedule-card-top {
           display: flex;
@@ -229,11 +217,7 @@ export function SemesterHub() {
           margin: 0 0 0.25rem 0;
         }
 
-        .schedule-card-location {
-          font-size: 0.8rem;
-          color: #9ca3af;
-          margin: 0;
-        }
+        .schedule-card-location { font-size: 0.8rem; color: #9ca3af; margin: 0; }
 
         .btn-delete-schedule {
           background: none;
@@ -248,10 +232,7 @@ export function SemesterHub() {
           flex-shrink: 0;
         }
 
-        .btn-delete-schedule:hover {
-          color: #dc2626;
-          background: #fef2f2;
-        }
+        .btn-delete-schedule:hover { color: #dc2626; background: #fef2f2; }
 
         .btn-edit-schedule {
           width: 100%;
@@ -278,7 +259,6 @@ export function SemesterHub() {
           border-color: #00563f;
         }
 
-        /* Empty state */
         .hub-empty {
           grid-column: 1 / -1;
           display: flex;
@@ -305,10 +285,90 @@ export function SemesterHub() {
           margin: 0 0 1.5rem 0;
           font-weight: 300;
         }
+
+        .delete-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(0,0,0,0.5);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 9999;
+          backdrop-filter: blur(2px);
+        }
+
+        .delete-box {
+          background: #ffffff;
+          border-radius: 12px;
+          padding: 1.75rem;
+          max-width: 360px;
+          width: 100%;
+          box-shadow: 0 24px 60px rgba(0,0,0,0.2);
+          font-family: 'DM Sans', sans-serif;
+          text-align: center;
+        }
+
+        .delete-box-icon {
+          width: 48px;
+          height: 48px;
+          background: #fef2f2;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin: 0 auto 1rem;
+        }
+
+        .delete-box h3 {
+          font-family: 'Playfair Display', serif;
+          font-size: 1.1rem;
+          color: #0a1f14;
+          margin: 0 0 0.5rem 0;
+        }
+
+        .delete-box p {
+          font-size: 0.85rem;
+          color: #6b7280;
+          margin: 0 0 1.5rem 0;
+          line-height: 1.5;
+        }
+
+        .delete-box-actions { display: flex; gap: 0.75rem; }
+
+        .delete-btn-cancel {
+          flex: 1;
+          padding: 0.65rem;
+          border: 1.5px solid #e5e7eb;
+          border-radius: 8px;
+          background: #ffffff;
+          color: #6b7280;
+          font-family: 'DM Sans', sans-serif;
+          font-size: 0.85rem;
+          font-weight: 500;
+          cursor: pointer;
+          transition: background 0.15s;
+        }
+
+        .delete-btn-cancel:hover { background: #f9fafb; }
+
+        .delete-btn-confirm {
+          flex: 1;
+          padding: 0.65rem;
+          background: #dc2626;
+          color: #ffffff;
+          border: none;
+          border-radius: 8px;
+          font-family: 'DM Sans', sans-serif;
+          font-size: 0.85rem;
+          font-weight: 500;
+          cursor: pointer;
+          transition: background 0.15s;
+        }
+
+        .delete-btn-confirm:hover { background: #b91c1c; }
       `}</style>
 
       <div className="hub-root">
-        {/* Header */}
         <div className="hub-header">
           <div className="hub-header-left">
             <button className="btn-back" onClick={() => navigate("/")}>
@@ -342,7 +402,6 @@ export function SemesterHub() {
           )}
         </div>
 
-        {/* Level Tabs */}
         <div className="hub-tabs">
           {LEVELS.map((level) => (
             <button
@@ -355,7 +414,6 @@ export function SemesterHub() {
           ))}
         </div>
 
-        {/* Schedule Groups Grid */}
         <div className="hub-grid">
           {scheduleGroups.map((group) => (
             <div key={group.id} className="schedule-card">
@@ -371,7 +429,7 @@ export function SemesterHub() {
                   {canEdit && (
                     <button
                       className="btn-delete-schedule"
-                      onClick={() => handleDeleteSchedule(group.id)}
+                      onClick={() => setDeleteConfirm(group.id)}
                     >
                       <Trash2 size={15} />
                     </button>
@@ -416,6 +474,35 @@ export function SemesterHub() {
             setShowCreateModal(false);
           }}
         />
+      )}
+
+      {deleteConfirm && (
+        <div className="delete-overlay" onClick={() => setDeleteConfirm(null)}>
+          <div className="delete-box" onClick={(e) => e.stopPropagation()}>
+            <div className="delete-box-icon">
+              <Trash2 size={20} color="#dc2626" />
+            </div>
+            <h3>Delete Schedule Group?</h3>
+            <p>
+              This will permanently delete this schedule group and all its
+              associated data.
+            </p>
+            <div className="delete-box-actions">
+              <button
+                className="delete-btn-cancel"
+                onClick={() => setDeleteConfirm(null)}
+              >
+                Cancel
+              </button>
+              <button
+                className="delete-btn-confirm"
+                onClick={() => handleDeleteSchedule(deleteConfirm)}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );
