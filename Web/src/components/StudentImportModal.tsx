@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { X, Upload, FileSpreadsheet, CheckCircle, AlertCircle, Download, ChevronDown } from "lucide-react";
+import { X, Upload, FileSpreadsheet, CheckCircle, AlertCircle, Download, Loader2 } from "lucide-react";
 import { importApi, schedules as schedulesApi } from "../Lib/api";
 import type { Schedule } from "../Lib/Types";
 
@@ -167,7 +167,7 @@ export function StudentImportModal({ semesterId, onClose, onSuccess }: StudentIm
           max-height: 90vh;
           overflow-y: auto;
           box-shadow: 0 24px 60px rgba(0,0,0,0.2);
-          font-family: 'DM Sans', sans-serif;
+          font-family: 'Inter', sans-serif;
         }
 
         .sim-header {
@@ -289,7 +289,7 @@ export function StudentImportModal({ semesterId, onClose, onSuccess }: StudentIm
           color: #00563f;
           border: 1.5px solid #c6e8d8;
           border-radius: 8px;
-          font-family: 'DM Sans', sans-serif;
+          font-family: 'Inter', sans-serif;
           font-size: 0.82rem;
           font-weight: 500;
           cursor: pointer;
@@ -408,7 +408,7 @@ export function StudentImportModal({ semesterId, onClose, onSuccess }: StudentIm
           padding: 0.4rem 0.6rem;
           border: 1.5px solid #e5e7eb;
           border-radius: 6px;
-          font-family: 'DM Sans', sans-serif;
+          font-family: 'Inter', sans-serif;
           font-size: 0.8rem;
           color: #374151;
           outline: none;
@@ -436,7 +436,7 @@ export function StudentImportModal({ semesterId, onClose, onSuccess }: StudentIm
           border-radius: 8px;
           background: #ffffff;
           color: #6b7280;
-          font-family: 'DM Sans', sans-serif;
+          font-family: 'Inter', sans-serif;
           font-size: 0.85rem;
           font-weight: 500;
           cursor: pointer;
@@ -451,7 +451,7 @@ export function StudentImportModal({ semesterId, onClose, onSuccess }: StudentIm
           color: #ffffff;
           border: none;
           border-radius: 8px;
-          font-family: 'DM Sans', sans-serif;
+          font-family: 'Inter', sans-serif;
           font-size: 0.85rem;
           font-weight: 500;
           cursor: pointer;
@@ -460,6 +460,8 @@ export function StudentImportModal({ semesterId, onClose, onSuccess }: StudentIm
 
         .sim-btn-commit:hover { background: #003d2a; }
         .sim-btn-commit:disabled { background: #6b7280; cursor: not-allowed; }
+        .sim-btn-commit .btn-spinner { animation: sim-btn-spin 0.7s linear infinite; }
+        @keyframes sim-btn-spin { to { transform: rotate(360deg); } }
 
         .sim-success {
           text-align: center;
@@ -700,6 +702,7 @@ export function StudentImportModal({ semesterId, onClose, onSuccess }: StudentIm
                     onClick={handleCommit}
                     disabled={committing}
                   >
+                    {committing && <Loader2 size={14} className="btn-spinner" />}
                     {committing ? "Importing..." : `Confirm Import (${result.assignments.length + Object.values(manualAssignments).filter(v => v > 0).length} students)`}
                   </button>
                 </div>

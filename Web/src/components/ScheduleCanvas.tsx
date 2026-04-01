@@ -1,11 +1,12 @@
 import { useRef, useEffect, useState, useMemo } from "react";
 import "../App.css";
-import { Plus, Trash2, Pencil, AlertTriangle } from "lucide-react";
+import { Plus, Trash2, Pencil, Building2 } from "lucide-react";
 import { useDrop } from "react-dnd";
 import { sections as sectionsApi } from "../Lib/api";
 import type { Schedule, Course, Section } from "../Lib/Types";
 import { courseTypeColor, dayOfWeekName, timeSpanToDisplay } from "../Lib/Types";
 import { CourseDetailsModal } from "./CourseDetailsModal";
+import { useToast } from "../Lib/ToastContext";
 
 interface ScheduleCanvasProps {
   schedule: Schedule;
@@ -59,24 +60,6 @@ function timeSpanToMinutes(ts: string | null): number {
   if (!ts) return 0;
   const parts = ts.split(":");
   return parseInt(parts[0]) * 60 + parseInt(parts[1]);
-}
-
-//convert slot display string to total minutes from midnight
-function slotToMinutes(slot: string): number {
-  const [time, period] = slot.split(" ");
-  let [hours, minutes] = time.split(":").map(Number);
-  if (period === "PM" && hours !== 12) hours += 12;
-  if (period === "AM" && hours === 12) hours = 0;
-  return hours * 60 + minutes;
-}
-
-//convert minutes to "H:mm AM/PM" display
-function minutesToSlot(mins: number): string {
-  const h = Math.floor(mins / 60);
-  const m = mins % 60;
-  const period = h >= 12 ? "PM" : "AM";
-  const displayHour = h === 0 ? 12 : h > 12 ? h - 12 : h;
-  return `${displayHour}:${m.toString().padStart(2, "0")} ${period}`;
 }
 
 function DropZone({
@@ -165,7 +148,7 @@ function Semester5DropZone({ onDrop }: { onDrop: (courseId: number) => void }) {
           fontSize: "0.85rem",
           color: "#9ca3af",
           margin: 0,
-          fontFamily: "DM Sans, sans-serif",
+          fontFamily: "Inter, sans-serif",
         }}
       >
         Drop course here to add to schedule
@@ -182,14 +165,48 @@ export function ScheduleCanvas({
   onRefresh,
   onDrop,
 }: ScheduleCanvasProps) {
+  const { addToast } = useToast();
   const [deleteConfirm, setDeleteConfirm] = useState<DeleteConfirm | null>(null);
   const [editModal, setEditModal] = useState<EditModal | null>(null);
+
+  const [tooltipSection, setTooltipSection] = useState<number | null>(null);
+  const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
 
   //map sections to display data
   const scheduledSections = schedule.sections.map((section) => {
     const course = courses.find((c) => c.id === section.courseId);
     return { section, course };
   }).filter((s) => s.course) as { section: Section; course: Course }[];
+
+  //detect overlapping sections on same day/time (conflicts)
+  const conflictSectionIds = useMemo(() => {
+    const ids = new Set<number>();
+    const timed = scheduledSections.filter(({ section }) =>
+      section.dayOfWeek != null && section.startTime && section.endTime
+    );
+    for (let i = 0; i < timed.length; i++) {
+      for (let j = i + 1; j < timed.length; j++) {
+        const a = timed[i].section;
+        const b = timed[j].section;
+        if (a.dayOfWeek !== b.dayOfWeek) continue;
+        const aStart = timeSpanToMinutes(a.startTime);
+        const aEnd = timeSpanToMinutes(a.endTime);
+        const bStart = timeSpanToMinutes(b.startTime);
+        const bEnd = timeSpanToMinutes(b.endTime);
+        if (aStart < bEnd && bStart < aEnd) {
+          ids.add(a.id);
+          ids.add(b.id);
+        }
+      }
+    }
+    return ids;
+  }, [scheduledSections]);
+
+  const handleTooltipEnter = (sectionId: number, e: React.MouseEvent) => {
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    setTooltipPos({ x: rect.left + rect.width / 2, y: rect.top - 8 });
+    setTooltipSection(sectionId);
+  };
 
   //build occupied slot map for drop zone hiding
   const occupiedSlots = useMemo(() => {
@@ -213,8 +230,10 @@ export function ScheduleCanvas({
     try {
       await sectionsApi.removeFromSchedule(sectionId, schedule.id);
       setDeleteConfirm(null);
+      addToast("success", "Section removed from schedule");
       onRefresh();
-    } catch {
+    } catch (err: any) {
+      addToast("error", err.message || "Failed to remove section");
       setDeleteConfirm(null);
     }
   };
@@ -228,26 +247,26 @@ export function ScheduleCanvas({
       <style>{`
         .canvas-root {
           background: #ffffff;
-          border: 1px solid #e5e2db;
+          border: 1px solid #e5e7eb;
           border-radius: 10px;
           overflow: hidden;
-          font-family: 'DM Sans', sans-serif;
+          font-family: 'Inter', sans-serif;
         }
 
         .canvas-header {
           padding: 1rem 1.25rem;
-          border-bottom: 1px solid #e5e2db;
+          border-bottom: 1px solid #e5e7eb;
           display: flex;
           align-items: center;
           justify-content: space-between;
-          background: #fafaf8;
+          background: #fafaf9;
         }
 
         .canvas-header h3 {
           font-family: 'Playfair Display', serif;
           font-size: 1rem;
           font-weight: 600;
-          color: #0a1f14;
+          color: #111827;
           margin: 0;
         }
 
@@ -256,7 +275,7 @@ export function ScheduleCanvas({
         .cal-grid {
           display: grid;
           grid-template-columns: 64px repeat(5, 1fr);
-          border: 1px solid #e5e2db;
+          border: 1px solid #e5e7eb;
           border-radius: 6px;
           overflow: hidden;
           min-width: 600px;
@@ -264,8 +283,8 @@ export function ScheduleCanvas({
 
         .cal-corner {
           background: #003d2a;
-          border-right: 2px solid #e5e2db;
-          border-bottom: 2px solid #e5e2db;
+          border-right: 2px solid #e5e7eb;
+          border-bottom: 2px solid #e5e7eb;
         }
 
         .cal-day-header {
@@ -277,14 +296,14 @@ export function ScheduleCanvas({
           text-transform: uppercase;
           color: #ffffff;
           background: #00563f;
-          border-bottom: 2px solid #e5e2db;
+          border-bottom: 2px solid #e5e7eb;
           border-right: 1px solid rgba(255,255,255,0.1);
         }
 
         .cal-day-header:last-child { border-right: none; }
 
         .cal-time-col {
-          border-right: 2px solid #e5e2db;
+          border-right: 2px solid #e5e7eb;
         }
 
         .cal-time-label {
@@ -294,7 +313,7 @@ export function ScheduleCanvas({
           justify-content: center;
           font-size: 0.68rem;
           color: #9ca3af;
-          background: #fafaf8;
+          background: #fafaf9;
           border-bottom: 1px solid #f3f4f6;
           font-weight: 500;
           white-space: nowrap;
@@ -302,13 +321,13 @@ export function ScheduleCanvas({
         }
 
         .cal-time-label.hour-mark {
-          border-bottom-color: #e5e2db;
+          border-bottom-color: #e5e7eb;
           color: #6b7280;
         }
 
         .cal-day-col {
           position: relative;
-          border-right: 1px solid #e5e2db;
+          border-right: 1px solid #e5e7eb;
         }
 
         .cal-day-col:last-child { border-right: none; }
@@ -322,7 +341,7 @@ export function ScheduleCanvas({
         }
 
         .cal-slot-line.hour-mark {
-          border-bottom-color: #e5e2db;
+          border-bottom-color: #e5e7eb;
         }
 
         .cal-drop-zone {
@@ -390,10 +409,52 @@ export function ScheduleCanvas({
         .course-block-instructor { font-size: 0.64rem; opacity: 0.75; }
         .course-block-term { font-size: 0.62rem; opacity: 0.8; font-weight: 600; background: rgba(255,255,255,0.2); display: inline-block; padding: 0 4px; border-radius: 3px; margin-top: 1px; }
 
+        @keyframes conflictPulse {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+          50% { box-shadow: 0 0 8px 2px rgba(220, 38, 38, 0.35); }
+        }
+
+        .course-block.has-conflict {
+          animation: conflictPulse 2s ease-in-out infinite;
+          border-left-color: #dc2626 !important;
+        }
+
+        .course-block-tooltip {
+          position: fixed;
+          z-index: 9999;
+          background: #1c1917;
+          color: #ffffff;
+          border-radius: 8px;
+          padding: 0.65rem 0.85rem;
+          font-family: 'Inter', sans-serif;
+          font-size: 0.75rem;
+          line-height: 1.55;
+          pointer-events: none;
+          transform: translate(-50%, -100%);
+          box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+          max-width: 240px;
+          white-space: normal;
+        }
+
+        .course-block-tooltip::after {
+          content: '';
+          position: absolute;
+          top: 100%;
+          left: 50%;
+          transform: translateX(-50%);
+          border: 5px solid transparent;
+          border-top-color: #1c1917;
+        }
+
+        .tooltip-label { color: #9ca3af; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.04em; }
+        .tooltip-value { color: #ffffff; font-weight: 500; }
+        .tooltip-row { display: flex; gap: 0.4rem; align-items: baseline; }
+        .tooltip-conflict { color: #fca5a5; font-weight: 500; margin-top: 0.3rem; }
+
         .sem5-card {
           border-radius: 8px;
           padding: 1rem 1.25rem;
-          border: 1px solid #e5e2db;
+          border: 1px solid #e5e7eb;
           margin-bottom: 0.75rem;
           border-left-width: 4px;
           display: flex;
@@ -404,7 +465,7 @@ export function ScheduleCanvas({
         }
 
         .sem5-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.07); }
-        .sem5-card-title { font-family: 'Playfair Display', serif; font-size: 0.95rem; font-weight: 600; color: #0a1f14; margin: 0 0 0.2rem 0; }
+        .sem5-card-title { font-family: 'Playfair Display', serif; font-size: 0.95rem; font-weight: 600; color: #111827; margin: 0 0 0.2rem 0; }
         .sem5-card-name { font-size: 0.82rem; color: #6b7280; margin: 0 0 0.2rem 0; }
         .sem5-card-date { font-size: 0.78rem; color: #9ca3af; margin: 0; }
         .sem5-card-room { font-size: 0.78rem; color: #00563f; margin: 0.2rem 0 0 0; }
@@ -444,7 +505,7 @@ export function ScheduleCanvas({
           max-width: 360px;
           width: 100%;
           box-shadow: 0 24px 60px rgba(0,0,0,0.2);
-          font-family: 'DM Sans', sans-serif;
+          font-family: 'Inter', sans-serif;
           text-align: center;
         }
 
@@ -459,7 +520,7 @@ export function ScheduleCanvas({
           margin: 0 auto 1rem;
         }
 
-        .delete-box h3 { font-family: 'Playfair Display', serif; font-size: 1.1rem; color: #0a1f14; margin: 0 0 0.5rem 0; }
+        .delete-box h3 { font-family: 'Playfair Display', serif; font-size: 1.1rem; color: #111827; margin: 0 0 0.5rem 0; }
         .delete-box p { font-size: 0.85rem; color: #6b7280; margin: 0 0 1.5rem 0; line-height: 1.5; }
         .delete-box-actions { display: flex; gap: 0.75rem; }
 
@@ -467,7 +528,7 @@ export function ScheduleCanvas({
           flex: 1; padding: 0.65rem;
           border: 1.5px solid #e5e7eb; border-radius: 8px;
           background: #ffffff; color: #6b7280;
-          font-family: 'DM Sans', sans-serif; font-size: 0.85rem; font-weight: 500;
+          font-family: 'Inter', sans-serif; font-size: 0.85rem; font-weight: 500;
           cursor: pointer; transition: background 0.15s;
         }
 
@@ -476,7 +537,7 @@ export function ScheduleCanvas({
         .delete-btn-confirm {
           flex: 1; padding: 0.65rem;
           background: #dc2626; color: #ffffff; border: none; border-radius: 8px;
-          font-family: 'DM Sans', sans-serif; font-size: 0.85rem; font-weight: 500;
+          font-family: 'Inter', sans-serif; font-size: 0.85rem; font-weight: 500;
           cursor: pointer; transition: background 0.15s;
         }
 
@@ -634,16 +695,19 @@ export function ScheduleCanvas({
                       const color = getColor(course);
                       const startDisplay = timeSpanToDisplay(section.startTime);
                       const endDisplay = timeSpanToDisplay(section.endTime);
+                      const hasConflict = conflictSectionIds.has(section.id);
 
                       return (
                         <div
                           key={section.id}
-                          className="course-block"
+                          className={`course-block${hasConflict ? " has-conflict" : ""}`}
                           style={{
                             top,
                             height: Math.max(height - 2, SLOT_HEIGHT - 2),
                             backgroundColor: color,
                           }}
+                          onMouseEnter={(e) => handleTooltipEnter(section.id, e)}
+                          onMouseLeave={() => setTooltipSection(null)}
                         >
                           <div className="course-block-inner">
                             {!isLocked && (
@@ -682,6 +746,7 @@ export function ScheduleCanvas({
                               <>
                                 {section.roomNumber && (
                                   <div className="course-block-room">
+                                    <Building2 size={9} style={{ display: "inline", verticalAlign: "middle", marginRight: "2px", opacity: 0.85 }} />
                                     {section.roomBuilding} {section.roomNumber}
                                   </div>
                                 )}
@@ -698,6 +763,32 @@ export function ScheduleCanvas({
                               </>
                             )}
                           </div>
+
+                          {tooltipSection === section.id && (
+                            <div
+                              className="course-block-tooltip"
+                              style={{ left: tooltipPos.x, top: tooltipPos.y }}
+                            >
+                              <div style={{ fontWeight: 600, marginBottom: "0.3rem" }}>
+                                {section.courseCode} — {section.courseName}
+                              </div>
+                              <div className="tooltip-row"><span className="tooltip-label">Section:</span> <span className="tooltip-value">{section.sectionNumber}</span></div>
+                              <div className="tooltip-row"><span className="tooltip-label">Time:</span> <span className="tooltip-value">{startDisplay} – {endDisplay}</span></div>
+                              <div className="tooltip-row"><span className="tooltip-label">Day:</span> <span className="tooltip-value">{day}</span></div>
+                              {section.roomNumber && (
+                                <div className="tooltip-row"><span className="tooltip-label">Room:</span> <span className="tooltip-value">{section.roomBuilding} {section.roomNumber}</span></div>
+                              )}
+                              {section.instructorName && (
+                                <div className="tooltip-row"><span className="tooltip-label">Instructor:</span> <span className="tooltip-value">{section.instructorName}</span></div>
+                              )}
+                              {section.term && section.term !== "Full" && (
+                                <div className="tooltip-row"><span className="tooltip-label">Term:</span> <span className="tooltip-value">{section.term === "Term1" ? "Term 1" : "Term 2"}</span></div>
+                              )}
+                              {hasConflict && (
+                                <div className="tooltip-conflict">⚠ Time conflict detected</div>
+                              )}
+                            </div>
+                          )}
                         </div>
                       );
                     })}

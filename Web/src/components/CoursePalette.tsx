@@ -3,7 +3,8 @@ import { authService } from "../Lib/Auth";
 import type { Course } from "../Lib/Types";
 import { courseTypeColor } from "../Lib/Types";
 import { useDrag } from "react-dnd";
-import { useRef } from "react";
+import { useRef, useState } from "react";
+import { Search } from "lucide-react";
 
 interface CoursePaletteProps {
   courses: Course[];
@@ -52,9 +53,17 @@ function DraggableCourse({ course }: { course: Course }) {
 }
 
 export function CoursePalette({ courses }: CoursePaletteProps) {
-  const lectures = courses.filter((c) => c.defaultType === "Lecture");
-  const labs = courses.filter((c) => c.defaultType === "Lab");
-  const clinicals = courses.filter((c) => c.defaultType === "Clinical");
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filtered = courses.filter((c) => {
+    if (!searchQuery) return true;
+    const q = searchQuery.toLowerCase();
+    return c.code.toLowerCase().includes(q) || c.name.toLowerCase().includes(q);
+  });
+
+  const lectures = filtered.filter((c) => c.defaultType === "Lecture");
+  const labs = filtered.filter((c) => c.defaultType === "Lab");
+  const clinicals = filtered.filter((c) => c.defaultType === "Clinical");
 
   const PaletteSection = ({ label, items }: { label: string; items: Course[] }) => (
     <div className="palette-section">
@@ -77,7 +86,7 @@ export function CoursePalette({ courses }: CoursePaletteProps) {
           overflow: hidden;
           position: sticky;
           top: 1rem;
-          font-family: 'DM Sans', sans-serif;
+          font-family: 'Inter', sans-serif;
         }
 
         .palette-header {
@@ -100,6 +109,45 @@ export function CoursePalette({ courses }: CoursePaletteProps) {
           margin: 0.2rem 0 0;
           font-weight: 300;
         }
+
+        .palette-search {
+          padding: 0.75rem 1rem;
+          border-bottom: 1px solid #e5e2db;
+        }
+
+        .palette-search-wrap {
+          position: relative;
+          display: flex;
+          align-items: center;
+        }
+
+        .palette-search-icon {
+          position: absolute;
+          left: 0.6rem;
+          color: #9ca3af;
+          pointer-events: none;
+        }
+
+        .palette-search-input {
+          width: 100%;
+          padding: 0.5rem 0.6rem 0.5rem 2rem;
+          border: 1.5px solid #e5e2db;
+          border-radius: 7px;
+          font-family: 'Inter', sans-serif;
+          font-size: 0.78rem;
+          color: #0a1f14;
+          outline: none;
+          background: #fafaf8;
+          transition: border-color 0.15s, box-shadow 0.15s;
+        }
+
+        .palette-search-input:focus {
+          border-color: #00563f;
+          box-shadow: 0 0 0 3px rgba(0, 86, 63, 0.1);
+          background: #ffffff;
+        }
+
+        .palette-search-input::placeholder { color: #c4c0b8; }
 
         .palette-body {
           padding: 1rem;
@@ -173,9 +221,24 @@ export function CoursePalette({ courses }: CoursePaletteProps) {
           <p>Drag to schedule</p>
         </div>
 
+        <div className="palette-search">
+          <div className="palette-search-wrap">
+            <Search size={13} className="palette-search-icon" />
+            <input
+              type="text"
+              className="palette-search-input"
+              placeholder="Filter courses..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+        </div>
+
         <div className="palette-body">
-          {courses.length === 0 && (
-            <p className="palette-empty">No courses available</p>
+          {filtered.length === 0 && (
+            <p className="palette-empty">
+              {searchQuery ? "No courses match your filter" : "No courses available"}
+            </p>
           )}
           {lectures.length > 0 && <PaletteSection label="Lectures" items={lectures} />}
           {labs.length > 0 && <PaletteSection label="Labs" items={labs} />}

@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
-import type { Course, Section, Room, Instructor, ConflictResult, TermType, CreateSectionDto } from "../Lib/Types";
+import type { Course, Section, Room, Instructor, ConflictResult, TermType, CreateSectionDto, DayOfWeekEnum } from "../Lib/Types";
 import { timeSlotToTimeSpan } from "../Lib/Types";
-import { X, Pencil, AlertTriangle, AlertCircle, Info } from "lucide-react";
+import { X, Pencil, AlertTriangle, AlertCircle, Info, Loader2 } from "lucide-react";
 import { sections as sectionsApi, rooms as roomsApi, instructors as instructorsApi } from "../Lib/api";
+import { useToast } from "../Lib/ToastContext";
 
 interface CourseDetailsModalProps {
   scheduleId: number;
@@ -35,6 +36,7 @@ export function CourseDetailsModal({
   onClose,
   onSuccess,
 }: CourseDetailsModalProps) {
+  const { addToast } = useToast();
   const course = courses.find((c) => c.id === courseId);
   const isEditing = !!editSection;
 
@@ -106,12 +108,13 @@ export function CourseDetailsModal({
 
     try {
       //compute day/time from form
-      const parsedDay = formData.dayOfWeek !== "" ? formData.dayOfWeek : null;
+      const parsedDay = formData.dayOfWeek !== "" ? formData.dayOfWeek as DayOfWeekEnum : null;
       const startTimeVal = formData.startTime || null;
       const endTimeVal = formData.endTime || null;
 
       if (isEditing && editSection) {
         await sectionsApi.update(editSection.id, {
+
           sectionNumber: formData.sectionNumber,
           dayOfWeek: !isSemester5 ? parsedDay : null,
           startTime: !isSemester5 ? startTimeVal : null,
@@ -124,6 +127,7 @@ export function CourseDetailsModal({
           termStartDate: formData.term !== "Full" ? formData.termStartDate : null,
           termEndDate: formData.term !== "Full" ? formData.termEndDate : null,
         });
+        addToast("success", "Section updated");
         onSuccess();
         return;
       }
@@ -150,9 +154,16 @@ export function CourseDetailsModal({
       if (result.conflicts && result.conflicts.length > 0) {
         setConflicts(result.conflicts);
         if (result.conflicts.some((c) => c.severity === "Error")) {
-          //don't close — show the error
+          addToast("error", "Section has blocking conflicts");
           return;
         }
+        if (result.conflicts.some((c) => c.severity === "Warning")) {
+          addToast("warning", "Section added with warnings");
+        } else {
+          addToast("success", "Section added to schedule");
+        }
+      } else {
+        addToast("success", "Section added to schedule");
       }
 
       onSuccess();
@@ -186,7 +197,7 @@ export function CourseDetailsModal({
           max-height: 90vh;
           overflow-y: auto;
           box-shadow: 0 24px 60px rgba(0,0,0,0.2);
-          font-family: 'DM Sans', sans-serif;
+          font-family: 'Inter', sans-serif;
         }
 
         .cdm-header {
@@ -249,7 +260,7 @@ export function CourseDetailsModal({
           padding: 0.65rem 0.875rem;
           border: 1.5px solid #e5e7eb;
           border-radius: 8px;
-          font-family: 'DM Sans', sans-serif;
+          font-family: 'Inter', sans-serif;
           font-size: 0.88rem;
           color: #111827;
           outline: none;
@@ -279,7 +290,7 @@ export function CourseDetailsModal({
           border-radius: 8px;
           background: #ffffff;
           color: #6b7280;
-          font-family: 'DM Sans', sans-serif;
+          font-family: 'Inter', sans-serif;
           font-size: 0.85rem;
           font-weight: 500;
           cursor: pointer;
@@ -294,7 +305,7 @@ export function CourseDetailsModal({
           color: #ffffff;
           border: none;
           border-radius: 8px;
-          font-family: 'DM Sans', sans-serif;
+          font-family: 'Inter', sans-serif;
           font-size: 0.85rem;
           font-weight: 500;
           cursor: pointer;
@@ -304,6 +315,8 @@ export function CourseDetailsModal({
         .cdm-btn-submit:hover { background: #003d2a; }
         .cdm-btn-submit:active { transform: scale(0.98); }
         .cdm-btn-submit:disabled { background: #6b7280; cursor: not-allowed; }
+        .cdm-btn-submit .btn-spinner { animation: cdm-spin 0.7s linear infinite; }
+        @keyframes cdm-spin { to { transform: rotate(360deg); } }
 
         .cdm-error {
           background: #fef2f2;
@@ -579,6 +592,7 @@ export function CourseDetailsModal({
                   className="cdm-btn-submit"
                   disabled={loading || hasBlockingConflict}
                 >
+                  {loading && <Loader2 size={14} className="btn-spinner" />}
                   {loading ? "Saving..." : isEditing ? "Save Changes" : "Add to Schedule"}
                 </button>
               </div>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import "../App.css";
-import { ArrowLeft, Clock, User, FileText } from "lucide-react";
+import { ArrowLeft, Clock, User } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
 import { changelog as changelogApi, semesters as semestersApi } from "../Lib/api";
 import type { Semester } from "../Lib/Types";
@@ -63,9 +63,9 @@ export function ChangeLogPage() {
   return (
     <>
       <style>{`
-        .cl-root { font-family: 'DM Sans', sans-serif; }
+        .cl-root { font-family: 'Inter', sans-serif; }
         .cl-header { display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 1px solid #e5e2db; }
-        .cl-btn-back { height: 36px; padding: 0 1rem; gap: 0.4rem; background: #ffffff; border: 1.5px solid #e5e2db; border-radius: 8px; display: flex; align-items: center; cursor: pointer; color: #6b7280; font-family: 'DM Sans', sans-serif; font-size: 0.88rem; font-weight: 500; transition: background 0.15s, color 0.15s; }
+        .cl-btn-back { height: 36px; padding: 0 1rem; gap: 0.4rem; background: #ffffff; border: 1.5px solid #e5e2db; border-radius: 8px; display: flex; align-items: center; cursor: pointer; color: #6b7280; font-family: 'Inter', sans-serif; font-size: 0.88rem; font-weight: 500; transition: background 0.15s, color 0.15s; }
         .cl-btn-back:hover { background: #00563f; color: #ffffff; border-color: #00563f; }
         .cl-header h1 { font-family: 'Playfair Display', serif; font-size: 1.75rem; font-weight: 600; color: #0a1f14; margin: 0; }
         .cl-header p { font-size: 0.85rem; color: #9ca3af; margin: 0.2rem 0 0; font-weight: 300; }
@@ -99,7 +99,7 @@ export function ChangeLogPage() {
 
         <div className="cl-card">
           {loading ? (
-            <div className="cl-empty">Loading...</div>
+            <div className="loading-spinner"><span>Loading history…</span></div>
           ) : logs.length === 0 ? (
             <div className="cl-empty">No changes recorded for this semester yet.</div>
           ) : (

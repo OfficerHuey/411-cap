@@ -1,23 +1,20 @@
-import "../App.css";
-import { X, Loader2 } from "lucide-react";
-import { semesters as semestersApi } from "../Lib/api";
-import type { ClinicalDays } from "../Lib/Types";
 import { useState } from "react";
+import { X, Copy, Loader2 } from "lucide-react";
+import { semesters as semestersApi } from "../Lib/api";
+import type { Semester, ClinicalDays } from "../Lib/Types";
 
-interface CreateSemesterModalProps {
+interface CloneSemesterModalProps {
+  source: Semester;
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess: (newSemester: Semester) => void;
 }
 
-export function CreateSemesterModal({
-  onClose,
-  onSuccess,
-}: CreateSemesterModalProps) {
+export function CloneSemesterModal({ source, onClose, onSuccess }: CloneSemesterModalProps) {
   const [formData, setFormData] = useState({
-    name: "",
-    startDate: "",
-    endDate: "",
-    clinicalDays: "Thurs/Fri" as ClinicalDays,
+    name: `${source.name} (Copy)`,
+    startDate: source.startDate.split("T")[0],
+    endDate: source.endDate.split("T")[0],
+    clinicalDays: (source.clinicalDays || "Thurs/Fri") as ClinicalDays,
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -27,15 +24,15 @@ export function CreateSemesterModal({
     setError("");
     setLoading(true);
     try {
-      await semestersApi.create({
+      const newSem = await semestersApi.clone(source.id, {
         name: formData.name,
         startDate: formData.startDate,
         endDate: formData.endDate,
         clinicalDays: formData.clinicalDays,
       });
-      onSuccess();
+      onSuccess(newSem);
     } catch (err: any) {
-      setError(err.message || "Failed to create semester");
+      setError(err.message || "Failed to clone semester");
     } finally {
       setLoading(false);
     }
@@ -44,7 +41,7 @@ export function CreateSemesterModal({
   return (
     <>
       <style>{`
-        .modal-overlay {
+        .clone-overlay {
           position: fixed;
           inset: 0;
           background: rgba(0, 0, 0, 0.5);
@@ -52,11 +49,10 @@ export function CreateSemesterModal({
           align-items: center;
           justify-content: center;
           padding: 1.5rem;
-          z-index: 50;
+          z-index: 9999;
           backdrop-filter: blur(2px);
         }
-
-        .modal-box {
+        .clone-box {
           background: #ffffff;
           border-radius: 12px;
           width: 100%;
@@ -64,32 +60,28 @@ export function CreateSemesterModal({
           box-shadow: 0 24px 60px rgba(0,0,0,0.2);
           overflow: hidden;
         }
-
-        .modal-header {
+        .clone-header {
           background: #00563f;
-          padding: 1.5rem 1.75rem;
+          padding: 1.25rem 1.5rem;
           display: flex;
           align-items: flex-start;
           justify-content: space-between;
         }
-
-        .modal-header h2 {
+        .clone-header h2 {
           font-family: 'Playfair Display', serif;
-          font-size: 1.4rem;
+          font-size: 1.2rem;
           font-weight: 600;
           color: #ffffff;
-          margin: 0 0 0.25rem 0;
+          margin: 0 0 0.2rem 0;
         }
-
-        .modal-header p {
+        .clone-header p {
           font-family: 'Inter', sans-serif;
-          font-size: 0.82rem;
+          font-size: 0.8rem;
           color: rgba(255,255,255,0.6);
           margin: 0;
           font-weight: 300;
         }
-
-        .modal-close {
+        .clone-close {
           background: rgba(255,255,255,0.1);
           border: 1px solid rgba(255,255,255,0.2);
           border-radius: 6px;
@@ -102,57 +94,42 @@ export function CreateSemesterModal({
           flex-shrink: 0;
           margin-left: 1rem;
         }
-
-        .modal-close:hover {
-          background: rgba(255,255,255,0.2);
-        }
-
-        .modal-body {
-          padding: 1.75rem;
-          font-family: 'Inter', sans-serif;
-        }
-
-        .modal-form-group {
-          margin-bottom: 1.25rem;
-        }
-
-        .modal-label {
+        .clone-close:hover { background: rgba(255,255,255,0.2); }
+        .clone-body { padding: 1.5rem; font-family: 'Inter', sans-serif; }
+        .clone-form-group { margin-bottom: 1.1rem; }
+        .clone-label {
           display: block;
-          font-size: 0.78rem;
+          font-size: 0.75rem;
           font-weight: 500;
           color: #374151;
           text-transform: uppercase;
           letter-spacing: 0.04em;
-          margin-bottom: 0.5rem;
+          margin-bottom: 0.4rem;
         }
-
-        .modal-input {
+        .clone-input {
           width: 100%;
-          padding: 0.7rem 0.875rem;
+          padding: 0.65rem 0.875rem;
           border: 1.5px solid #e5e7eb;
           border-radius: 8px;
           font-family: 'Inter', sans-serif;
-          font-size: 0.9rem;
+          font-size: 0.88rem;
           color: #111827;
           outline: none;
           transition: border-color 0.15s, box-shadow 0.15s;
           box-sizing: border-box;
           background: #fafafa;
         }
-
-        .modal-input:focus {
+        .clone-input:focus {
           border-color: #00563f;
           box-shadow: 0 0 0 3px rgba(0, 86, 63, 0.1);
           background: #ffffff;
         }
-
-        .modal-date-row {
+        .clone-date-row {
           display: grid;
           grid-template-columns: 1fr 1fr;
-          gap: 1rem;
+          gap: 0.75rem;
         }
-
-        .modal-footer {
+        .clone-footer {
           display: flex;
           justify-content: flex-end;
           gap: 0.75rem;
@@ -160,46 +137,39 @@ export function CreateSemesterModal({
           border-top: 1px solid #f3f4f6;
           margin-top: 0.5rem;
         }
-
-        .btn-modal-cancel {
-          padding: 0.65rem 1.25rem;
+        .clone-btn-cancel {
+          padding: 0.6rem 1.25rem;
           border: 1.5px solid #e5e7eb;
           border-radius: 8px;
           background: #ffffff;
           color: #6b7280;
           font-family: 'Inter', sans-serif;
-          font-size: 0.88rem;
+          font-size: 0.85rem;
           font-weight: 500;
           cursor: pointer;
-          transition: background 0.15s, border-color 0.15s;
+          transition: background 0.15s;
         }
-
-        .btn-modal-cancel:hover {
-          background: #f9fafb;
-          border-color: #d1d5db;
-          color: #374151;
-        }
-
-        .btn-modal-submit {
-          padding: 0.65rem 1.5rem;
+        .clone-btn-cancel:hover { background: #f9fafb; color: #374151; }
+        .clone-btn-submit {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.4rem;
+          padding: 0.6rem 1.5rem;
           background: #00563f;
           color: #ffffff;
           border: none;
           border-radius: 8px;
           font-family: 'Inter', sans-serif;
-          font-size: 0.88rem;
+          font-size: 0.85rem;
           font-weight: 500;
           cursor: pointer;
-          transition: background 0.15s, transform 0.1s;
+          transition: background 0.15s;
         }
-
-        .btn-modal-submit:hover { background: #003d2a; }
-        .btn-modal-submit:active { transform: scale(0.98); }
-        .btn-modal-submit:disabled { background: #6b7280; cursor: not-allowed; }
-        .btn-modal-submit .btn-spinner { animation: modal-spin 0.7s linear infinite; }
-        @keyframes modal-spin { to { transform: rotate(360deg); } }
-
-        .modal-error {
+        .clone-btn-submit:hover { background: #003d2a; }
+        .clone-btn-submit:disabled { background: #6b7280; cursor: not-allowed; }
+        .clone-btn-submit .btn-spinner { animation: clone-spin 0.7s linear infinite; }
+        @keyframes clone-spin { to { transform: rotate(360deg); } }
+        .clone-error {
           background: #fef2f2;
           border: 1px solid #fecaca;
           border-left: 3px solid #dc2626;
@@ -211,90 +181,78 @@ export function CreateSemesterModal({
         }
       `}</style>
 
-      <div className="modal-overlay" onClick={onClose}>
-        <div className="modal-box" onClick={(e) => e.stopPropagation()}>
-          <div className="modal-header">
+      <div className="clone-overlay" onClick={onClose}>
+        <div className="clone-box" onClick={(e) => e.stopPropagation()}>
+          <div className="clone-header">
             <div>
-              <h2>Create New Semester</h2>
-              <p>Add a new semester to the scheduling system</p>
+              <h2>
+                <Copy size={16} style={{ marginRight: "0.4rem", verticalAlign: "middle" }} />
+                Clone Semester
+              </h2>
+              <p>Create a copy of "{source.name}" with all schedule groups and sections</p>
             </div>
-            <button className="modal-close" onClick={onClose}>
-              <X size={18} />
+            <button className="clone-close" onClick={onClose}>
+              <X size={16} />
             </button>
           </div>
 
-          <div className="modal-body">
-            {error && <div className="modal-error">{error}</div>}
+          <div className="clone-body">
+            {error && <div className="clone-error">{error}</div>}
             <form onSubmit={handleSubmit}>
-              <div className="modal-form-group">
-                <label className="modal-label">Semester Name</label>
+              <div className="clone-form-group">
+                <label className="clone-label">New Semester Name *</label>
                 <input
                   type="text"
                   required
                   value={formData.name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
-                  }
-                  className="modal-input"
-                  placeholder="e.g. Fall 2027"
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  className="clone-input"
+                  placeholder="e.g. Spring 2028"
                 />
               </div>
 
-              <div className="modal-date-row modal-form-group">
+              <div className="clone-date-row clone-form-group">
                 <div>
-                  <label className="modal-label">Start Date</label>
+                  <label className="clone-label">Start Date *</label>
                   <input
                     type="date"
                     required
                     value={formData.startDate}
-                    onChange={(e) =>
-                      setFormData({ ...formData, startDate: e.target.value })
-                    }
-                    className="modal-input"
+                    onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                    className="clone-input"
                   />
                 </div>
                 <div>
-                  <label className="modal-label">End Date</label>
+                  <label className="clone-label">End Date *</label>
                   <input
                     type="date"
                     required
                     value={formData.endDate}
-                    onChange={(e) =>
-                      setFormData({ ...formData, endDate: e.target.value })
-                    }
-                    className="modal-input"
+                    onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                    className="clone-input"
                   />
                 </div>
               </div>
 
-              <div className="modal-form-group">
-                <label className="modal-label">Clinical Days</label>
+              <div className="clone-form-group">
+                <label className="clone-label">Clinical Days</label>
                 <select
                   value={formData.clinicalDays}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      clinicalDays: e.target.value as ClinicalDays,
-                    })
-                  }
-                  className="modal-input"
+                  onChange={(e) => setFormData({ ...formData, clinicalDays: e.target.value as ClinicalDays })}
+                  className="clone-input"
                 >
                   <option value="Thurs/Fri">Thursday / Friday</option>
                   <option value="Tues/Wed">Tuesday / Wednesday</option>
                 </select>
               </div>
 
-              <div className="modal-footer">
-                <button
-                  type="button"
-                  className="btn-modal-cancel"
-                  onClick={onClose}
-                >
+              <div className="clone-footer">
+                <button type="button" className="clone-btn-cancel" onClick={onClose}>
                   Cancel
                 </button>
-                <button type="submit" className="btn-modal-submit" disabled={loading}>
-                  {loading && <Loader2 size={14} className="btn-spinner" />}
-                  {loading ? "Creating..." : "Create Semester"}
+                <button type="submit" className="clone-btn-submit" disabled={loading}>
+                  {loading ? <Loader2 size={14} className="btn-spinner" /> : <Copy size={14} />}
+                  {loading ? "Cloning..." : "Clone Semester"}
                 </button>
               </div>
             </form>

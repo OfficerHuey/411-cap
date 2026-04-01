@@ -1,17 +1,21 @@
 import { useEffect, useState } from "react";
 import "../App.css";
 import { CreateSemesterModal } from "./CreateSemesterModal";
-import { Plus, Calendar, Trash2, Lock, Unlock } from "lucide-react";
+import { CloneSemesterModal } from "./CloneSemesterModal";
+import { Plus, Calendar, Trash2, Lock, Unlock, Copy, ArrowRight } from "lucide-react";
 import { authService } from "../Lib/Auth";
 import { semesters as semestersApi } from "../Lib/api";
 import type { Semester } from "../Lib/Types";
 import { useNavigate } from "react-router-dom";
+import { useToast } from "../Lib/ToastContext";
 
 export function Dashboard() {
   const navigate = useNavigate();
+  const { addToast } = useToast();
   const [semesterList, setSemesterList] = useState<Semester[]>([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
+  const [cloneSource, setCloneSource] = useState<Semester | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -38,19 +42,21 @@ export function Dashboard() {
     try {
       await semestersApi.delete(id);
       setDeleteConfirm(null);
+      addToast("success", "Semester deleted successfully");
       await loadSemesters();
     } catch (err: any) {
-      setError(err.message || "Failed to delete semester");
+      addToast("error", err.message || "Failed to delete semester");
       setDeleteConfirm(null);
     }
   };
 
   const handleToggleLock = async (id: number) => {
     try {
-      await semestersApi.toggleLock(id);
+      const result = await semestersApi.toggleLock(id);
+      addToast("success", result.isLocked ? "Semester locked" : "Semester unlocked");
       await loadSemesters();
     } catch (err: any) {
-      setError(err.message || "Failed to toggle lock");
+      addToast("error", err.message || "Failed to toggle lock");
     }
   };
 
@@ -64,82 +70,108 @@ export function Dashboard() {
       day: "numeric",
       year: "numeric",
     });
-    return `${start} - ${end}`;
+    return `${start} – ${end}`;
   };
 
   return (
     <>
       <style>{`
-        .dash-root { font-family: 'DM Sans', sans-serif; }
+        .dash-root { font-family: 'Inter', sans-serif; }
 
         .dash-header {
           display: flex;
           align-items: flex-end;
           justify-content: space-between;
           margin-bottom: 2.5rem;
-          padding-bottom: 1.5rem;
-          border-bottom: 1px solid #e5e2db;
+          flex-wrap: wrap;
+          gap: 1rem;
         }
 
         .dash-header-text h1 {
           font-family: 'Playfair Display', serif;
-          font-size: 2rem;
+          font-size: 1.85rem;
           font-weight: 600;
-          color: #0a1f14;
-          margin: 0 0 0.35rem 0;
+          color: #111827;
+          margin: 0 0 0.3rem 0;
+          letter-spacing: -0.01em;
         }
 
-        .dash-header-divider {
-          width: 40px;
-          height: 3px;
-          background: #00563f;
-          border-radius: 2px;
-          margin-bottom: 0.6rem;
+        .dash-header-text p {
+          color: #6b7280;
+          font-size: 0.88rem;
+          margin: 0;
+          font-weight: 400;
         }
-
-        .dash-header-text p { color: #6b7280; font-size: 0.9rem; margin: 0; font-weight: 300; }
 
         .btn-create {
           display: inline-flex;
           align-items: center;
           gap: 0.5rem;
-          padding: 0.65rem 1.25rem;
-          background: #00563f;
+          padding: 0.65rem 1.35rem;
+          background: linear-gradient(135deg, #00563f 0%, #003d2a 100%);
           color: #ffffff;
           border: none;
-          border-radius: 8px;
-          font-family: 'DM Sans', sans-serif;
-          font-size: 0.88rem;
-          font-weight: 500;
+          border-radius: 10px;
+          font-family: 'Inter', sans-serif;
+          font-size: 0.85rem;
+          font-weight: 600;
           cursor: pointer;
-          letter-spacing: 0.02em;
-          transition: background 0.15s, transform 0.1s;
+          transition: all 0.2s ease;
           white-space: nowrap;
+          box-shadow: 0 1px 3px rgba(0,86,63,0.15), 0 4px 12px rgba(0,86,63,0.1);
         }
 
-        .btn-create:hover { background: #003d2a; }
-        .btn-create:active { transform: scale(0.98); }
+        .btn-create:hover {
+          box-shadow: 0 1px 3px rgba(0,86,63,0.2), 0 8px 24px rgba(0,86,63,0.15);
+          transform: translateY(-1px);
+        }
+
+        .btn-create:active { transform: translateY(0); }
 
         .dash-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-          gap: 1.5rem;
+          grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+          gap: 1.25rem;
         }
 
         .semester-card {
           background: #ffffff;
-          border: 1px solid #e5e2db;
-          border-radius: 10px;
+          border: 1px solid #e5e7eb;
+          border-radius: 12px;
           overflow: hidden;
-          transition: box-shadow 0.2s, transform 0.2s;
+          transition: all 0.25s ease;
+          position: relative;
         }
 
         .semester-card:hover {
-          box-shadow: 0 8px 30px rgba(0,0,0,0.09);
-          transform: translateY(-2px);
+          box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 12px 36px rgba(0,0,0,0.08);
+          transform: translateY(-3px);
+          border-color: #d1d5db;
         }
 
-        .card-accent { height: 4px; background: linear-gradient(90deg, #00563f, #C8952C); }
+        .semester-card.is-locked {
+          border-color: #e5e7eb;
+        }
+
+        .semester-card.is-locked::after {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background: rgba(255,255,255,0.4);
+          pointer-events: none;
+          border-radius: 12px;
+          z-index: 1;
+        }
+
+        .card-accent {
+          height: 3px;
+          background: linear-gradient(90deg, #00563f 0%, #C8952C 100%);
+        }
+
+        .card-accent.locked-accent {
+          background: linear-gradient(90deg, #9ca3af 0%, #d1d5db 100%);
+        }
+
         .card-body { padding: 1.5rem; }
 
         .card-top {
@@ -152,84 +184,115 @@ export function Dashboard() {
         .card-title-group { display: flex; align-items: center; gap: 0.75rem; }
 
         .card-icon {
-          width: 38px;
-          height: 38px;
-          background: #f0faf5;
+          width: 40px;
+          height: 40px;
+          background: linear-gradient(135deg, #f0faf5 0%, #e6f5ee 100%);
           border: 1px solid #c6e8d8;
-          border-radius: 8px;
+          border-radius: 10px;
           display: flex;
           align-items: center;
           justify-content: center;
           flex-shrink: 0;
         }
 
-        .card-title { font-family: 'Playfair Display', serif; font-size: 1.1rem; font-weight: 600; color: #0a1f14; margin: 0 0 0.2rem 0; }
-        .card-dates { font-size: 0.78rem; color: #9ca3af; margin: 0; }
+        .card-title {
+          font-weight: 600;
+          font-size: 1.05rem;
+          color: #111827;
+          margin: 0 0 0.15rem 0;
+          letter-spacing: -0.01em;
+        }
 
-        .card-actions { display: flex; align-items: center; gap: 0.25rem; }
+        .card-dates {
+          font-size: 0.78rem;
+          color: #9ca3af;
+          margin: 0;
+          font-weight: 400;
+        }
 
-        .btn-delete, .btn-lock {
+        .card-actions {
+          display: flex;
+          align-items: center;
+          gap: 0.15rem;
+          position: relative;
+          z-index: 2;
+        }
+
+        .card-action-btn {
           background: none;
           border: none;
           cursor: pointer;
           color: #d1d5db;
-          padding: 0.25rem;
-          border-radius: 4px;
+          padding: 0.3rem;
+          border-radius: 6px;
           display: flex;
           align-items: center;
-          transition: color 0.15s, background 0.15s;
+          transition: all 0.15s;
           flex-shrink: 0;
         }
 
-        .btn-delete:hover { color: #dc2626; background: #fef2f2; }
-        .btn-lock:hover { color: #00563f; background: #f0faf5; }
-        .btn-lock.locked { color: #dc2626; }
+        .card-action-btn:hover { color: #00563f; background: #f0faf5; }
+        .card-action-btn.delete:hover { color: #dc2626; background: #fef2f2; }
+        .card-action-btn.locked { color: #dc2626; }
+        .card-action-btn.locked:hover { color: #00563f; background: #f0faf5; }
+
+        .card-badges {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          flex-wrap: wrap;
+          margin-bottom: 1rem;
+        }
 
         .card-clinical-badge {
           display: inline-flex;
           align-items: center;
-          padding: 0.25rem 0.75rem;
-          background: rgba(200, 149, 44, 0.1);
-          color: #926a10;
-          border: 1px solid rgba(200, 149, 44, 0.3);
+          padding: 0.2rem 0.65rem;
+          background: rgba(200, 149, 44, 0.08);
+          color: #92400e;
+          border: 1px solid rgba(200, 149, 44, 0.2);
           border-radius: 20px;
-          font-size: 0.78rem;
+          font-size: 0.72rem;
           font-weight: 500;
-          margin-bottom: 0.5rem;
         }
 
         .card-lock-badge {
           display: inline-flex;
           align-items: center;
-          gap: 0.3rem;
-          padding: 0.25rem 0.75rem;
-          background: rgba(220, 38, 38, 0.08);
+          gap: 0.25rem;
+          padding: 0.2rem 0.65rem;
+          background: rgba(220, 38, 38, 0.06);
           color: #dc2626;
-          border: 1px solid rgba(220, 38, 38, 0.2);
+          border: 1px solid rgba(220, 38, 38, 0.15);
           border-radius: 20px;
-          font-size: 0.78rem;
+          font-size: 0.72rem;
           font-weight: 500;
-          margin-bottom: 0.5rem;
-          margin-left: 0.5rem;
         }
 
         .btn-open {
           width: 100%;
-          padding: 0.65rem;
-          background: #f0faf5;
+          padding: 0.6rem;
+          background: #fafaf9;
           color: #00563f;
-          border: 1px solid #c6e8d8;
-          border-radius: 7px;
-          font-family: 'DM Sans', sans-serif;
-          font-size: 0.88rem;
-          font-weight: 500;
+          border: 1px solid #e5e7eb;
+          border-radius: 8px;
+          font-family: 'Inter', sans-serif;
+          font-size: 0.82rem;
+          font-weight: 600;
           cursor: pointer;
-          transition: background 0.15s, border-color 0.15s;
+          transition: all 0.2s ease;
           box-sizing: border-box;
-          margin-top: 0.75rem;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.4rem;
         }
 
-        .btn-open:hover { background: #00563f; color: #ffffff; border-color: #00563f; }
+        .btn-open:hover {
+          background: #00563f;
+          color: #ffffff;
+          border-color: #00563f;
+        }
 
         .dash-empty {
           grid-column: 1 / -1;
@@ -237,119 +300,137 @@ export function Dashboard() {
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          padding: 4rem 2rem;
+          padding: 5rem 2rem;
           background: #ffffff;
-          border: 2px dashed #d1d5db;
-          border-radius: 10px;
+          border: 2px dashed #e5e7eb;
+          border-radius: 12px;
           text-align: center;
         }
 
         .dash-empty-icon {
           width: 56px;
           height: 56px;
-          background: #f0faf5;
-          border-radius: 12px;
+          background: linear-gradient(135deg, #f0faf5 0%, #e6f5ee 100%);
+          border-radius: 14px;
           display: flex;
           align-items: center;
           justify-content: center;
-          margin-bottom: 1rem;
+          margin-bottom: 1.25rem;
         }
 
-        .dash-empty h3 { font-family: 'Playfair Display', serif; font-size: 1.2rem; color: #0a1f14; margin: 0 0 0.5rem 0; }
-        .dash-empty p { color: #9ca3af; font-size: 0.88rem; margin: 0 0 1.5rem 0; font-weight: 300; }
+        .dash-empty h3 {
+          font-family: 'Playfair Display', serif;
+          font-size: 1.25rem;
+          color: #111827;
+          margin: 0 0 0.4rem 0;
+        }
+
+        .dash-empty p {
+          color: #9ca3af;
+          font-size: 0.88rem;
+          margin: 0 0 1.75rem 0;
+          font-weight: 400;
+        }
 
         .dash-footer {
           text-align: center;
-          padding: 2rem;
-          font-size: 0.75rem;
-          color: #c4c0b8;
-          letter-spacing: 0.04em;
+          padding: 3rem 2rem 1rem;
+          font-size: 0.7rem;
+          color: #d1d5db;
+          letter-spacing: 0.06em;
           text-transform: uppercase;
         }
 
         .error-banner {
           background: #fef2f2;
           border: 1px solid #fecaca;
-          border-left: 3px solid #dc2626;
-          border-radius: 6px;
-          padding: 0.75rem 1rem;
+          border-radius: 10px;
+          padding: 0.85rem 1rem;
           margin-bottom: 1.5rem;
           font-size: 0.85rem;
           color: #991b1b;
         }
 
-        .loading-spinner {
-          text-align: center;
-          padding: 3rem;
-          color: #6b7280;
-          font-size: 0.9rem;
-        }
-
         .delete-overlay {
           position: fixed;
           inset: 0;
-          background: rgba(0,0,0,0.5);
+          background: rgba(0,0,0,0.4);
           display: flex;
           align-items: center;
           justify-content: center;
           z-index: 9999;
-          backdrop-filter: blur(2px);
+          backdrop-filter: blur(4px);
+          animation: fadeIn 0.15s ease;
         }
 
         .delete-box {
           background: #ffffff;
-          border-radius: 12px;
-          padding: 1.75rem;
-          max-width: 360px;
+          border-radius: 16px;
+          padding: 2rem;
+          max-width: 380px;
           width: 100%;
-          box-shadow: 0 24px 60px rgba(0,0,0,0.2);
-          font-family: 'DM Sans', sans-serif;
+          box-shadow: 0 20px 50px -12px rgba(0,0,0,0.2);
+          font-family: 'Inter', sans-serif;
           text-align: center;
+          animation: fadeInUp 0.25s ease;
         }
 
         .delete-box-icon {
-          width: 48px;
-          height: 48px;
+          width: 52px;
+          height: 52px;
           background: #fef2f2;
           border-radius: 50%;
           display: flex;
           align-items: center;
           justify-content: center;
-          margin: 0 auto 1rem;
+          margin: 0 auto 1.25rem;
         }
 
-        .delete-box h3 { font-family: 'Playfair Display', serif; font-size: 1.1rem; color: #0a1f14; margin: 0 0 0.5rem 0; }
-        .delete-box p { font-size: 0.85rem; color: #6b7280; margin: 0 0 1.5rem 0; line-height: 1.5; }
+        .delete-box h3 {
+          font-weight: 600;
+          font-size: 1.05rem;
+          color: #111827;
+          margin: 0 0 0.5rem 0;
+        }
+
+        .delete-box p {
+          font-size: 0.85rem;
+          color: #6b7280;
+          margin: 0 0 1.75rem 0;
+          line-height: 1.5;
+        }
+
         .delete-box-actions { display: flex; gap: 0.75rem; }
 
         .delete-btn-cancel {
           flex: 1;
-          padding: 0.65rem;
+          padding: 0.7rem;
           border: 1.5px solid #e5e7eb;
-          border-radius: 8px;
+          border-radius: 10px;
           background: #ffffff;
-          color: #6b7280;
-          font-family: 'DM Sans', sans-serif;
+          color: #374151;
+          font-family: 'Inter', sans-serif;
           font-size: 0.85rem;
           font-weight: 500;
           cursor: pointer;
-          transition: background 0.15s;
+          transition: all 0.15s;
         }
 
-        .delete-btn-cancel:hover { background: #f9fafb; }
+        .delete-btn-cancel:hover { background: #f9fafb; border-color: #d1d5db; }
 
         .delete-btn-confirm {
           flex: 1;
-          padding: 0.65rem;
+          padding: 0.7rem;
           background: #dc2626;
           color: #ffffff;
           border: none;
-          border-radius: 8px;
-          font-family: 'DM Sans', sans-serif;
+          border-radius: 10px;
+          font-family: 'Inter', sans-serif;
           font-size: 0.85rem;
-          font-weight: 500;
+          font-weight: 600;
           cursor: pointer;
-          transition: background 0.15s;
+          transition: all 0.15s;
+          box-shadow: 0 1px 3px rgba(220,38,38,0.2);
         }
 
         .delete-btn-confirm:hover { background: #b91c1c; }
@@ -359,7 +440,6 @@ export function Dashboard() {
         <div className="dash-header">
           <div className="dash-header-text">
             <h1>Welcome{authService.getCurrentUser()?.name ? `, ${authService.getCurrentUser()!.name}` : ""}</h1>
-            <div className="dash-header-divider" />
             <p>Manage semesters and course schedules</p>
           </div>
           {canEdit && (
@@ -368,7 +448,7 @@ export function Dashboard() {
               onClick={() => setShowCreateModal(true)}
             >
               <Plus size={16} />
-              Create New Semester
+              New Semester
             </button>
           )}
         </div>
@@ -376,12 +456,12 @@ export function Dashboard() {
         {error && <div className="error-banner">{error}</div>}
 
         {loading ? (
-          <div className="loading-spinner">Loading...</div>
+          <div className="loading-spinner"><span>Loading semesters…</span></div>
         ) : (
           <div className="dash-grid">
             {semesterList.map((semester) => (
-              <div key={semester.id} className="semester-card">
-                <div className="card-accent" />
+              <div key={semester.id} className={`semester-card ${semester.isLocked ? "is-locked" : ""}`}>
+                <div className={`card-accent ${semester.isLocked ? "locked-accent" : ""}`} />
                 <div className="card-body">
                   <div className="card-top">
                     <div className="card-title-group">
@@ -398,7 +478,7 @@ export function Dashboard() {
                     {canEdit && (
                       <div className="card-actions">
                         <button
-                          className={`btn-lock ${semester.isLocked ? "locked" : ""}`}
+                          className={`card-action-btn ${semester.isLocked ? "locked" : ""}`}
                           onClick={(e) => {
                             e.stopPropagation();
                             handleToggleLock(semester.id);
@@ -408,11 +488,22 @@ export function Dashboard() {
                           {semester.isLocked ? <Lock size={15} /> : <Unlock size={15} />}
                         </button>
                         <button
-                          className="btn-delete"
+                          className="card-action-btn"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setCloneSource(semester);
+                          }}
+                          title="Clone semester"
+                        >
+                          <Copy size={15} />
+                        </button>
+                        <button
+                          className="card-action-btn delete"
                           onClick={(e) => {
                             e.stopPropagation();
                             setDeleteConfirm(semester.id);
                           }}
+                          title="Delete semester"
                         >
                           <Trash2 size={15} />
                         </button>
@@ -420,15 +511,15 @@ export function Dashboard() {
                     )}
                   </div>
 
-                  <div>
+                  <div className="card-badges">
                     {semester.clinicalDays && (
                       <span className="card-clinical-badge">
-                        Clinical Days: {semester.clinicalDays}
+                        {semester.clinicalDays}
                       </span>
                     )}
                     {semester.isLocked && (
                       <span className="card-lock-badge">
-                        <Lock size={12} />
+                        <Lock size={11} />
                         Locked
                       </span>
                     )}
@@ -439,6 +530,7 @@ export function Dashboard() {
                     onClick={() => navigate(`/semester/${semester.id}`)}
                   >
                     Open Semester
+                    <ArrowRight size={14} />
                   </button>
                 </div>
               </div>
@@ -450,7 +542,7 @@ export function Dashboard() {
                   <Calendar size={26} color="#00563f" />
                 </div>
                 <h3>No Semesters Yet</h3>
-                <p>Get started by creating your first semester</p>
+                <p>Create your first semester to get started</p>
                 {canEdit && (
                   <button
                     className="btn-create"
@@ -476,6 +568,7 @@ export function Dashboard() {
           onSuccess={() => {
             loadSemesters();
             setShowCreateModal(false);
+            addToast("success", "Semester created successfully");
           }}
         />
       )}
@@ -484,12 +577,12 @@ export function Dashboard() {
         <div className="delete-overlay" onClick={() => setDeleteConfirm(null)}>
           <div className="delete-box" onClick={(e) => e.stopPropagation()}>
             <div className="delete-box-icon">
-              <Trash2 size={20} color="#dc2626" />
+              <Trash2 size={22} color="#dc2626" />
             </div>
             <h3>Delete Semester?</h3>
             <p>
               This will permanently delete this semester and all associated
-              schedules and data.
+              schedules and data. This action cannot be undone.
             </p>
             <div className="delete-box-actions">
               <button
@@ -507,6 +600,18 @@ export function Dashboard() {
             </div>
           </div>
         </div>
+      )}
+
+      {cloneSource && (
+        <CloneSemesterModal
+          source={cloneSource}
+          onClose={() => setCloneSource(null)}
+          onSuccess={() => {
+            setCloneSource(null);
+            addToast("success", "Semester cloned successfully");
+            loadSemesters();
+          }}
+        />
       )}
     </>
   );

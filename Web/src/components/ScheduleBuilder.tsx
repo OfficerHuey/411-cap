@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import "../App.css";
 import { ArrowLeft, Download, CalendarIcon, Users, Lock } from "lucide-react";
 import { DndProvider } from "react-dnd";
@@ -17,6 +17,7 @@ import { ScheduleCanvas } from "./ScheduleCanvas";
 import { ScheduleViewer } from "./ScheduleViewer";
 import { StudentRosterView } from "./StudentRosterView";
 import { CourseDetailsModal } from "./CourseDetailsModal";
+import { useToast } from "../Lib/ToastContext";
 
 interface CourseDetailsData {
   courseId: number;
@@ -28,6 +29,7 @@ interface CourseDetailsData {
 export function ScheduleBuilder() {
   const { scheduleGroupId } = useParams<{ scheduleGroupId: string }>();
   const navigate = useNavigate();
+  const { addToast } = useToast();
   const [schedule, setSchedule] = useState<Schedule | null>(null);
   const [semester, setSemester] = useState<Semester | null>(null);
   const [courseList, setCourseList] = useState<Course[]>([]);
@@ -36,12 +38,25 @@ export function ScheduleBuilder() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showExportMenu, setShowExportMenu] = useState(false);
+  const exportRef = useRef<HTMLDivElement>(null);
 
   const scheduleId = parseInt(scheduleGroupId || "0");
 
   useEffect(() => {
     loadData();
   }, [scheduleGroupId]);
+
+  //close export menu on outside click
+  useEffect(() => {
+    if (!showExportMenu) return;
+    const handleClick = (e: MouseEvent) => {
+      if (exportRef.current && !exportRef.current.contains(e.target as Node)) {
+        setShowExportMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [showExportMenu]);
 
   const loadData = async () => {
     try {
@@ -75,15 +90,13 @@ export function ScheduleBuilder() {
 
   if (loading) {
     return (
-      <div style={{ textAlign: "center", padding: "3rem", color: "#6b7280", fontFamily: "DM Sans, sans-serif" }}>
-        Loading...
-      </div>
+      <div className="loading-spinner"><span>Loading schedule…</span></div>
     );
   }
 
   if (!schedule) {
     return (
-      <div style={{ textAlign: "center", padding: "3rem", color: "#6b7280", fontFamily: "DM Sans, sans-serif" }}>
+      <div style={{ textAlign: "center", padding: "3rem", color: "#6b7280", fontFamily: "Inter, sans-serif" }}>
         Schedule not found
       </div>
     );
@@ -96,15 +109,13 @@ export function ScheduleBuilder() {
   return (
     <DndProvider backend={HTML5Backend}>
       <style>{`
-        .sb-root { font-family: 'DM Sans', sans-serif; }
+        .sb-root { font-family: 'Inter', sans-serif; }
 
         .sb-header {
           display: flex;
           align-items: center;
           justify-content: space-between;
           margin-bottom: 1.75rem;
-          padding-bottom: 1.5rem;
-          border-bottom: 1px solid #e5e2db;
           flex-wrap: wrap;
           gap: 1rem;
         }
@@ -116,20 +127,17 @@ export function ScheduleBuilder() {
         }
 
         .sb-btn-back {
+          width: 36px;
           height: 36px;
-          padding: 0 1rem;
-          gap: 0.4rem;
           background: #ffffff;
-          border: 1.5px solid #e5e2db;
-          border-radius: 8px;
+          border: 1.5px solid #e5e7eb;
+          border-radius: 10px;
           display: flex;
           align-items: center;
+          justify-content: center;
           cursor: pointer;
           color: #6b7280;
-          font-family: 'DM Sans', sans-serif;
-          font-size: 0.88rem;
-          font-weight: 500;
-          transition: background 0.15s, color 0.15s, border-color 0.15s;
+          transition: all 0.2s;
           flex-shrink: 0;
         }
 
@@ -141,31 +149,32 @@ export function ScheduleBuilder() {
 
         .sb-title h1 {
           font-family: 'Playfair Display', serif;
-          font-size: 1.75rem;
+          font-size: 1.5rem;
           font-weight: 600;
-          color: #0a1f14;
-          margin: 0 0 0.2rem 0;
+          color: #111827;
+          margin: 0 0 0.15rem 0;
+          letter-spacing: -0.01em;
         }
 
         .sb-title p {
-          font-size: 0.85rem;
+          font-size: 0.82rem;
           color: #9ca3af;
           margin: 0;
-          font-weight: 300;
+          font-weight: 400;
         }
 
         .sb-lock-badge {
           display: inline-flex;
           align-items: center;
-          gap: 0.3rem;
-          padding: 0.2rem 0.6rem;
-          background: rgba(220, 38, 38, 0.08);
+          gap: 0.25rem;
+          padding: 0.15rem 0.55rem;
+          background: rgba(220, 38, 38, 0.06);
           color: #dc2626;
-          border: 1px solid rgba(220, 38, 38, 0.2);
+          border: 1px solid rgba(220, 38, 38, 0.15);
           border-radius: 20px;
-          font-size: 0.75rem;
+          font-size: 0.7rem;
           font-weight: 500;
-          margin-left: 0.75rem;
+          margin-left: 0.65rem;
           vertical-align: middle;
         }
 
@@ -181,7 +190,7 @@ export function ScheduleBuilder() {
           gap: 0.4rem;
           padding: 0.6rem 1rem;
           border-radius: 8px;
-          font-family: 'DM Sans', sans-serif;
+          font-family: 'Inter', sans-serif;
           font-size: 0.85rem;
           font-weight: 500;
           cursor: pointer;
@@ -193,13 +202,14 @@ export function ScheduleBuilder() {
         .sb-btn:active { transform: scale(0.98); }
 
         .sb-btn-export {
-          background: #00563f;
+          background: linear-gradient(135deg, #00563f 0%, #003d2a 100%);
           color: #ffffff;
-          border: 1px solid #00563f;
+          border: none;
           position: relative;
+          box-shadow: 0 1px 3px rgba(0,86,63,0.15);
         }
 
-        .sb-btn-export:hover { background: #003d2a; }
+        .sb-btn-export:hover { box-shadow: 0 1px 3px rgba(0,86,63,0.2), 0 4px 12px rgba(0,86,63,0.1); }
 
         .export-dropdown {
           position: relative;
@@ -210,14 +220,15 @@ export function ScheduleBuilder() {
           position: absolute;
           top: 100%;
           right: 0;
-          margin-top: 0.25rem;
+          margin-top: 0.35rem;
           background: #ffffff;
-          border: 1px solid #e5e2db;
-          border-radius: 8px;
-          box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+          border: 1px solid #e5e7eb;
+          border-radius: 10px;
+          box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 12px 36px rgba(0,0,0,0.1);
           z-index: 100;
           min-width: 220px;
           overflow: hidden;
+          animation: fadeInUp 0.15s ease;
         }
 
         .export-menu button {
@@ -226,7 +237,7 @@ export function ScheduleBuilder() {
           background: none;
           border: none;
           text-align: left;
-          font-family: 'DM Sans', sans-serif;
+          font-family: 'Inter', sans-serif;
           font-size: 0.85rem;
           color: #374151;
           cursor: pointer;
@@ -239,11 +250,12 @@ export function ScheduleBuilder() {
         .sb-view-toggle {
           display: inline-flex;
           background: #ffffff;
-          border: 1px solid #e5e2db;
-          border-radius: 10px;
+          border: 1px solid #e5e7eb;
+          border-radius: 12px;
           padding: 0.3rem;
           margin-bottom: 1.75rem;
-          gap: 0.25rem;
+          gap: 0.2rem;
+          box-shadow: 0 1px 2px rgba(0,0,0,0.04);
         }
 
         .sb-view-btn {
@@ -251,25 +263,26 @@ export function ScheduleBuilder() {
           align-items: center;
           gap: 0.4rem;
           padding: 0.55rem 1.1rem;
-          border-radius: 7px;
+          border-radius: 9px;
           border: none;
-          font-family: 'DM Sans', sans-serif;
-          font-size: 0.85rem;
+          font-family: 'Inter', sans-serif;
+          font-size: 0.82rem;
           font-weight: 500;
           cursor: pointer;
-          transition: background 0.15s, color 0.15s;
+          transition: all 0.2s;
           color: #6b7280;
           background: none;
         }
 
         .sb-view-btn:hover {
-          background: #f8f7f4;
-          color: #0a1f14;
+          background: #f5f5f4;
+          color: #111827;
         }
 
         .sb-view-btn.active {
           background: #00563f;
           color: #ffffff;
+          box-shadow: 0 1px 3px rgba(0,86,63,0.2);
         }
 
         .sb-grid {
@@ -281,9 +294,8 @@ export function ScheduleBuilder() {
         .error-banner {
           background: #fef2f2;
           border: 1px solid #fecaca;
-          border-left: 3px solid #dc2626;
-          border-radius: 6px;
-          padding: 0.75rem 1rem;
+          border-radius: 10px;
+          padding: 0.85rem 1rem;
           margin-bottom: 1.5rem;
           font-size: 0.85rem;
           color: #991b1b;
@@ -319,7 +331,7 @@ export function ScheduleBuilder() {
           </div>
 
           <div className="sb-actions">
-            <div className="export-dropdown">
+            <div className="export-dropdown" ref={exportRef}>
               <button
                 className="sb-btn sb-btn-export"
                 onClick={() => setShowExportMenu(!showExportMenu)}
@@ -329,13 +341,13 @@ export function ScheduleBuilder() {
               </button>
               {showExportMenu && semester && (
                 <div className="export-menu">
-                  <button onClick={() => { exportsApi.roster(semester.id, semester.name); setShowExportMenu(false); }}>
+                  <button onClick={() => { exportsApi.roster(semester.id, semester.name).then(() => addToast("success", "Roster exported")).catch(() => addToast("error", "Export failed")); setShowExportMenu(false); }}>
                     Student Rosters (.xlsx)
                   </button>
-                  <button onClick={() => { exportsApi.grid(semester.id, semester.name); setShowExportMenu(false); }}>
+                  <button onClick={() => { exportsApi.grid(semester.id, semester.name).then(() => addToast("success", "Grid exported")).catch(() => addToast("error", "Export failed")); setShowExportMenu(false); }}>
                     Visual Grid (.xlsx)
                   </button>
-                  <button onClick={() => { exportsApi.registrar(semester.id, semester.name); setShowExportMenu(false); }}>
+                  <button onClick={() => { exportsApi.registrar(semester.id, semester.name).then(() => addToast("success", "Registrar export downloaded")).catch(() => addToast("error", "Export failed")); setShowExportMenu(false); }}>
                     Registrar Export (.xlsx)
                   </button>
                 </div>
@@ -388,6 +400,7 @@ export function ScheduleBuilder() {
             scheduleId={schedule.id}
             semesterId={schedule.semesterId}
             isLocked={isLocked}
+            capacity={schedule.capacity}
           />
         )}
       </div>

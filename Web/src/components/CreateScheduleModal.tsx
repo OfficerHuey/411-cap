@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { SemesterLevel } from "../Lib/Types";
 import { levelToNumber } from "../Lib/Types";
-import { Plus, Trash2, X, Users, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, Trash2, X, Users, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
 import { schedules as schedulesApi, students as studentsApi } from "../Lib/api";
 
 interface CreateScheduleModalProps {
@@ -109,7 +109,7 @@ export function CreateScheduleModal({
           max-height: 90vh;
           overflow-y: auto;
           box-shadow: 0 24px 60px rgba(0,0,0,0.2);
-          font-family: 'DM Sans', sans-serif;
+          font-family: 'Inter', sans-serif;
         }
 
         .csm-header {
@@ -175,7 +175,7 @@ export function CreateScheduleModal({
           padding: 0.65rem 0.875rem;
           border: 1.5px solid #e5e7eb;
           border-radius: 8px;
-          font-family: 'DM Sans', sans-serif;
+          font-family: 'Inter', sans-serif;
           font-size: 0.88rem;
           color: #111827;
           outline: none;
@@ -208,7 +208,7 @@ export function CreateScheduleModal({
           border: 1px solid #e5e2db;
           border-radius: 8px;
           cursor: pointer;
-          font-family: 'DM Sans', sans-serif;
+          font-family: 'Inter', sans-serif;
           font-size: 0.85rem;
           font-weight: 500;
           color: #374151;
@@ -245,7 +245,7 @@ export function CreateScheduleModal({
           padding: 0.55rem 0.75rem;
           border: 1.5px solid #e5e7eb;
           border-radius: 7px;
-          font-family: 'DM Sans', sans-serif;
+          font-family: 'Inter', sans-serif;
           font-size: 0.82rem;
           color: #111827;
           outline: none;
@@ -286,7 +286,7 @@ export function CreateScheduleModal({
           color: #00563f;
           border: 1px solid #c6e8d8;
           border-radius: 7px;
-          font-family: 'DM Sans', sans-serif;
+          font-family: 'Inter', sans-serif;
           font-size: 0.82rem;
           font-weight: 500;
           cursor: pointer;
@@ -311,7 +311,7 @@ export function CreateScheduleModal({
           border-radius: 8px;
           background: #ffffff;
           color: #6b7280;
-          font-family: 'DM Sans', sans-serif;
+          font-family: 'Inter', sans-serif;
           font-size: 0.85rem;
           font-weight: 500;
           cursor: pointer;
@@ -326,7 +326,7 @@ export function CreateScheduleModal({
           color: #ffffff;
           border: none;
           border-radius: 8px;
-          font-family: 'DM Sans', sans-serif;
+          font-family: 'Inter', sans-serif;
           font-size: 0.85rem;
           font-weight: 500;
           cursor: pointer;
@@ -336,6 +336,8 @@ export function CreateScheduleModal({
         .csm-btn-submit:hover { background: #003d2a; }
         .csm-btn-submit:active { transform: scale(0.98); }
         .csm-btn-submit:disabled { background: #6b7280; cursor: not-allowed; }
+        .csm-btn-submit .btn-spinner { animation: csm-spin 0.7s linear infinite; }
+        @keyframes csm-spin { to { transform: rotate(360deg); } }
 
         .csm-error {
           background: #fef2f2;
@@ -479,6 +481,7 @@ export function CreateScheduleModal({
                   Cancel
                 </button>
                 <button type="submit" className="csm-btn-submit" disabled={loading}>
+                  {loading && <Loader2 size={14} className="btn-spinner" />}
                   {loading ? "Creating..." : "Create Schedule"}
                 </button>
               </div>

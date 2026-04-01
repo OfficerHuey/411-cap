@@ -5,14 +5,17 @@ import { authService } from "../Lib/Auth";
 import { students as studentsApi } from "../Lib/api";
 import type { Student } from "../Lib/Types";
 import { StudentImportModal } from "./StudentImportModal";
+import { useToast } from "../Lib/ToastContext";
 
 interface StudentRosterViewProps {
   scheduleId: number;
   semesterId: number;
   isLocked?: boolean;
+  capacity?: number;
 }
 
-export function StudentRosterView({ scheduleId, semesterId, isLocked }: StudentRosterViewProps) {
+export function StudentRosterView({ scheduleId, semesterId, isLocked, capacity = 8 }: StudentRosterViewProps) {
+  const { addToast } = useToast();
   const [studentList, setStudentList] = useState<Student[]>([]);
   const [newStudent, setNewStudent] = useState({ name: "", wNumber: "", email: "" });
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
@@ -50,9 +53,10 @@ export function StudentRosterView({ scheduleId, semesterId, isLocked }: StudentR
         scheduleId,
       });
       setNewStudent({ name: "", wNumber: "", email: "" });
+      addToast("success", "Student added");
       await loadStudents();
     } catch (err: any) {
-      setError(err.message || "Failed to add student");
+      addToast("error", err.message || "Failed to add student");
     }
   };
 
@@ -60,9 +64,10 @@ export function StudentRosterView({ scheduleId, semesterId, isLocked }: StudentR
     try {
       await studentsApi.delete(id);
       setDeleteConfirm(null);
+      addToast("success", "Student removed");
       await loadStudents();
     } catch (err: any) {
-      setError(err.message || "Failed to delete student");
+      addToast("error", err.message || "Failed to delete student");
       setDeleteConfirm(null);
     }
   };
@@ -70,7 +75,7 @@ export function StudentRosterView({ scheduleId, semesterId, isLocked }: StudentR
   return (
     <>
       <style>{`
-        .roster-root { font-family: 'DM Sans', sans-serif; }
+        .roster-root { font-family: 'Inter', sans-serif; }
 
         .roster-card {
           background: #ffffff;
@@ -99,6 +104,41 @@ export function StudentRosterView({ scheduleId, semesterId, isLocked }: StudentR
         }
 
         .roster-header p { font-size: 0.78rem; color: #9ca3af; margin: 0; font-weight: 300; }
+
+        .roster-capacity-bar {
+          padding: 0.875rem 1.5rem;
+          border-bottom: 1px solid #e5e2db;
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+        }
+
+        .roster-capacity-label {
+          font-size: 0.75rem;
+          font-weight: 500;
+          color: #6b7280;
+          white-space: nowrap;
+        }
+
+        .roster-capacity-track {
+          flex: 1;
+          height: 8px;
+          background: #f3f4f6;
+          border-radius: 4px;
+          overflow: hidden;
+        }
+
+        .roster-capacity-fill {
+          height: 100%;
+          border-radius: 4px;
+          transition: width 0.3s ease, background-color 0.3s ease;
+        }
+
+        .roster-capacity-text {
+          font-size: 0.75rem;
+          font-weight: 600;
+          white-space: nowrap;
+        }
 
         .roster-count {
           font-size: 0.75rem;
@@ -187,7 +227,7 @@ export function StudentRosterView({ scheduleId, semesterId, isLocked }: StudentR
           padding: 0.65rem 0.875rem;
           border: 1.5px solid #e5e7eb;
           border-radius: 8px;
-          font-family: 'DM Sans', sans-serif;
+          font-family: 'Inter', sans-serif;
           font-size: 0.85rem;
           color: #111827;
           outline: none;
@@ -213,7 +253,7 @@ export function StudentRosterView({ scheduleId, semesterId, isLocked }: StudentR
           color: #ffffff;
           border: none;
           border-radius: 8px;
-          font-family: 'DM Sans', sans-serif;
+          font-family: 'Inter', sans-serif;
           font-size: 0.85rem;
           font-weight: 500;
           cursor: pointer;
@@ -250,7 +290,7 @@ export function StudentRosterView({ scheduleId, semesterId, isLocked }: StudentR
           color: #ffffff;
           border: none;
           border-radius: 8px;
-          font-family: 'DM Sans', sans-serif;
+          font-family: 'Inter', sans-serif;
           font-size: 0.82rem;
           font-weight: 500;
           cursor: pointer;
@@ -298,7 +338,7 @@ export function StudentRosterView({ scheduleId, semesterId, isLocked }: StudentR
           max-width: 360px;
           width: 100%;
           box-shadow: 0 24px 60px rgba(0,0,0,0.2);
-          font-family: 'DM Sans', sans-serif;
+          font-family: 'Inter', sans-serif;
           text-align: center;
         }
 
@@ -321,7 +361,7 @@ export function StudentRosterView({ scheduleId, semesterId, isLocked }: StudentR
           flex: 1; padding: 0.65rem;
           border: 1.5px solid #e5e7eb; border-radius: 8px;
           background: #ffffff; color: #6b7280;
-          font-family: 'DM Sans', sans-serif; font-size: 0.85rem; font-weight: 500;
+          font-family: 'Inter', sans-serif; font-size: 0.85rem; font-weight: 500;
           cursor: pointer; transition: background 0.15s;
         }
 
@@ -330,7 +370,7 @@ export function StudentRosterView({ scheduleId, semesterId, isLocked }: StudentR
         .delete-btn-confirm {
           flex: 1; padding: 0.65rem;
           background: #dc2626; color: #ffffff; border: none; border-radius: 8px;
-          font-family: 'DM Sans', sans-serif; font-size: 0.85rem; font-weight: 500;
+          font-family: 'Inter', sans-serif; font-size: 0.85rem; font-weight: 500;
           cursor: pointer; transition: background 0.15s;
         }
 
@@ -359,6 +399,26 @@ export function StudentRosterView({ scheduleId, semesterId, isLocked }: StudentR
               </span>
             </div>
           </div>
+
+          {(() => {
+            const pct = Math.min((studentList.length / capacity) * 100, 100);
+            const barColor = pct >= 100 ? "#dc2626" : pct >= 75 ? "#d97706" : "#00563f";
+            const textColor = pct >= 100 ? "#dc2626" : pct >= 75 ? "#92400e" : "#00563f";
+            return (
+              <div className="roster-capacity-bar">
+                <span className="roster-capacity-label">Capacity</span>
+                <div className="roster-capacity-track">
+                  <div
+                    className="roster-capacity-fill"
+                    style={{ width: `${pct}%`, backgroundColor: barColor }}
+                  />
+                </div>
+                <span className="roster-capacity-text" style={{ color: textColor }}>
+                  {studentList.length}/{capacity}
+                </span>
+              </div>
+            );
+          })()}
 
           {error && <div className="error-banner">{error}</div>}
 

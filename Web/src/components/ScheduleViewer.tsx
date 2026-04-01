@@ -60,7 +60,7 @@ export function ScheduleViewer({
         .sv-trigger:hover { background: #003d2a; }
 
         .sv-trigger-label {
-          font-family: 'DM Sans', sans-serif;
+          font-family: 'Inter', sans-serif;
           font-size: 0.68rem;
           font-weight: 500;
           writing-mode: vertical-rl;
@@ -94,7 +94,7 @@ export function ScheduleViewer({
           flex-direction: column;
           transform: translateX(100%);
           transition: transform 0.25s ease;
-          font-family: 'DM Sans', sans-serif;
+          font-family: 'Inter', sans-serif;
         }
 
         .sv-panel.open { transform: translateX(0); }
