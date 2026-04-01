@@ -50,6 +50,11 @@ namespace NursingScheduler.API.Controllers
                     return BadRequest($"A student with W# {createDto.WNumber} already exists in this semester");
             }
 
+            //check capacity before adding
+            var currentCount = await _context.Students.CountAsync(s => s.ScheduleId == createDto.ScheduleId);
+            if (schedule != null && currentCount >= schedule.Capacity + 3)
+                return BadRequest("This schedule group is critically over capacity. Consider creating a new lab section.");
+
             var student = new Student
             {
                 Name = createDto.Name,
@@ -60,6 +65,10 @@ namespace NursingScheduler.API.Controllers
 
             _context.Students.Add(student);
             await _context.SaveChangesAsync();
+
+            //warn if nearing or over capacity
+            if (schedule != null && currentCount + 1 >= schedule.Capacity)
+                Response.Headers.Append("X-Capacity-Warning", $"Schedule is at {currentCount + 1}/{schedule.Capacity} students");
 
             var username = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "unknown";
             await _auditService.LogChange("Student", student.Id, "Created", username, null, schedule?.SemesterId);

@@ -24,6 +24,12 @@ namespace NursingScheduler.API.Data
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            //set default capacity to 8 for lab groups
+            modelBuilder.Entity<Schedule>()
+                .Property(s => s.Capacity)
+                .HasDefaultValue(8);
+
             //if you delete a schedule(bucket), delete the sections in it
             //this configures the many to many bridge table
             //it tells the db "a schedule_section connects a schedule and a section"

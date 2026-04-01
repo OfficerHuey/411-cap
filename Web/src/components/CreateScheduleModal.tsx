@@ -1,10 +1,11 @@
 import { useState } from "react";
-import type { ScheduleGroup, SemesterLevel, StudentRoster } from "../Lib/Types";
+import type { SemesterLevel } from "../Lib/Types";
+import { levelToNumber } from "../Lib/Types";
 import { Plus, Trash2, X, Users, ChevronDown, ChevronUp } from "lucide-react";
-import { dataStore } from "../Lib/Store";
+import { schedules as schedulesApi, students as studentsApi } from "../Lib/api";
 
 interface CreateScheduleModalProps {
-  semesterId: string;
+  semesterId: number;
   level: SemesterLevel;
   onClose: () => void;
   onSuccess: () => void;
@@ -23,9 +24,11 @@ export function CreateScheduleModal({
   onClose,
   onSuccess,
 }: CreateScheduleModalProps) {
-  const [formData, setFormData] = useState({ name: "", locationNote: "" });
+  const [formData, setFormData] = useState({ name: "", locationDisplay: "" });
   const [students, setStudents] = useState<StudentInput[]>([]);
   const [showStudentSection, setShowStudentSection] = useState(false);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const addStudentRow = () => {
     setStudents([
@@ -48,28 +51,35 @@ export function CreateScheduleModal({
     setStudents(students.filter((s) => s.id !== id));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const newScheduleGroup: ScheduleGroup = {
-      id: `sg-${Date.now()}`,
-      semesterId,
-      level,
-      ...formData,
-    };
-    dataStore.addScheduleGroup(newScheduleGroup);
-    students.forEach((student) => {
-      if (student.name && student.wNumber && student.email) {
-        const newStudent: StudentRoster = {
-          id: `sr-${Date.now()}-${Math.random()}`,
-          scheduleGroupId: newScheduleGroup.id,
+    setError("");
+    setLoading(true);
+    try {
+      const schedule = await schedulesApi.create({
+        name: formData.name,
+        semesterLevel: levelToNumber(level),
+        locationDisplay: formData.locationDisplay || null,
+        semesterId,
+      });
+      //add students if any
+      const validStudents = students.filter(
+        (s) => s.name && s.wNumber && s.email,
+      );
+      for (const student of validStudents) {
+        await studentsApi.create({
           name: student.name,
           wNumber: student.wNumber,
           email: student.email,
-        };
-        dataStore.addStudent(newStudent);
+          scheduleId: schedule.id,
+        });
       }
-    });
-    onSuccess();
+      onSuccess();
+    } catch (err: any) {
+      setError(err.message || "Failed to create schedule");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const validStudents = students.filter(
@@ -79,8 +89,6 @@ export function CreateScheduleModal({
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=DM+Sans:wght@300;400;500&display=swap');
-
         .csm-overlay {
           position: fixed;
           inset: 0;
@@ -146,13 +154,9 @@ export function CreateScheduleModal({
 
         .csm-close:hover { background: rgba(255,255,255,0.2); }
 
-        .csm-body {
-          padding: 1.5rem;
-        }
+        .csm-body { padding: 1.5rem; }
 
-        .csm-form-group {
-          margin-bottom: 1.1rem;
-        }
+        .csm-form-group { margin-bottom: 1.1rem; }
 
         .csm-label {
           display: block;
@@ -188,7 +192,6 @@ export function CreateScheduleModal({
 
         .csm-input::placeholder { color: #d1d5db; }
 
-        /* Student section toggle */
         .csm-divider {
           border: none;
           border-top: 1px solid #e5e2db;
@@ -230,7 +233,6 @@ export function CreateScheduleModal({
           font-weight: 500;
         }
 
-        /* Student rows */
         .csm-student-row {
           display: grid;
           grid-template-columns: 2fr 1fr 2fr auto;
@@ -294,7 +296,6 @@ export function CreateScheduleModal({
 
         .csm-btn-add-student:hover { background: #00563f; color: #ffffff; border-color: #00563f; }
 
-        /* Footer */
         .csm-footer {
           display: flex;
           justify-content: flex-end;
@@ -334,6 +335,18 @@ export function CreateScheduleModal({
 
         .csm-btn-submit:hover { background: #003d2a; }
         .csm-btn-submit:active { transform: scale(0.98); }
+        .csm-btn-submit:disabled { background: #6b7280; cursor: not-allowed; }
+
+        .csm-error {
+          background: #fef2f2;
+          border: 1px solid #fecaca;
+          border-left: 3px solid #dc2626;
+          border-radius: 6px;
+          padding: 0.6rem 0.875rem;
+          margin-bottom: 1rem;
+          font-size: 0.82rem;
+          color: #991b1b;
+        }
       `}</style>
 
       <div className="csm-overlay" onClick={onClose}>
@@ -349,6 +362,7 @@ export function CreateScheduleModal({
           </div>
 
           <div className="csm-body">
+            {error && <div className="csm-error">{error}</div>}
             <form onSubmit={handleSubmit}>
               <div className="csm-form-group">
                 <label className="csm-label">
@@ -373,9 +387,9 @@ export function CreateScheduleModal({
                 <input
                   type="text"
                   required
-                  value={formData.locationNote}
+                  value={formData.locationDisplay}
                   onChange={(e) =>
-                    setFormData({ ...formData, locationNote: e.target.value })
+                    setFormData({ ...formData, locationDisplay: e.target.value })
                   }
                   className="csm-input"
                   placeholder="e.g. Hammond"
@@ -384,7 +398,6 @@ export function CreateScheduleModal({
 
               <hr className="csm-divider" />
 
-              {/* Students toggle */}
               <button
                 type="button"
                 className="csm-students-toggle"
@@ -465,8 +478,8 @@ export function CreateScheduleModal({
                 >
                   Cancel
                 </button>
-                <button type="submit" className="csm-btn-submit">
-                  Create Schedule
+                <button type="submit" className="csm-btn-submit" disabled={loading}>
+                  {loading ? "Creating..." : "Create Schedule"}
                 </button>
               </div>
             </form>

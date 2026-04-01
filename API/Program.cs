@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.SpaServices;
-using Microsoft.AspNetCore.Builder;
 using NursingScheduler.API.Data;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -30,7 +28,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactApp", policy =>
     {
-        policy.WithOrigins("http://localhost:5173")
+        policy.WithOrigins("http://localhost:5173", "http://localhost:5180")
               .AllowAnyHeader()
               .AllowAnyMethod();
     });
@@ -49,7 +47,12 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(
+            new System.Text.Json.Serialization.JsonStringEnumConverter());
+    });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -62,7 +65,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+//app.UseHttpsRedirection();
 app.UseStaticFiles(); //serve static files from the web folder
 app.UseRouting();
 
@@ -72,18 +75,8 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-//spa fallback for react
-if (app.Environment.IsDevelopment())
-{
-    app.UseSpa(x =>
-    {
-        x.UseProxyToSpaDevelopmentServer("http://localhost:5173");
-    });
-}
-else
-{
-    app.MapFallbackToFile("/index.html");
-}
+//spa fallback for production builds
+app.MapFallbackToFile("/index.html");
 
 //auto migration & seeding
 using var scope = app.Services.CreateScope();

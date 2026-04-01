@@ -19,7 +19,7 @@ namespace NursingScheduler.API.Data
                 new Course { Code = "NURS 315", Name = "Health Assessment Lab", SemesterLevel = 1, DefaultType = CourseType.Lab },
                 new Course { Code = "NURS 319", Name = "Pathophysiology & Pharmacology I", SemesterLevel = 1, DefaultType = CourseType.Lecture },
                 new Course { Code = "NURS 333", Name = "Orientation to Roles", SemesterLevel = 1, DefaultType = CourseType.Lecture },
-                new Course { Code = "NURS 305", Name = "Clinical Competency Lab I", SemesterLevel = 1, DefaultType = CourseType.Lab },
+                new Course { Code = "NURS 305", Name = "Clinical Competency Lab I", SemesterLevel = 1, DefaultType = CourseType.Clinical },
 
                 //semester 2
                 new Course { Code = "NURS 371", Name = "Foundations of Nursing Practice", SemesterLevel = 2, DefaultType = CourseType.Lecture },
@@ -34,14 +34,14 @@ namespace NursingScheduler.API.Data
                 new Course { Code = "NURS 375", Name = "Gerontological Nursing", SemesterLevel = 3, DefaultType = CourseType.Lecture },
                 new Course { Code = "NURS 382", Name = "Adult & Gerontology Lab", SemesterLevel = 3, DefaultType = CourseType.Lab },
                 new Course { Code = "NURS 383", Name = "Psychiatric Mental Health", SemesterLevel = 3, DefaultType = CourseType.Lecture },
-                new Course { Code = "NURS 335", Name = "Clinical Competency Lab II", SemesterLevel = 3, DefaultType = CourseType.Lab },
+                new Course { Code = "NURS 335", Name = "Clinical Competency Lab II", SemesterLevel = 3, DefaultType = CourseType.Clinical },
 
                 //semester 4
                 new Course { Code = "NURS 471", Name = "Care of Childbearing Family", SemesterLevel = 4, DefaultType = CourseType.Lecture },
                 new Course { Code = "NURS 473", Name = "Childbearing Family Lab", SemesterLevel = 4, DefaultType = CourseType.Lab },
                 new Course { Code = "NURS 475", Name = "Care of Infants & Children", SemesterLevel = 4, DefaultType = CourseType.Lecture },
                 new Course { Code = "NURS 477", Name = "Infants & Children Lab", SemesterLevel = 4, DefaultType = CourseType.Lab },
-                new Course { Code = "NURS 403", Name = "Clinical Competency Lab III", SemesterLevel = 4, DefaultType = CourseType.Lab },
+                new Course { Code = "NURS 403", Name = "Clinical Competency Lab III", SemesterLevel = 4, DefaultType = CourseType.Clinical },
                 new Course { Code = "NURS 485", Name = "Professional Transitions", SemesterLevel = 4, DefaultType = CourseType.Lecture },
 
                 //semester 5 (senior/preceptorship)

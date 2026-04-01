@@ -1,17 +1,19 @@
 import { useEffect, useState } from "react";
 import "../App.css";
 import { CreateSemesterModal } from "./CreateSemesterModal";
-import { Plus, Calendar, Trash2 } from "lucide-react";
+import { Plus, Calendar, Trash2, Lock, Unlock } from "lucide-react";
 import { authService } from "../Lib/Auth";
-import { dataStore } from "../Lib/Store";
+import { semesters as semestersApi } from "../Lib/api";
 import type { Semester } from "../Lib/Types";
 import { useNavigate } from "react-router-dom";
 
 export function Dashboard() {
   const navigate = useNavigate();
-  const [semesters, setSemesters] = useState<Semester[]>([]);
+  const [semesterList, setSemesterList] = useState<Semester[]>([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   const canEdit = authService.canEdit();
 
@@ -19,14 +21,37 @@ export function Dashboard() {
     loadSemesters();
   }, []);
 
-  const loadSemesters = () => {
-    setSemesters(dataStore.getSemesters());
+  const loadSemesters = async () => {
+    try {
+      setLoading(true);
+      setError("");
+      const data = await semestersApi.getAll();
+      setSemesterList(data);
+    } catch (err: any) {
+      setError(err.message || "Failed to load semesters");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleDeleteSemester = (id: string) => {
-    dataStore.deleteSemester(id);
-    setDeleteConfirm(null);
-    loadSemesters();
+  const handleDeleteSemester = async (id: number) => {
+    try {
+      await semestersApi.delete(id);
+      setDeleteConfirm(null);
+      await loadSemesters();
+    } catch (err: any) {
+      setError(err.message || "Failed to delete semester");
+      setDeleteConfirm(null);
+    }
+  };
+
+  const handleToggleLock = async (id: number) => {
+    try {
+      await semestersApi.toggleLock(id);
+      await loadSemesters();
+    } catch (err: any) {
+      setError(err.message || "Failed to toggle lock");
+    }
   };
 
   const formatDateRange = (startDate: string, endDate: string) => {
@@ -45,8 +70,6 @@ export function Dashboard() {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=DM+Sans:wght@300;400;500&display=swap');
-
         .dash-root { font-family: 'DM Sans', sans-serif; }
 
         .dash-header {
@@ -143,7 +166,9 @@ export function Dashboard() {
         .card-title { font-family: 'Playfair Display', serif; font-size: 1.1rem; font-weight: 600; color: #0a1f14; margin: 0 0 0.2rem 0; }
         .card-dates { font-size: 0.78rem; color: #9ca3af; margin: 0; }
 
-        .btn-delete {
+        .card-actions { display: flex; align-items: center; gap: 0.25rem; }
+
+        .btn-delete, .btn-lock {
           background: none;
           border: none;
           cursor: pointer;
@@ -157,6 +182,8 @@ export function Dashboard() {
         }
 
         .btn-delete:hover { color: #dc2626; background: #fef2f2; }
+        .btn-lock:hover { color: #00563f; background: #f0faf5; }
+        .btn-lock.locked { color: #dc2626; }
 
         .card-clinical-badge {
           display: inline-flex;
@@ -168,7 +195,22 @@ export function Dashboard() {
           border-radius: 20px;
           font-size: 0.78rem;
           font-weight: 500;
-          margin-bottom: 1.25rem;
+          margin-bottom: 0.5rem;
+        }
+
+        .card-lock-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.3rem;
+          padding: 0.25rem 0.75rem;
+          background: rgba(220, 38, 38, 0.08);
+          color: #dc2626;
+          border: 1px solid rgba(220, 38, 38, 0.2);
+          border-radius: 20px;
+          font-size: 0.78rem;
+          font-weight: 500;
+          margin-bottom: 0.5rem;
+          margin-left: 0.5rem;
         }
 
         .btn-open {
@@ -184,6 +226,7 @@ export function Dashboard() {
           cursor: pointer;
           transition: background 0.15s, border-color 0.15s;
           box-sizing: border-box;
+          margin-top: 0.75rem;
         }
 
         .btn-open:hover { background: #00563f; color: #ffffff; border-color: #00563f; }
@@ -222,6 +265,24 @@ export function Dashboard() {
           color: #c4c0b8;
           letter-spacing: 0.04em;
           text-transform: uppercase;
+        }
+
+        .error-banner {
+          background: #fef2f2;
+          border: 1px solid #fecaca;
+          border-left: 3px solid #dc2626;
+          border-radius: 6px;
+          padding: 0.75rem 1rem;
+          margin-bottom: 1.5rem;
+          font-size: 0.85rem;
+          color: #991b1b;
+        }
+
+        .loading-spinner {
+          text-align: center;
+          padding: 3rem;
+          color: #6b7280;
+          font-size: 0.9rem;
         }
 
         .delete-overlay {
@@ -297,7 +358,7 @@ export function Dashboard() {
       <div className="dash-root">
         <div className="dash-header">
           <div className="dash-header-text">
-            <h1>Dashboard</h1>
+            <h1>Welcome{authService.getCurrentUser()?.name ? `, ${authService.getCurrentUser()!.name}` : ""}</h1>
             <div className="dash-header-divider" />
             <p>Manage semesters and course schedules</p>
           </div>
@@ -312,69 +373,97 @@ export function Dashboard() {
           )}
         </div>
 
-        <div className="dash-grid">
-          {semesters.map((semester) => (
-            <div key={semester.id} className="semester-card">
-              <div className="card-accent" />
-              <div className="card-body">
-                <div className="card-top">
-                  <div className="card-title-group">
-                    <div className="card-icon">
-                      <Calendar size={18} color="#00563f" />
+        {error && <div className="error-banner">{error}</div>}
+
+        {loading ? (
+          <div className="loading-spinner">Loading...</div>
+        ) : (
+          <div className="dash-grid">
+            {semesterList.map((semester) => (
+              <div key={semester.id} className="semester-card">
+                <div className="card-accent" />
+                <div className="card-body">
+                  <div className="card-top">
+                    <div className="card-title-group">
+                      <div className="card-icon">
+                        <Calendar size={18} color="#00563f" />
+                      </div>
+                      <div>
+                        <h3 className="card-title">{semester.name}</h3>
+                        <p className="card-dates">
+                          {formatDateRange(semester.startDate, semester.endDate)}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="card-title">{semester.name}</h3>
-                      <p className="card-dates">
-                        {formatDateRange(semester.startDate, semester.endDate)}
-                      </p>
-                    </div>
+                    {canEdit && (
+                      <div className="card-actions">
+                        <button
+                          className={`btn-lock ${semester.isLocked ? "locked" : ""}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleToggleLock(semester.id);
+                          }}
+                          title={semester.isLocked ? "Unlock semester" : "Lock semester"}
+                        >
+                          {semester.isLocked ? <Lock size={15} /> : <Unlock size={15} />}
+                        </button>
+                        <button
+                          className="btn-delete"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeleteConfirm(semester.id);
+                          }}
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
+                    )}
                   </div>
-                  {canEdit && (
-                    <button
-                      className="btn-delete"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setDeleteConfirm(semester.id);
-                      }}
-                    >
-                      <Trash2 size={15} />
-                    </button>
-                  )}
+
+                  <div>
+                    {semester.clinicalDays && (
+                      <span className="card-clinical-badge">
+                        Clinical Days: {semester.clinicalDays}
+                      </span>
+                    )}
+                    {semester.isLocked && (
+                      <span className="card-lock-badge">
+                        <Lock size={12} />
+                        Locked
+                      </span>
+                    )}
+                  </div>
+
+                  <button
+                    className="btn-open"
+                    onClick={() => navigate(`/semester/${semester.id}`)}
+                  >
+                    Open Semester
+                  </button>
                 </div>
+              </div>
+            ))}
 
-                <div className="card-clinical-badge">
-                  Clinical Days: {semester.clinicalDays}
+            {semesterList.length === 0 && (
+              <div className="dash-empty">
+                <div className="dash-empty-icon">
+                  <Calendar size={26} color="#00563f" />
                 </div>
-
-                <button
-                  className="btn-open"
-                  onClick={() => navigate(`/semester/${semester.id}`)}
-                >
-                  Open Semester
-                </button>
+                <h3>No Semesters Yet</h3>
+                <p>Get started by creating your first semester</p>
+                {canEdit && (
+                  <button
+                    className="btn-create"
+                    onClick={() => setShowCreateModal(true)}
+                  >
+                    <Plus size={16} />
+                    Create Semester
+                  </button>
+                )}
               </div>
-            </div>
-          ))}
-
-          {semesters.length === 0 && (
-            <div className="dash-empty">
-              <div className="dash-empty-icon">
-                <Calendar size={26} color="#00563f" />
-              </div>
-              <h3>No Semesters Yet</h3>
-              <p>Get started by creating your first semester</p>
-              {canEdit && (
-                <button
-                  className="btn-create"
-                  onClick={() => setShowCreateModal(true)}
-                >
-                  <Plus size={16} />
-                  Create Semester
-                </button>
-              )}
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
 
         <div className="dash-footer">
           Southeastern Louisiana University · School of Nursing
@@ -391,7 +480,7 @@ export function Dashboard() {
         />
       )}
 
-      {deleteConfirm && (
+      {deleteConfirm != null && (
         <div className="delete-overlay" onClick={() => setDeleteConfirm(null)}>
           <div className="delete-box" onClick={(e) => e.stopPropagation()}>
             <div className="delete-box-icon">

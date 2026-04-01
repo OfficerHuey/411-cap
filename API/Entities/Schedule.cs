@@ -18,6 +18,9 @@ namespace NursingScheduler.API.Entities
         //max students allowed in this lab group, editable after creation
         public int Capacity { get; set; } = 8;
 
+        //controls display order within a semester level
+        public int SortOrder { get; set; } = 0;
+
         //fk; defines what semester the bucket belongs to
         public int SemesterId { get; set; }
         public Semester? Semester { get; set; }

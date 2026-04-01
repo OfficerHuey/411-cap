@@ -1,6 +1,7 @@
 import "../App.css";
 import { authService } from "../Lib/Auth";
 import type { Course } from "../Lib/Types";
+import { courseTypeColor } from "../Lib/Types";
 import { useDrag } from "react-dnd";
 import { useRef } from "react";
 
@@ -11,13 +12,14 @@ interface CoursePaletteProps {
 function DraggableCourse({ course }: { course: Course }) {
   const canEdit = authService.canEdit();
   const elementRef = useRef<HTMLDivElement>(null);
+  const color = courseTypeColor(course.defaultType);
 
   const [{ isDragging }, drag] = useDrag(() => ({
     type: "course",
     item: {
       courseId: course.id,
       courseCode: course.code,
-      courseType: course.type,
+      courseType: course.defaultType,
     },
     canDrag: canEdit,
     collect: (monitor) => ({
@@ -30,7 +32,7 @@ function DraggableCourse({ course }: { course: Course }) {
     <div
       ref={elementRef}
       style={{
-        borderLeft: `4px solid ${course.color}`,
+        borderLeft: `4px solid ${color}`,
         opacity: isDragging ? 0.4 : 1,
         cursor: canEdit ? "grab" : "not-allowed",
         userSelect: "none",
@@ -39,22 +41,22 @@ function DraggableCourse({ course }: { course: Course }) {
     >
       <div
         className="course-pill-dot"
-        style={{ backgroundColor: course.color }}
+        style={{ backgroundColor: color }}
       />
       <div>
         <div className="course-pill-code">{course.code}</div>
-        <div className="course-pill-type">{course.type}</div>
+        <div className="course-pill-type">{course.defaultType}</div>
       </div>
     </div>
   );
 }
 
 export function CoursePalette({ courses }: CoursePaletteProps) {
-  const lectures = courses.filter((c) => c.type === "Lecture");
-  const labs = courses.filter((c) => c.type === "Lab");
-  const clinicals = courses.filter((c) => c.type === "Clinical");
+  const lectures = courses.filter((c) => c.defaultType === "Lecture");
+  const labs = courses.filter((c) => c.defaultType === "Lab");
+  const clinicals = courses.filter((c) => c.defaultType === "Clinical");
 
-  const Section = ({ label, items }: { label: string; items: Course[] }) => (
+  const PaletteSection = ({ label, items }: { label: string; items: Course[] }) => (
     <div className="palette-section">
       <p className="palette-section-label">{label}</p>
       <div className="palette-section-list">
@@ -68,8 +70,6 @@ export function CoursePalette({ courses }: CoursePaletteProps) {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=DM+Sans:wght@300;400;500&display=swap');
-
         .palette-root {
           background: #ffffff;
           border: 1px solid #e5e2db;
@@ -177,11 +177,9 @@ export function CoursePalette({ courses }: CoursePaletteProps) {
           {courses.length === 0 && (
             <p className="palette-empty">No courses available</p>
           )}
-          {lectures.length > 0 && <Section label="Lectures" items={lectures} />}
-          {labs.length > 0 && <Section label="Labs" items={labs} />}
-          {clinicals.length > 0 && (
-            <Section label="Clinicals" items={clinicals} />
-          )}
+          {lectures.length > 0 && <PaletteSection label="Lectures" items={lectures} />}
+          {labs.length > 0 && <PaletteSection label="Labs" items={labs} />}
+          {clinicals.length > 0 && <PaletteSection label="Clinicals" items={clinicals} />}
         </div>
       </div>
     </>

@@ -1,5 +1,5 @@
 import "../App.css";
-import { Calendar, Shield, LogOut } from "lucide-react";
+import { Calendar, LogOut, DoorOpen, GraduationCap } from "lucide-react";
 import { useNavigate, Outlet } from "react-router-dom";
 import { authService } from "../Lib/Auth";
 
@@ -9,14 +9,11 @@ export function Layout() {
 
   const handleLogout = () => {
     authService.logout();
-    navigate("/login");
   };
 
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=DM+Sans:wght@300;400;500&display=swap');
-
         .layout-root {
           min-height: 100vh;
           background: #f8f7f4;
@@ -59,16 +56,37 @@ export function Layout() {
           letter-spacing: 0.01em;
         }
 
+        .layout-nav-links {
+          display: flex;
+          align-items: center;
+          gap: 0.25rem;
+        }
+
+        .layout-nav-link {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.35rem;
+          padding: 0.4rem 0.75rem;
+          background: none;
+          border: none;
+          border-radius: 6px;
+          color: rgba(255,255,255,0.7);
+          font-family: 'DM Sans', sans-serif;
+          font-size: 0.82rem;
+          font-weight: 500;
+          cursor: pointer;
+          transition: color 0.15s, background 0.15s;
+        }
+
+        .layout-nav-link:hover {
+          color: #ffffff;
+          background: rgba(255,255,255,0.1);
+        }
+
         .layout-nav-right {
           display: flex;
           align-items: center;
           gap: 1rem;
-        }
-
-        .layout-user-info {
-          display: flex;
-          align-items: center;
-          gap: 0.6rem;
         }
 
         .layout-user-name {
@@ -118,15 +136,34 @@ export function Layout() {
 
       <div className="layout-root">
         <nav className="layout-nav">
-          <div className="layout-nav-left" onClick={() => navigate("/")}>
-            <div className="layout-nav-icon">
-              <Calendar size={18} color="white" />
+          <div style={{ display: "flex", alignItems: "center", gap: "2rem" }}>
+            <div className="layout-nav-left" onClick={() => navigate("/")}>
+              <div className="layout-nav-icon">
+                <Calendar size={18} color="white" />
+              </div>
+              <span className="layout-nav-title">Nursing Scheduler</span>
             </div>
-            <span className="layout-nav-title">Nursing Scheduler</span>
+            <div className="layout-nav-links">
+              <button className="layout-nav-link" onClick={() => navigate("/rooms")}>
+                <DoorOpen size={14} />
+                Rooms
+              </button>
+              <button className="layout-nav-link" onClick={() => navigate("/instructors")}>
+                <GraduationCap size={14} />
+                Instructors
+              </button>
+            </div>
           </div>
 
           <div className="layout-nav-right">
-            <div className="layout-user-info"></div>
+            {currentUser && (
+              <>
+                <span className="layout-user-name">{currentUser.name}</span>
+                {currentUser.role && (
+                  <span className="layout-role-badge">{currentUser.role}</span>
+                )}
+              </>
+            )}
             <button className="layout-logout-btn" onClick={handleLogout}>
               <LogOut size={14} />
               Logout

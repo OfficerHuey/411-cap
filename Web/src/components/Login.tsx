@@ -1,35 +1,39 @@
 import { useState } from "react";
 import "../App.css";
-import { AlertCircle, Mail, Info, Lock, Eye, EyeOff, X } from "lucide-react";
+import { AlertCircle, User, Lock, Eye, EyeOff } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { authService } from "../Lib/Auth";
+import { login, register } from "../Lib/api";
 
 export function Login() {
   const navigate = useNavigate();
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const [showCredentials, setShowCredentials] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    const user = authService.login(email, password);
-    if (user) {
+    setLoading(true);
+    try {
+      if (isRegistering) {
+        await register({ username, password });
+      } else {
+        await login({ username, password });
+      }
       navigate("/");
-    } else {
-      setError("Invalid email or password. Please try again.");
+    } catch (err: any) {
+      setError(err.message || "Authentication failed. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
-
-  const mockCredentials = authService.getMockCredentials();
 
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=DM+Sans:wght@300;400;500&display=swap');
-
         .login-root {
           min-height: 100vh;
           display: flex;
@@ -204,6 +208,7 @@ export function Login() {
 
         .btn-submit:hover { background: #003d2a; }
         .btn-submit:active { transform: scale(0.99); }
+        .btn-submit:disabled { background: #6b7280; cursor: not-allowed; }
 
         .demo-section {
           margin-top: 2rem;
@@ -228,109 +233,67 @@ export function Login() {
 
         .demo-toggle:hover { color: #0a1f14; }
 
-        /* Floating popup */
-        .demo-popup-overlay {
-          position: fixed;
-          inset: 0;
-          background: rgba(0,0,0,0.5);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          z-index: 9999;
-          backdrop-filter: blur(2px);
-        }
-
-        .demo-popup {
-          background: #ffffff;
-          border-radius: 12px;
-          width: 100%;
-          max-width: 400px;
-          box-shadow: 0 24px 60px rgba(0,0,0,0.2);
-          overflow: hidden;
-          font-family: 'DM Sans', sans-serif;
-        }
-
-        .demo-popup-header {
-          background: #00563f;
-          padding: 1.25rem 1.5rem;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-        }
-
-        .demo-popup-header h3 {
-          font-family: 'Playfair Display', serif;
-          font-size: 1rem;
-          font-weight: 600;
-          color: #ffffff;
-          margin: 0;
-        }
-
-        .demo-popup-header p {
-          font-size: 0.75rem;
-          color: rgba(255,255,255,0.6);
-          margin: 0.2rem 0 0;
-          font-weight: 300;
-        }
-
-        .demo-popup-close {
-          background: rgba(255,255,255,0.1);
-          border: 1px solid rgba(255,255,255,0.2);
-          border-radius: 6px;
-          color: #ffffff;
-          cursor: pointer;
-          padding: 0.3rem;
-          display: flex;
-          align-items: center;
-          transition: background 0.15s;
-          flex-shrink: 0;
-        }
-
-        .demo-popup-close:hover { background: rgba(255,255,255,0.2); }
-
-        .demo-popup-body {
-          padding: 1.25rem;
-          display: flex;
-          flex-direction: column;
-          gap: 0.5rem;
-        }
-
-        .demo-item {
-          background: #fafaf8;
-          border: 1px solid #e5e2db;
-          border-radius: 8px;
-          border-left: 3px solid #00563f;
-          padding: 0.875rem 1rem;
-        }
-
-        .demo-item-name {
-          font-family: 'Playfair Display', serif;
-          font-size: 0.9rem;
-          font-weight: 600;
-          color: #0a1f14;
-          margin: 0 0 0.5rem 0;
-        }
-
         .demo-creds {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 0.5rem;
+          margin-top: 1rem;
+          padding: 1rem;
+          background: #f0faf5;
+          border: 1px solid #c6e8d8;
+          border-radius: 8px;
         }
 
-        .demo-cred-label {
-          font-size: 0.68rem;
+        .demo-creds-title {
+          font-size: 0.72rem;
+          font-weight: 600;
           text-transform: uppercase;
-          letter-spacing: 0.05em;
-          color: #9ca3af;
-          display: block;
-          margin-bottom: 0.15rem;
+          letter-spacing: 0.04em;
+          color: #00563f;
+          margin: 0 0 0.5rem;
         }
 
-        .demo-cred-value {
-          font-family: 'DM Mono', 'Courier New', monospace;
-          color: #374151;
+        .demo-creds-row {
           font-size: 0.82rem;
+          color: #374151;
+          margin: 0 0 0.75rem;
         }
+
+        .demo-creds-row code {
+          background: #ffffff;
+          padding: 0.15rem 0.4rem;
+          border-radius: 4px;
+          font-size: 0.78rem;
+          border: 1px solid #e5e2db;
+          font-family: 'DM Mono', monospace;
+        }
+
+        .demo-fill-btn {
+          width: 100%;
+          padding: 0.5rem;
+          background: #00563f;
+          color: #ffffff;
+          border: none;
+          border-radius: 6px;
+          font-family: 'DM Sans', sans-serif;
+          font-size: 0.82rem;
+          font-weight: 500;
+          cursor: pointer;
+          transition: background 0.15s;
+        }
+
+        .demo-fill-btn:hover { background: #003d2a; }
+
+        .btn-submit .btn-spinner {
+          display: inline-block;
+          width: 16px;
+          height: 16px;
+          border: 2px solid rgba(255,255,255,0.3);
+          border-top-color: #ffffff;
+          border-radius: 50%;
+          animation: btn-spin 0.6s linear infinite;
+          margin-right: 0.5rem;
+          vertical-align: middle;
+        }
+
+        @keyframes btn-spin { to { transform: rotate(360deg); } }
       `}</style>
 
       <div className="login-root">
@@ -338,7 +301,7 @@ export function Login() {
           <div />
           <div className="left-hero">
             <h2>
-              Nursing student scheduler <em>DEMO</em>
+              Nursing student <em>scheduler</em>
             </h2>
             <p>A scheduling tool for nursing students.</p>
           </div>
@@ -350,8 +313,8 @@ export function Login() {
         <div className="login-panel-right">
           <div className="login-card">
             <div className="login-card-header">
-              <h1>Sign In</h1>
-              <p>Enter your credentials to continue</p>
+              <h1>{isRegistering ? "Create Account" : "Sign In"}</h1>
+              <p>{isRegistering ? "Register a new account" : "Enter your credentials to continue"}</p>
             </div>
 
             {error && (
@@ -367,18 +330,18 @@ export function Login() {
 
             <form onSubmit={handleSubmit}>
               <div className="form-group">
-                <label className="form-label">Email Address</label>
+                <label className="form-label">Username</label>
                 <div className="input-wrap">
                   <span className="input-icon">
-                    <Mail size={16} />
+                    <User size={16} />
                   </span>
                   <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    type="text"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
                     required
                     className="input-field"
-                    placeholder="professor@nursing.edu"
+                    placeholder="Enter your username"
                   />
                 </div>
               </div>
@@ -407,71 +370,39 @@ export function Login() {
                 </div>
               </div>
 
-              <button type="submit" className="btn-submit">
-                Sign In
+              <button type="submit" className="btn-submit" disabled={loading}>
+                {loading && <span className="btn-spinner" />}
+                {loading ? "Signing in..." : isRegistering ? "Create Account" : "Sign In"}
               </button>
             </form>
 
             <div className="demo-section">
               <button
-                onClick={() => setShowCredentials(true)}
+                onClick={() => { setIsRegistering(!isRegistering); setError(""); }}
                 className="demo-toggle"
               >
-                <Info size={14} />
-                View demo credentials
+                {isRegistering ? "Already have an account? Sign in" : "Need an account? Register"}
               </button>
+
+              {!isRegistering && (
+                <div className="demo-creds">
+                  <p className="demo-creds-title">Demo Credentials</p>
+                  <div className="demo-creds-row">
+                    <span>Admin:</span> <code>admin</code> / <code>Password1!</code>
+                  </div>
+                  <button
+                    type="button"
+                    className="demo-fill-btn"
+                    onClick={() => { setUsername("admin"); setPassword("Password1!"); }}
+                  >
+                    Fill demo credentials
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
       </div>
-
-      {showCredentials && (
-        <div
-          className="demo-popup-overlay"
-          onClick={() => setShowCredentials(false)}
-        >
-          <div className="demo-popup" onClick={(e) => e.stopPropagation()}>
-            <div className="demo-popup-header">
-              <div>
-                <h3>Demo Credentials</h3>
-                <p>Click any account to use it</p>
-              </div>
-              <button
-                className="demo-popup-close"
-                onClick={() => setShowCredentials(false)}
-              >
-                <X size={16} />
-              </button>
-            </div>
-            <div className="demo-popup-body">
-              {mockCredentials.map((cred, idx) => (
-                <div
-                  key={idx}
-                  className="demo-item"
-                  style={{ cursor: "pointer" }}
-                  onClick={() => {
-                    setEmail(cred.email);
-                    setPassword(cred.password);
-                    setShowCredentials(false);
-                  }}
-                >
-                  <p className="demo-item-name">{cred.name}</p>
-                  <div className="demo-creds">
-                    <div>
-                      <span className="demo-cred-label">Email</span>
-                      <span className="demo-cred-value">{cred.email}</span>
-                    </div>
-                    <div>
-                      <span className="demo-cred-label">Password</span>
-                      <span className="demo-cred-value">{cred.password}</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
     </>
   );
 }

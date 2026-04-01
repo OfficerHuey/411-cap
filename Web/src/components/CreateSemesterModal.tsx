@@ -1,7 +1,7 @@
 import "../App.css";
 import { X } from "lucide-react";
-import { dataStore } from "../Lib/Store";
-import type { ClinicalDays, Semester } from "../Lib/Types";
+import { semesters as semestersApi } from "../Lib/api";
+import type { ClinicalDays } from "../Lib/Types";
 import { useState } from "react";
 
 interface CreateSemesterModalProps {
@@ -19,22 +19,31 @@ export function CreateSemesterModal({
     endDate: "",
     clinicalDays: "Thurs/Fri" as ClinicalDays,
   });
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const newSemester: Semester = {
-      id: `sem-${Date.now()}`,
-      ...formData,
-    };
-    dataStore.addSemester(newSemester);
-    onSuccess();
+    setError("");
+    setLoading(true);
+    try {
+      await semestersApi.create({
+        name: formData.name,
+        startDate: formData.startDate,
+        endDate: formData.endDate,
+        clinicalDays: formData.clinicalDays,
+      });
+      onSuccess();
+    } catch (err: any) {
+      setError(err.message || "Failed to create semester");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=DM+Sans:wght@300;400;500&display=swap');
-
         .modal-overlay {
           position: fixed;
           inset: 0;
@@ -186,6 +195,18 @@ export function CreateSemesterModal({
 
         .btn-modal-submit:hover { background: #003d2a; }
         .btn-modal-submit:active { transform: scale(0.98); }
+        .btn-modal-submit:disabled { background: #6b7280; cursor: not-allowed; }
+
+        .modal-error {
+          background: #fef2f2;
+          border: 1px solid #fecaca;
+          border-left: 3px solid #dc2626;
+          border-radius: 6px;
+          padding: 0.6rem 0.875rem;
+          margin-bottom: 1rem;
+          font-size: 0.82rem;
+          color: #991b1b;
+        }
       `}</style>
 
       <div className="modal-overlay" onClick={onClose}>
@@ -201,6 +222,7 @@ export function CreateSemesterModal({
           </div>
 
           <div className="modal-body">
+            {error && <div className="modal-error">{error}</div>}
             <form onSubmit={handleSubmit}>
               <div className="modal-form-group">
                 <label className="modal-label">Semester Name</label>
@@ -268,8 +290,8 @@ export function CreateSemesterModal({
                 >
                   Cancel
                 </button>
-                <button type="submit" className="btn-modal-submit">
-                  Create Semester
+                <button type="submit" className="btn-modal-submit" disabled={loading}>
+                  {loading ? "Creating..." : "Create Semester"}
                 </button>
               </div>
             </form>

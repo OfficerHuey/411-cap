@@ -1,29 +1,36 @@
 import { useEffect, useState } from "react";
-import type { Course, CourseSection, ScheduleSection } from "../Lib/Types";
-import { X, AlertCircle, Link2, Pencil } from "lucide-react";
-import { dataStore } from "../Lib/Store";
+import type { Course, Section, Room, Instructor, ConflictResult, TermType, CreateSectionDto } from "../Lib/Types";
+import { timeSlotToTimeSpan } from "../Lib/Types";
+import { X, Pencil, AlertTriangle, AlertCircle, Info } from "lucide-react";
+import { sections as sectionsApi, rooms as roomsApi, instructors as instructorsApi } from "../Lib/api";
 
 interface CourseDetailsModalProps {
-  scheduleGroupId: string;
-  courseId: string;
+  scheduleId: number;
+  semesterId: number;
+  courseId: number;
   dayOfWeek?: string;
   timeSlot?: string;
   dateRange?: string;
   isSemester5: boolean;
+  semesterLevel: number;
   courses: Course[];
-  editSection?: CourseSection; // if provided, we're editing not adding
+  locationDisplay: string | null;
+  editSection?: Section;
   onClose: () => void;
   onSuccess: () => void;
 }
 
 export function CourseDetailsModal({
-  scheduleGroupId,
+  scheduleId,
+  semesterId,
   courseId,
   dayOfWeek,
   timeSlot,
   dateRange,
   isSemester5,
+  semesterLevel,
   courses,
+  locationDisplay,
   editSection,
   onClose,
   onSuccess,
@@ -31,105 +38,134 @@ export function CourseDetailsModal({
   const course = courses.find((c) => c.id === courseId);
   const isEditing = !!editSection;
 
+  //compute initial start/end times
+  const getInitialStartTime = () => {
+    if (editSection?.startTime) return editSection.startTime;
+    if (!isSemester5 && timeSlot) return timeSlotToTimeSpan(timeSlot);
+    return "";
+  };
+  const getInitialEndTime = () => {
+    if (editSection?.endTime) return editSection.endTime;
+    if (!isSemester5 && timeSlot) {
+      const start = timeSlotToTimeSpan(timeSlot);
+      const [h, m, s] = start.split(":").map(Number);
+      return `${(h + 1).toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+    }
+    return "";
+  };
+  const getInitialDay = () => {
+    if (editSection?.dayOfWeek != null) return editSection.dayOfWeek;
+    if (dayOfWeek) return dayOfWeek;
+    return "";
+  };
+
   const [formData, setFormData] = useState({
     sectionNumber: editSection?.sectionNumber || "01",
-    classroom: editSection?.classroom || "",
-    notes: editSection?.notes || "",
+    dayOfWeek: getInitialDay(),
+    startTime: getInitialStartTime(),
+    endTime: getInitialEndTime(),
     dateRange: editSection?.dateRange || dateRange || "",
+    notes: editSection?.notes || "",
+    roomId: editSection?.roomId ?? null as number | null,
+    instructorId: editSection?.instructorId ?? null as number | null,
+    term: (editSection?.term || "Full") as TermType,
+    termStartDate: editSection?.termStartDate || "",
+    termEndDate: editSection?.termEndDate || "",
   });
 
-  const [existingSection, setExistingSection] = useState<CourseSection | null>(
-    null,
-  );
-  const [showLinkPrompt, setShowLinkPrompt] = useState(false);
+  const [roomList, setRoomList] = useState<Room[]>([]);
+  const [instructorList, setInstructorList] = useState<Instructor[]>([]);
+  const [conflicts, setConflicts] = useState<ConflictResult[]>([]);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (isEditing) return; // skip link check when editing
-    if (formData.sectionNumber && course) {
-      const existing = dataStore.findCourseSection(
-        courseId,
-        formData.sectionNumber,
-      );
-      if (existing) {
-        setExistingSection(existing);
-        setShowLinkPrompt(true);
-      } else {
-        setExistingSection(null);
-        setShowLinkPrompt(false);
-      }
-    }
-  }, [formData.sectionNumber, courseId, course, isEditing]);
+    loadDropdowns();
+  }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const loadDropdowns = async () => {
+    try {
+      const [rms, instrs] = await Promise.all([
+        roomsApi.getAll(locationDisplay || undefined),
+        instructorsApi.getAll(),
+      ]);
+      setRoomList(rms);
+      setInstructorList(instrs);
+    } catch {
+      //dropdowns are optional
+    }
+  };
+
+  const hasBlockingConflict = conflicts.some((c) => c.severity === "Error");
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError("");
+    setConflicts([]);
+    setLoading(true);
 
-    if (isEditing && editSection) {
-      dataStore.updateCourseSection(editSection.id, {
+    try {
+      //compute day/time from form
+      const parsedDay = formData.dayOfWeek !== "" ? formData.dayOfWeek : null;
+      const startTimeVal = formData.startTime || null;
+      const endTimeVal = formData.endTime || null;
+
+      if (isEditing && editSection) {
+        await sectionsApi.update(editSection.id, {
+          sectionNumber: formData.sectionNumber,
+          dayOfWeek: !isSemester5 ? parsedDay : null,
+          startTime: !isSemester5 ? startTimeVal : null,
+          endTime: !isSemester5 ? endTimeVal : null,
+          notes: formData.notes,
+          roomId: formData.roomId,
+          instructorId: formData.instructorId,
+          dateRange: isSemester5 ? formData.dateRange : editSection.dateRange,
+          term: semesterLevel === 4 ? formData.term : null,
+          termStartDate: formData.term !== "Full" ? formData.termStartDate : null,
+          termEndDate: formData.term !== "Full" ? formData.termEndDate : null,
+        });
+        onSuccess();
+        return;
+      }
+
+      const dto: CreateSectionDto = {
         sectionNumber: formData.sectionNumber,
-        classroom: formData.classroom,
-        notes: formData.notes,
-        dateRange: isSemester5 ? formData.dateRange : editSection.dateRange,
-      });
-      onSuccess();
-      return;
-    }
-
-    let courseSectionId: string;
-
-    if (existingSection) {
-      courseSectionId = existingSection.id;
-    } else {
-      const newCourseSection: CourseSection = {
-        id: `cs-${Date.now()}`,
+        dayOfWeek: !isSemester5 ? parsedDay : null,
+        startTime: !isSemester5 ? startTimeVal : null,
+        endTime: !isSemester5 ? endTimeVal : null,
+        dateRange: isSemester5 ? formData.dateRange : null,
+        notes: formData.notes || null,
+        term: semesterLevel === 4 ? formData.term : null,
+        termStartDate: formData.term !== "Full" ? formData.termStartDate || null : null,
+        termEndDate: formData.term !== "Full" ? formData.termEndDate || null : null,
+        roomId: formData.roomId,
+        instructorId: formData.instructorId,
         courseId,
-        sectionNumber: formData.sectionNumber,
-        dayOfWeek: isSemester5 ? undefined : dayOfWeek,
-        timeSlot: isSemester5 ? undefined : timeSlot,
-        dateRange: isSemester5 ? formData.dateRange : undefined,
-        notes: formData.notes,
-        classroom: formData.classroom,
-        isShared: false,
+        semesterId,
+        scheduleId,
       };
-      dataStore.addCourseSection(newCourseSection);
-      courseSectionId = newCourseSection.id;
+
+      const result = await sectionsApi.createOrLink(dto);
+
+      if (result.conflicts && result.conflicts.length > 0) {
+        setConflicts(result.conflicts);
+        if (result.conflicts.some((c) => c.severity === "Error")) {
+          //don't close — show the error
+          return;
+        }
+      }
+
+      onSuccess();
+    } catch (err: any) {
+      setError(err.message || "Failed to save section");
+    } finally {
+      setLoading(false);
     }
-
-    const scheduleSection: ScheduleSection = {
-      id: `ss-${Date.now()}`,
-      scheduleGroupId,
-      courseSectionId,
-    };
-    dataStore.addScheduleSection(scheduleSection);
-
-    if (existingSection) {
-      dataStore.updateCourseSection(existingSection.id, { isShared: true });
-    }
-
-    onSuccess();
-  };
-
-  const handleLinkToExisting = () => {
-    if (!existingSection) return;
-    const scheduleSection: ScheduleSection = {
-      id: `ss-${Date.now()}`,
-      scheduleGroupId,
-      courseSectionId: existingSection.id,
-    };
-    dataStore.addScheduleSection(scheduleSection);
-    dataStore.updateCourseSection(existingSection.id, { isShared: true });
-    onSuccess();
-  };
-
-  const handleCreateNew = () => {
-    setShowLinkPrompt(false);
-    setExistingSection(null);
   };
 
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=DM+Sans:wght@300;400;500&display=swap');
-
         .cdm-overlay {
           position: fixed;
           inset: 0;
@@ -146,9 +182,10 @@ export function CourseDetailsModal({
           background: #ffffff;
           border-radius: 12px;
           width: 100%;
-          max-width: 440px;
+          max-width: 480px;
+          max-height: 90vh;
+          overflow-y: auto;
           box-shadow: 0 24px 60px rgba(0,0,0,0.2);
-          overflow: hidden;
           font-family: 'DM Sans', sans-serif;
         }
 
@@ -207,7 +244,7 @@ export function CourseDetailsModal({
 
         .cdm-required { color: #dc2626; margin-left: 0.2rem; }
 
-        .cdm-input {
+        .cdm-input, .cdm-select {
           width: 100%;
           padding: 0.65rem 0.875rem;
           border: 1.5px solid #e5e7eb;
@@ -221,7 +258,7 @@ export function CourseDetailsModal({
           background: #fafafa;
         }
 
-        .cdm-input:focus {
+        .cdm-input:focus, .cdm-select:focus {
           border-color: #00563f;
           box-shadow: 0 0 0 3px rgba(0, 86, 63, 0.1);
           background: #ffffff;
@@ -266,73 +303,68 @@ export function CourseDetailsModal({
 
         .cdm-btn-submit:hover { background: #003d2a; }
         .cdm-btn-submit:active { transform: scale(0.98); }
+        .cdm-btn-submit:disabled { background: #6b7280; cursor: not-allowed; }
 
-        .cdm-alert {
+        .cdm-error {
+          background: #fef2f2;
+          border: 1px solid #fecaca;
+          border-left: 3px solid #dc2626;
+          border-radius: 6px;
+          padding: 0.6rem 0.875rem;
+          margin-bottom: 1rem;
+          font-size: 0.82rem;
+          color: #991b1b;
+        }
+
+        .cdm-conflict {
           display: flex;
           align-items: flex-start;
-          gap: 0.75rem;
+          gap: 0.5rem;
+          border-radius: 8px;
+          padding: 0.75rem 1rem;
+          margin-bottom: 0.75rem;
+          font-size: 0.82rem;
+          line-height: 1.5;
+        }
+
+        .cdm-conflict-error {
+          background: #fef2f2;
+          border: 1px solid #fecaca;
+          color: #991b1b;
+        }
+
+        .cdm-conflict-warning {
           background: #fffbeb;
           border: 1px solid #fde68a;
-          border-left: 3px solid #f59e0b;
-          border-radius: 8px;
-          padding: 0.875rem 1rem;
-          margin-bottom: 1.25rem;
+          color: #92400e;
         }
 
-        .cdm-alert-text h3 { font-size: 0.85rem; font-weight: 600; color: #92400e; margin: 0 0 0.25rem 0; }
-        .cdm-alert-text p { font-size: 0.8rem; color: #92400e; margin: 0 0 0.2rem 0; line-height: 1.5; }
+        .cdm-conflict-info {
+          background: #eff6ff;
+          border: 1px solid #bfdbfe;
+          color: #1e40af;
+        }
 
-        .cdm-link-actions { display: flex; flex-direction: column; gap: 0.5rem; }
+        .cdm-term-radios {
+          display: flex;
+          gap: 1rem;
+          margin-bottom: 0.75rem;
+        }
 
-        .cdm-btn-link {
-          width: 100%;
-          display: inline-flex;
+        .cdm-term-radio {
+          display: flex;
           align-items: center;
-          justify-content: center;
-          gap: 0.4rem;
-          padding: 0.65rem;
-          background: #00563f;
-          color: #ffffff;
-          border: none;
-          border-radius: 8px;
-          font-family: 'DM Sans', sans-serif;
+          gap: 0.35rem;
           font-size: 0.85rem;
-          font-weight: 500;
-          cursor: pointer;
-          transition: background 0.15s;
-        }
-
-        .cdm-btn-link:hover { background: #003d2a; }
-
-        .cdm-btn-new {
-          width: 100%;
-          padding: 0.65rem;
-          border: 1.5px solid #e5e7eb;
-          border-radius: 8px;
-          background: #ffffff;
           color: #374151;
-          font-family: 'DM Sans', sans-serif;
-          font-size: 0.85rem;
-          font-weight: 500;
           cursor: pointer;
-          transition: background 0.15s;
         }
 
-        .cdm-btn-new:hover { background: #f9fafb; }
-
-        .cdm-btn-text {
-          width: 100%;
-          padding: 0.5rem;
-          background: none;
-          border: none;
-          color: #9ca3af;
-          font-family: 'DM Sans', sans-serif;
-          font-size: 0.82rem;
-          cursor: pointer;
-          transition: color 0.15s;
+        .cdm-term-dates {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 0.75rem;
         }
-
-        .cdm-btn-text:hover { color: #374151; }
       `}</style>
 
       <div className="cdm-overlay" onClick={onClose}>
@@ -342,10 +374,7 @@ export function CourseDetailsModal({
               <h2>
                 {isEditing ? (
                   <>
-                    <Pencil
-                      size={14}
-                      style={{ marginRight: "0.4rem", verticalAlign: "middle" }}
-                    />
+                    <Pencil size={14} style={{ marginRight: "0.4rem", verticalAlign: "middle" }} />
                     Edit Section
                   </>
                 ) : (
@@ -354,13 +383,8 @@ export function CourseDetailsModal({
               </h2>
               <p>
                 {course?.code} — {course?.name}
-                {!isSemester5 &&
-                  dayOfWeek &&
-                  timeSlot &&
-                  ` · ${dayOfWeek} at ${timeSlot}`}
-                {isEditing &&
-                  editSection &&
-                  ` · Section ${editSection.sectionNumber}`}
+                {!isSemester5 && dayOfWeek && timeSlot && ` · ${dayOfWeek} at ${timeSlot}`}
+                {isEditing && editSection && ` · Section ${editSection.sectionNumber}`}
               </p>
             </div>
             <button className="cdm-close" onClick={onClose}>
@@ -369,119 +393,196 @@ export function CourseDetailsModal({
           </div>
 
           <div className="cdm-body">
-            {showLinkPrompt && existingSection ? (
-              <>
-                <div className="cdm-alert">
-                  <AlertCircle
-                    size={16}
-                    color="#f59e0b"
-                    style={{ flexShrink: 0, marginTop: 1 }}
-                  />
-                  <div className="cdm-alert-text">
-                    <h3>Section Already Exists</h3>
-                    <p>
-                      {course?.code}-{formData.sectionNumber} already exists at{" "}
-                      {existingSection.dayOfWeek}{" "}
-                      {existingSection.timeSlot || existingSection.dateRange}.
-                    </p>
-                    <p>Link to the existing section or create a new one?</p>
-                  </div>
+            {error && <div className="cdm-error">{error}</div>}
+
+            {conflicts.map((c, i) => (
+              <div
+                key={i}
+                className={`cdm-conflict ${
+                  c.severity === "Error" ? "cdm-conflict-error" :
+                  c.severity === "Warning" ? "cdm-conflict-warning" :
+                  "cdm-conflict-info"
+                }`}
+              >
+                {c.severity === "Error" && <AlertCircle size={16} style={{ flexShrink: 0, marginTop: 1 }} />}
+                {c.severity === "Warning" && <AlertTriangle size={16} style={{ flexShrink: 0, marginTop: 1 }} />}
+                {c.severity === "Info" && <Info size={16} style={{ flexShrink: 0, marginTop: 1 }} />}
+                <div>
+                  <strong>{c.message}</strong>
+                  {c.details && <div>{c.details}</div>}
                 </div>
-                <div className="cdm-link-actions">
-                  <button
-                    className="cdm-btn-link"
-                    onClick={handleLinkToExisting}
-                  >
-                    <Link2 size={14} />
-                    Link to Existing Section
-                  </button>
-                  <button className="cdm-btn-new" onClick={handleCreateNew}>
-                    Create New Section
-                  </button>
-                  <button className="cdm-btn-text" onClick={onClose}>
-                    Cancel
-                  </button>
-                </div>
-              </>
-            ) : (
-              <form onSubmit={handleSubmit}>
+              </div>
+            ))}
+
+            <form onSubmit={handleSubmit}>
+              <div className="cdm-form-group">
+                <label className="cdm-label">
+                  Section Number <span className="cdm-required">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={formData.sectionNumber}
+                  onChange={(e) => setFormData({ ...formData, sectionNumber: e.target.value })}
+                  className="cdm-input"
+                  placeholder="01"
+                />
+              </div>
+
+              {isSemester5 ? (
                 <div className="cdm-form-group">
                   <label className="cdm-label">
-                    Section Number <span className="cdm-required">*</span>
+                    Date Range <span className="cdm-required">*</span>
                   </label>
                   <input
                     type="text"
                     required
-                    value={formData.sectionNumber}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        sectionNumber: e.target.value,
-                      })
-                    }
+                    value={formData.dateRange}
+                    onChange={(e) => setFormData({ ...formData, dateRange: e.target.value })}
                     className="cdm-input"
-                    placeholder="01"
+                    placeholder="Jan 13 - Feb 9"
                   />
                 </div>
-
-                {isSemester5 && (
+              ) : (
+                <>
                   <div className="cdm-form-group">
-                    <label className="cdm-label">
-                      Date Range <span className="cdm-required">*</span>
-                    </label>
-                    <input
-                      type="text"
+                    <label className="cdm-label">Day of Week <span className="cdm-required">*</span></label>
+                    <select
                       required
-                      value={formData.dateRange}
-                      onChange={(e) =>
-                        setFormData({ ...formData, dateRange: e.target.value })
-                      }
-                      className="cdm-input"
-                      placeholder="Jan 13 - Feb 9"
-                    />
+                      value={formData.dayOfWeek}
+                      onChange={(e) => setFormData({ ...formData, dayOfWeek: e.target.value })}
+                      className="cdm-select"
+                    >
+                      <option value="">Select day</option>
+                      <option value="Monday">Monday</option>
+                      <option value="Tuesday">Tuesday</option>
+                      <option value="Wednesday">Wednesday</option>
+                      <option value="Thursday">Thursday</option>
+                      <option value="Friday">Friday</option>
+                    </select>
                   </div>
-                )}
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+                    <div className="cdm-form-group">
+                      <label className="cdm-label">Start Time <span className="cdm-required">*</span></label>
+                      <input
+                        type="time"
+                        required
+                        value={formData.startTime ? formData.startTime.substring(0, 5) : ""}
+                        onChange={(e) => setFormData({ ...formData, startTime: e.target.value + ":00" })}
+                        className="cdm-input"
+                      />
+                    </div>
+                    <div className="cdm-form-group">
+                      <label className="cdm-label">End Time <span className="cdm-required">*</span></label>
+                      <input
+                        type="time"
+                        required
+                        value={formData.endTime ? formData.endTime.substring(0, 5) : ""}
+                        onChange={(e) => setFormData({ ...formData, endTime: e.target.value + ":00" })}
+                        className="cdm-input"
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
 
+              <div className="cdm-form-group">
+                <label className="cdm-label">Room</label>
+                <select
+                  value={formData.roomId ?? ""}
+                  onChange={(e) => setFormData({ ...formData, roomId: e.target.value ? parseInt(e.target.value) : null })}
+                  className="cdm-select"
+                >
+                  <option value="">No room selected</option>
+                  {roomList.map((room) => (
+                    <option key={room.id} value={room.id}>
+                      {room.building} {room.roomNumber} ({room.capacity} seats, {room.type})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="cdm-form-group">
+                <label className="cdm-label">Instructor</label>
+                <select
+                  value={formData.instructorId ?? ""}
+                  onChange={(e) => setFormData({ ...formData, instructorId: e.target.value ? parseInt(e.target.value) : null })}
+                  className="cdm-select"
+                >
+                  <option value="">No instructor selected</option>
+                  {instructorList.map((inst) => (
+                    <option key={inst.id} value={inst.id}>
+                      {inst.name} ({inst.type})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {semesterLevel === 4 && (
                 <div className="cdm-form-group">
-                  <label className="cdm-label">Classroom</label>
-                  <input
-                    type="text"
-                    value={formData.classroom}
-                    onChange={(e) =>
-                      setFormData({ ...formData, classroom: e.target.value })
-                    }
-                    className="cdm-input"
-                    placeholder="e.g. Sim Lab"
-                  />
+                  <label className="cdm-label">Term</label>
+                  <div className="cdm-term-radios">
+                    {(["Full", "Term1", "Term2"] as TermType[]).map((t) => (
+                      <label key={t} className="cdm-term-radio">
+                        <input
+                          type="radio"
+                          name="term"
+                          checked={formData.term === t}
+                          onChange={() => setFormData({ ...formData, term: t })}
+                        />
+                        {t === "Full" ? "Full Semester" : t === "Term1" ? "Term 1" : "Term 2"}
+                      </label>
+                    ))}
+                  </div>
+                  {formData.term !== "Full" && (
+                    <div className="cdm-term-dates">
+                      <div>
+                        <label className="cdm-label">Term Start</label>
+                        <input
+                          type="date"
+                          value={formData.termStartDate}
+                          onChange={(e) => setFormData({ ...formData, termStartDate: e.target.value })}
+                          className="cdm-input"
+                        />
+                      </div>
+                      <div>
+                        <label className="cdm-label">Term End</label>
+                        <input
+                          type="date"
+                          value={formData.termEndDate}
+                          onChange={(e) => setFormData({ ...formData, termEndDate: e.target.value })}
+                          className="cdm-input"
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
+              )}
 
-                <div className="cdm-form-group">
-                  <label className="cdm-label">Notes</label>
-                  <input
-                    type="text"
-                    value={formData.notes}
-                    onChange={(e) =>
-                      setFormData({ ...formData, notes: e.target.value })
-                    }
-                    className="cdm-input"
-                    placeholder="Optional notes"
-                  />
-                </div>
+              <div className="cdm-form-group">
+                <label className="cdm-label">Notes</label>
+                <input
+                  type="text"
+                  value={formData.notes}
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  className="cdm-input"
+                  placeholder="Optional notes"
+                />
+              </div>
 
-                <div className="cdm-footer">
-                  <button
-                    type="button"
-                    className="cdm-btn-cancel"
-                    onClick={onClose}
-                  >
-                    Cancel
-                  </button>
-                  <button type="submit" className="cdm-btn-submit">
-                    {isEditing ? "Save Changes" : "Add to Schedule"}
-                  </button>
-                </div>
-              </form>
-            )}
+              <div className="cdm-footer">
+                <button type="button" className="cdm-btn-cancel" onClick={onClose}>
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="cdm-btn-submit"
+                  disabled={loading || hasBlockingConflict}
+                >
+                  {loading ? "Saving..." : isEditing ? "Save Changes" : "Add to Schedule"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       </div>

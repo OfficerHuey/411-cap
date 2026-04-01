@@ -162,6 +162,63 @@ namespace NursingScheduler.API.Controllers
             return File(stream.ToArray(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"{semester.Name}_Visual_Grids.xlsx");
         }
 
+        //export one row per student-per-course for workday/registrar import
+        [HttpGet("registrar/{semesterId}")]
+        public async Task<IActionResult> ExportForRegistrar(int semesterId)
+        {
+            var semester = await _context.Semesters
+                .Include(s => s.Schedules)
+                    .ThenInclude(sch => sch.Students)
+                .Include(s => s.Schedules)
+                    .ThenInclude(sch => sch.ScheduleSections)
+                        .ThenInclude(ss => ss.Section!)
+                            .ThenInclude(sec => sec.Course)
+                .FirstOrDefaultAsync(s => s.Id == semesterId);
+
+            if (semester == null) return NotFound();
+
+            using var workbook = new XLWorkbook();
+            var sheet = workbook.Worksheets.Add("Registrar Export");
+
+            //headers
+            var headers = new[] { "Student Name", "W#", "Email", "Course Code", "Section", "Term", "Schedule Group" };
+            for (int i = 0; i < headers.Length; i++)
+            {
+                sheet.Cell(1, i + 1).Value = headers[i];
+                sheet.Cell(1, i + 1).Style.Font.Bold = true;
+                sheet.Cell(1, i + 1).Style.Fill.BackgroundColor = XLColor.CornflowerBlue;
+                sheet.Cell(1, i + 1).Style.Font.FontColor = XLColor.White;
+            }
+
+            int row = 2;
+            foreach (var schedule in semester.Schedules)
+            {
+                foreach (var student in schedule.Students)
+                {
+                    foreach (var ss in schedule.ScheduleSections)
+                    {
+                        var section = ss.Section!;
+                        sheet.Cell(row, 1).Value = student.Name;
+                        sheet.Cell(row, 2).Value = student.WNumber;
+                        sheet.Cell(row, 3).Value = student.Email;
+                        sheet.Cell(row, 4).Value = section.Course!.Code;
+                        sheet.Cell(row, 5).Value = section.SectionNumber;
+                        sheet.Cell(row, 6).Value = section.Term?.ToString() ?? "Full";
+                        sheet.Cell(row, 7).Value = schedule.Name;
+                        row++;
+                    }
+                }
+            }
+
+            sheet.Columns().AdjustToContents();
+
+            using var stream = new MemoryStream();
+            workbook.SaveAs(stream);
+            return File(stream.ToArray(),
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                $"{semester.Name}_Registrar_Export.xlsx");
+        }
+
         private string ValidateSheetName(string name)
         {
             var valid = name.Replace(":", "").Replace("/", "").Replace("?", "").Replace("*", "").Replace("[", "").Replace("]", "");

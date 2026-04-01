@@ -1,17 +1,17 @@
 import { useEffect, useState } from "react";
 import "../App.css";
-import { ArrowLeft, Download, CalendarIcon, Users } from "lucide-react";
+import { ArrowLeft, Download, CalendarIcon, Users, Lock } from "lucide-react";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { useParams, useNavigate } from "react-router-dom";
-import { exportScheduleData } from "../Lib/Exportimport";
-import { dataStore } from "../Lib/Store";
-import type {
-  ScheduleGroup,
-  Course,
-  CourseSection,
-  ScheduleSection,
-} from "../Lib/Types";
+import {
+  schedules as schedulesApi,
+  courses as coursesApi,
+  semesters as semestersApi,
+  exports as exportsApi,
+} from "../Lib/api";
+import type { Schedule, Course, Semester } from "../Lib/Types";
+import { numberToLevel } from "../Lib/Types";
 import { CoursePalette } from "./CoursePalette";
 import { ScheduleCanvas } from "./ScheduleCanvas";
 import { ScheduleViewer } from "./ScheduleViewer";
@@ -19,7 +19,7 @@ import { StudentRosterView } from "./StudentRosterView";
 import { CourseDetailsModal } from "./CourseDetailsModal";
 
 interface CourseDetailsData {
-  courseId: string;
+  courseId: number;
   dayOfWeek?: string;
   timeSlot?: string;
   dateRange?: string;
@@ -28,72 +28,74 @@ interface CourseDetailsData {
 export function ScheduleBuilder() {
   const { scheduleGroupId } = useParams<{ scheduleGroupId: string }>();
   const navigate = useNavigate();
-  const [scheduleGroup, setScheduleGroup] = useState<ScheduleGroup | null>(
-    null,
-  );
-  const [courses, setCourses] = useState<Course[]>([]);
-  const [courseSections, setCourseSections] = useState<CourseSection[]>([]);
-  const [scheduleSections, setScheduleSections] = useState<ScheduleSection[]>(
-    [],
-  );
+  const [schedule, setSchedule] = useState<Schedule | null>(null);
+  const [semester, setSemester] = useState<Semester | null>(null);
+  const [courseList, setCourseList] = useState<Course[]>([]);
   const [view, setView] = useState<"calendar" | "students">("calendar");
-  const [detailsModal, setDetailsModal] = useState<CourseDetailsData | null>(
-    null,
-  );
+  const [detailsModal, setDetailsModal] = useState<CourseDetailsData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [showExportMenu, setShowExportMenu] = useState(false);
+
+  const scheduleId = parseInt(scheduleGroupId || "0");
 
   useEffect(() => {
-    if (!scheduleGroupId) return;
-    const group = dataStore.getScheduleGroupById(scheduleGroupId);
-    setScheduleGroup(group || null);
-    if (group) {
-      const semester = dataStore.getSemesterById(group.semesterId);
-      if (semester) setCourses(dataStore.getCourses(semester.id));
-      setScheduleSections(dataStore.getScheduleSections(scheduleGroupId));
-    }
-    setCourseSections(dataStore.getCourseSections());
+    loadData();
   }, [scheduleGroupId]);
 
-  const handleExport = () => {
-    if (!scheduleGroup || !semester) return;
-    exportScheduleData({
-      scheduleGroup,
-      semester,
-      courses,
-      courseSections,
-      scheduleSections,
-      students: dataStore.getStudentRoster(scheduleGroupId!),
-    });
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      setError("");
+      const sched = await schedulesApi.getById(scheduleId);
+      setSchedule(sched);
+
+      const [palette, allSems] = await Promise.all([
+        coursesApi.getPalette(sched.semesterLevel),
+        semestersApi.getAll(),
+      ]);
+      setCourseList(palette);
+      const sem = allSems.find((s) => s.id === sched.semesterId);
+      setSemester(sem || null);
+    } catch (err: any) {
+      setError(err.message || "Failed to load schedule");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const refreshSections = () => {
-    if (!scheduleGroupId) return;
-    setCourseSections(dataStore.getCourseSections());
-    setScheduleSections(dataStore.getScheduleSections(scheduleGroupId));
+  const refreshSchedule = async () => {
+    try {
+      const sched = await schedulesApi.getById(scheduleId);
+      setSchedule(sched);
+    } catch (err: any) {
+      setError(err.message || "Failed to refresh");
+    }
   };
 
-  if (!scheduleGroup) {
+  if (loading) {
     return (
-      <div
-        style={{
-          textAlign: "center",
-          padding: "3rem",
-          color: "#6b7280",
-          fontFamily: "DM Sans, sans-serif",
-        }}
-      >
-        Schedule group not found
+      <div style={{ textAlign: "center", padding: "3rem", color: "#6b7280", fontFamily: "DM Sans, sans-serif" }}>
+        Loading...
       </div>
     );
   }
 
-  const semester = dataStore.getSemesterById(scheduleGroup.semesterId);
-  const isSemester5 = scheduleGroup.level === "Semester 5";
+  if (!schedule) {
+    return (
+      <div style={{ textAlign: "center", padding: "3rem", color: "#6b7280", fontFamily: "DM Sans, sans-serif" }}>
+        Schedule not found
+      </div>
+    );
+  }
+
+  const isSemester5 = schedule.semesterLevel === 5;
+  const isLocked = semester?.isLocked ?? false;
+  const levelLabel = numberToLevel(schedule.semesterLevel);
 
   return (
     <DndProvider backend={HTML5Backend}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=DM+Sans:wght@300;400;500&display=swap');
-
         .sb-root { font-family: 'DM Sans', sans-serif; }
 
         .sb-header {
@@ -152,6 +154,21 @@ export function ScheduleBuilder() {
           font-weight: 300;
         }
 
+        .sb-lock-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.3rem;
+          padding: 0.2rem 0.6rem;
+          background: rgba(220, 38, 38, 0.08);
+          color: #dc2626;
+          border: 1px solid rgba(220, 38, 38, 0.2);
+          border-radius: 20px;
+          font-size: 0.75rem;
+          font-weight: 500;
+          margin-left: 0.75rem;
+          vertical-align: middle;
+        }
+
         .sb-actions {
           display: flex;
           align-items: center;
@@ -179,9 +196,45 @@ export function ScheduleBuilder() {
           background: #00563f;
           color: #ffffff;
           border: 1px solid #00563f;
+          position: relative;
         }
 
         .sb-btn-export:hover { background: #003d2a; }
+
+        .export-dropdown {
+          position: relative;
+          display: inline-block;
+        }
+
+        .export-menu {
+          position: absolute;
+          top: 100%;
+          right: 0;
+          margin-top: 0.25rem;
+          background: #ffffff;
+          border: 1px solid #e5e2db;
+          border-radius: 8px;
+          box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+          z-index: 100;
+          min-width: 220px;
+          overflow: hidden;
+        }
+
+        .export-menu button {
+          width: 100%;
+          padding: 0.65rem 1rem;
+          background: none;
+          border: none;
+          text-align: left;
+          font-family: 'DM Sans', sans-serif;
+          font-size: 0.85rem;
+          color: #374151;
+          cursor: pointer;
+          transition: background 0.15s;
+        }
+
+        .export-menu button:hover { background: #f0faf5; color: #00563f; }
+        .export-menu button + button { border-top: 1px solid #f3f4f6; }
 
         .sb-view-toggle {
           display: inline-flex;
@@ -224,33 +277,70 @@ export function ScheduleBuilder() {
           grid-template-columns: 2fr 10fr;
           gap: 1.5rem;
         }
+
+        .error-banner {
+          background: #fef2f2;
+          border: 1px solid #fecaca;
+          border-left: 3px solid #dc2626;
+          border-radius: 6px;
+          padding: 0.75rem 1rem;
+          margin-bottom: 1.5rem;
+          font-size: 0.85rem;
+          color: #991b1b;
+        }
       `}</style>
 
       <div className="sb-root">
+        {error && <div className="error-banner">{error}</div>}
+
         <div className="sb-header">
           <div className="sb-header-left">
             <button
               className="sb-btn-back"
-              onClick={() => navigate(`/semester/${scheduleGroup.semesterId}`)}
+              onClick={() => navigate(`/semester/${schedule.semesterId}`)}
             >
               <ArrowLeft size={15} />
               Back
             </button>
             <div className="sb-title">
               <h1>
-                {scheduleGroup.name} — {scheduleGroup.level}
+                {schedule.name} — {levelLabel}
+                {isLocked && (
+                  <span className="sb-lock-badge">
+                    <Lock size={12} />
+                    Locked
+                  </span>
+                )}
               </h1>
               <p>
-                {semester?.name} • {scheduleGroup.locationNote}
+                {semester?.name} • {schedule.locationDisplay}
               </p>
             </div>
           </div>
 
           <div className="sb-actions">
-            <button className="sb-btn sb-btn-export" onClick={handleExport}>
-              <Download size={14} />
-              Export Schedule
-            </button>
+            <div className="export-dropdown">
+              <button
+                className="sb-btn sb-btn-export"
+                onClick={() => setShowExportMenu(!showExportMenu)}
+              >
+                <Download size={14} />
+                Export ▾
+              </button>
+              {showExportMenu && semester && (
+                <div className="export-menu">
+                  <button onClick={() => { exportsApi.roster(semester.id, semester.name); setShowExportMenu(false); }}>
+                    Student Rosters (.xlsx)
+                  </button>
+                  <button onClick={() => { exportsApi.grid(semester.id, semester.name); setShowExportMenu(false); }}>
+                    Visual Grid (.xlsx)
+                  </button>
+                  <button onClick={() => { exportsApi.registrar(semester.id, semester.name); setShowExportMenu(false); }}>
+                    Registrar Export (.xlsx)
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -274,45 +364,49 @@ export function ScheduleBuilder() {
         {view === "calendar" ? (
           <div className="sb-grid">
             <div>
-              <CoursePalette courses={courses} />
+              <CoursePalette courses={courseList} />
             </div>
             <div>
               <ScheduleCanvas
-                scheduleGroup={scheduleGroup}
+                schedule={schedule}
                 isSemester5={isSemester5}
-                courses={courses}
-                courseSections={courseSections}
-                scheduleSections={scheduleSections}
-                onRefresh={refreshSections}
+                courses={courseList}
+                isLocked={isLocked}
+                onRefresh={refreshSchedule}
                 onDrop={(courseId, dayOfWeek, timeSlot, dateRange) =>
                   setDetailsModal({ courseId, dayOfWeek, timeSlot, dateRange })
                 }
               />
             </div>
             <ScheduleViewer
-              semesterId={scheduleGroup.semesterId}
-              currentScheduleGroupId={scheduleGroupId!}
-              courses={courses}
-              courseSections={courseSections}
+              semesterId={schedule.semesterId}
+              currentScheduleId={schedule.id}
             />
           </div>
         ) : (
-          <StudentRosterView scheduleGroupId={scheduleGroupId!} />
+          <StudentRosterView
+            scheduleId={schedule.id}
+            semesterId={schedule.semesterId}
+            isLocked={isLocked}
+          />
         )}
       </div>
 
-      {detailsModal && scheduleGroup && (
+      {detailsModal && schedule && semester && !isLocked && (
         <CourseDetailsModal
-          scheduleGroupId={scheduleGroup.id}
+          scheduleId={schedule.id}
+          semesterId={schedule.semesterId}
           courseId={detailsModal.courseId}
           dayOfWeek={detailsModal.dayOfWeek}
           timeSlot={detailsModal.timeSlot}
           dateRange={detailsModal.dateRange}
           isSemester5={isSemester5}
-          courses={courses}
+          semesterLevel={schedule.semesterLevel}
+          courses={courseList}
+          locationDisplay={schedule.locationDisplay}
           onClose={() => setDetailsModal(null)}
           onSuccess={() => {
-            refreshSections();
+            refreshSchedule();
             setDetailsModal(null);
           }}
         />

@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import "../App.css";
-import { ArrowLeft, Plus, Trash2, Edit2 } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Edit2, Lock, Copy, Download, History, ChevronUp, ChevronDown } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
 import { authService } from "../Lib/Auth";
-import { dataStore } from "../Lib/Store";
-import type { SemesterLevel, Semester, ScheduleGroup } from "../Lib/Types";
+import { semesters as semestersApi, schedules as schedulesApi, exports as exportsApi } from "../Lib/api";
+import type { SemesterLevel, Semester, Schedule } from "../Lib/Types";
+import { levelToNumber } from "../Lib/Types";
 import { CreateScheduleModal } from "./CreateScheduleModal";
 
 const LEVELS: SemesterLevel[] = [
@@ -20,32 +21,118 @@ export function SemesterHub() {
   const navigate = useNavigate();
   const [semester, setSemester] = useState<Semester | null>(null);
   const [activeLevel, setActiveLevel] = useState<SemesterLevel>("Semester 1");
-  const [scheduleGroups, setScheduleGroups] = useState<ScheduleGroup[]>([]);
+  const [scheduleList, setScheduleList] = useState<Schedule[]>([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
+  const [cloneSemesterConfirm, setCloneSemesterConfirm] = useState(false);
+  const [cloneScheduleId, setCloneScheduleId] = useState<number | null>(null);
+  const [cloning, setCloning] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   const canEdit = authService.canEdit();
+  const semIdNum = parseInt(semesterId || "0");
 
   useEffect(() => {
     if (!semesterId) return;
-    const sem = dataStore.getSemesterById(semesterId);
-    setSemester(sem || null);
-    loadScheduleGroups();
+    loadSemester();
+  }, [semesterId]);
+
+  useEffect(() => {
+    if (!semesterId) return;
+    loadSchedules();
   }, [semesterId, activeLevel]);
 
-  const loadScheduleGroups = () => {
-    if (!semesterId) return;
-    const groups = dataStore.getScheduleGroups(semesterId, activeLevel);
-    setScheduleGroups(groups);
+  const loadSemester = async () => {
+    try {
+      const all = await semestersApi.getAll();
+      const sem = all.find((s) => s.id === semIdNum);
+      setSemester(sem || null);
+    } catch (err: any) {
+      setError(err.message || "Failed to load semester");
+    }
   };
 
-  const handleDeleteSchedule = (id: string) => {
-    dataStore.deleteScheduleGroup(id);
-    setDeleteConfirm(null);
-    loadScheduleGroups();
+  const loadSchedules = async () => {
+    try {
+      setLoading(true);
+      setError("");
+      const levelNum = levelToNumber(activeLevel);
+      const data = await schedulesApi.getBySemester(semIdNum, levelNum);
+      setScheduleList(data);
+    } catch (err: any) {
+      setError(err.message || "Failed to load schedules");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  if (!semester) {
+  const handleDeleteSchedule = async (id: number) => {
+    try {
+      await schedulesApi.delete(id);
+      setDeleteConfirm(null);
+      await loadSchedules();
+    } catch (err: any) {
+      setError(err.message || "Failed to delete schedule");
+      setDeleteConfirm(null);
+    }
+  };
+
+  const handleCloneSemester = async () => {
+    if (!semester) return;
+    setCloning(true);
+    try {
+      const newSem = await semestersApi.clone(semIdNum, {
+        name: `${semester.name} (Copy)`,
+        startDate: semester.startDate,
+        endDate: semester.endDate,
+        clinicalDays: semester.clinicalDays,
+      });
+      setCloneSemesterConfirm(false);
+      navigate(`/semester/${newSem.id}`);
+    } catch (err: any) {
+      setError(err.message || "Failed to clone semester");
+      setCloneSemesterConfirm(false);
+    } finally {
+      setCloning(false);
+    }
+  };
+
+  const handleCloneSchedule = async (schedId: number) => {
+    const sched = scheduleList.find((s) => s.id === schedId);
+    if (!sched) return;
+    setCloning(true);
+    try {
+      await schedulesApi.clone(schedId, { newName: `${sched.name} (Copy)` });
+      setCloneScheduleId(null);
+      await loadSchedules();
+    } catch (err: any) {
+      setError(err.message || "Failed to clone schedule");
+      setCloneScheduleId(null);
+    } finally {
+      setCloning(false);
+    }
+  };
+
+  const handleReorder = async (schedId: number, direction: "up" | "down") => {
+    const idx = scheduleList.findIndex((s) => s.id === schedId);
+    if (idx < 0) return;
+    const swapIdx = direction === "up" ? idx - 1 : idx + 1;
+    if (swapIdx < 0 || swapIdx >= scheduleList.length) return;
+
+    const newList = [...scheduleList];
+    [newList[idx], newList[swapIdx]] = [newList[swapIdx], newList[idx]];
+    setScheduleList(newList);
+
+    try {
+      await schedulesApi.reorder(newList.map((s, i) => ({ id: s.id, sortOrder: i })));
+    } catch (err: any) {
+      setError(err.message || "Failed to reorder");
+      await loadSchedules();
+    }
+  };
+
+  if (!semester && !loading) {
     return (
       <div
         style={{
@@ -60,11 +147,11 @@ export function SemesterHub() {
     );
   }
 
+  const isLocked = semester?.isLocked ?? false;
+
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=DM+Sans:wght@300;400;500&display=swap');
-
         .hub-root { font-family: 'DM Sans', sans-serif; }
 
         .hub-header {
@@ -124,6 +211,21 @@ export function SemesterHub() {
           font-weight: 300;
         }
 
+        .hub-lock-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.3rem;
+          padding: 0.2rem 0.6rem;
+          background: rgba(220, 38, 38, 0.08);
+          color: #dc2626;
+          border: 1px solid rgba(220, 38, 38, 0.2);
+          border-radius: 20px;
+          font-size: 0.75rem;
+          font-weight: 500;
+          margin-left: 0.75rem;
+          vertical-align: middle;
+        }
+
         .btn-add {
           display: inline-flex;
           align-items: center;
@@ -143,6 +245,41 @@ export function SemesterHub() {
 
         .btn-add:hover { background: #003d2a; }
         .btn-add:active { transform: scale(0.98); }
+        .btn-add:disabled { background: #6b7280; cursor: not-allowed; }
+
+        .btn-secondary {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.4rem;
+          padding: 0.55rem 1rem;
+          background: #ffffff;
+          color: #374151;
+          border: 1.5px solid #e5e2db;
+          border-radius: 8px;
+          font-family: 'DM Sans', sans-serif;
+          font-size: 0.82rem;
+          font-weight: 500;
+          cursor: pointer;
+          transition: background 0.15s, border-color 0.15s;
+          white-space: nowrap;
+        }
+
+        .btn-secondary:hover { background: #f0faf5; border-color: #00563f; color: #00563f; }
+
+        .btn-clone-schedule {
+          background: none;
+          border: none;
+          cursor: pointer;
+          color: #d1d5db;
+          padding: 0.25rem;
+          border-radius: 4px;
+          display: flex;
+          align-items: center;
+          transition: color 0.15s, background 0.15s;
+          flex-shrink: 0;
+        }
+
+        .btn-clone-schedule:hover { color: #00563f; background: #f0faf5; }
 
         .hub-tabs {
           display: flex;
@@ -219,6 +356,24 @@ export function SemesterHub() {
 
         .schedule-card-location { font-size: 0.8rem; color: #9ca3af; margin: 0; }
 
+        .schedule-card-capacity {
+          font-size: 0.75rem;
+          font-weight: 500;
+          padding: 0.2rem 0.6rem;
+          background: rgba(0, 86, 63, 0.1);
+          color: #00563f;
+          border-radius: 20px;
+          border: 1px solid rgba(0, 86, 63, 0.2);
+          margin-top: 0.4rem;
+          display: inline-block;
+        }
+
+        .schedule-card-capacity.at-capacity {
+          background: rgba(220, 38, 38, 0.08);
+          color: #dc2626;
+          border-color: rgba(220, 38, 38, 0.2);
+        }
+
         .btn-delete-schedule {
           background: none;
           border: none;
@@ -284,6 +439,24 @@ export function SemesterHub() {
           font-size: 0.88rem;
           margin: 0 0 1.5rem 0;
           font-weight: 300;
+        }
+
+        .error-banner {
+          background: #fef2f2;
+          border: 1px solid #fecaca;
+          border-left: 3px solid #dc2626;
+          border-radius: 6px;
+          padding: 0.75rem 1rem;
+          margin-bottom: 1.5rem;
+          font-size: 0.85rem;
+          color: #991b1b;
+        }
+
+        .loading-spinner {
+          text-align: center;
+          padding: 3rem;
+          color: #6b7280;
+          font-size: 0.9rem;
         }
 
         .delete-overlay {
@@ -375,32 +548,72 @@ export function SemesterHub() {
               <ArrowLeft size={16} />
             </button>
             <div className="hub-title">
-              <h1>{semester.name}</h1>
-              <p>
-                {new Date(semester.startDate).toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                  year: "numeric",
-                })}
-                {" — "}
-                {new Date(semester.endDate).toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                  year: "numeric",
-                })}
-              </p>
+              <h1>
+                {semester?.name || "Loading..."}
+                {isLocked && (
+                  <span className="hub-lock-badge">
+                    <Lock size={12} />
+                    Locked
+                  </span>
+                )}
+              </h1>
+              {semester && (
+                <p>
+                  {new Date(semester.startDate).toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                  })}
+                  {" — "}
+                  {new Date(semester.endDate).toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                  })}
+                </p>
+              )}
             </div>
           </div>
-          {canEdit && (
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
             <button
-              className="btn-add"
-              onClick={() => setShowCreateModal(true)}
+              className="btn-secondary"
+              onClick={() => navigate(`/changelog/${semIdNum}`)}
             >
-              <Plus size={16} />
-              Add Schedule Group
+              <History size={14} />
+              History
             </button>
-          )}
+            {semester && (
+              <button
+                className="btn-secondary"
+                onClick={() => exportsApi.roster(semIdNum, semester.name)}
+              >
+                <Download size={14} />
+                Export
+              </button>
+            )}
+            {canEdit && !isLocked && (
+              <button
+                className="btn-secondary"
+                onClick={() => setCloneSemesterConfirm(true)}
+              >
+                <Copy size={14} />
+                Clone Semester
+              </button>
+            )}
+            {canEdit && (
+              <button
+                className="btn-add"
+                onClick={() => setShowCreateModal(true)}
+                disabled={isLocked}
+              >
+                <Plus size={16} />
+                Add Schedule Group
+              </button>
+            )}
+          </div>
         </div>
+
+        {error && <div className="error-banner">{error}</div>}
 
         <div className="hub-tabs">
           {LEVELS.map((level) => (
@@ -414,69 +627,110 @@ export function SemesterHub() {
           ))}
         </div>
 
-        <div className="hub-grid">
-          {scheduleGroups.map((group) => (
-            <div key={group.id} className="schedule-card">
-              <div className="schedule-card-accent" />
-              <div className="schedule-card-body">
-                <div className="schedule-card-top">
-                  <div>
-                    <h3 className="schedule-card-title">{group.name}</h3>
-                    <p className="schedule-card-location">
-                      {group.locationNote}
-                    </p>
+        {loading ? (
+          <div className="loading-spinner">Loading...</div>
+        ) : (
+          <div className="hub-grid">
+            {scheduleList.map((schedule) => (
+              <div key={schedule.id} className="schedule-card">
+                <div className="schedule-card-accent" />
+                <div className="schedule-card-body">
+                  <div className="schedule-card-top">
+                    <div>
+                      <h3 className="schedule-card-title">{schedule.name}</h3>
+                      <p className="schedule-card-location">
+                        {schedule.locationDisplay}
+                      </p>
+                      <span className={`schedule-card-capacity ${schedule.students.length >= schedule.capacity ? "at-capacity" : ""}`}>
+                        {schedule.students.length}/{schedule.capacity} students
+                      </span>
+                    </div>
+                    {canEdit && !isLocked && (
+                      <div style={{ display: "flex", alignItems: "center", gap: "0.15rem" }}>
+                        <button
+                          className="btn-clone-schedule"
+                          onClick={() => setCloneScheduleId(schedule.id)}
+                          title="Clone schedule"
+                        >
+                          <Copy size={14} />
+                        </button>
+                        <button
+                          className="btn-delete-schedule"
+                          onClick={() => setDeleteConfirm(schedule.id)}
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
+                    )}
                   </div>
-                  {canEdit && (
+                  <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
                     <button
-                      className="btn-delete-schedule"
-                      onClick={() => setDeleteConfirm(group.id)}
+                      className="btn-edit-schedule"
+                      style={{ flex: 1 }}
+                      onClick={() => navigate(`/schedule-builder/${schedule.id}`)}
                     >
-                      <Trash2 size={15} />
+                      <Edit2 size={14} />
+                      Edit Schedule
                     </button>
-                  )}
+                    {canEdit && !isLocked && scheduleList.length > 1 && (
+                      <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                        <button
+                          className="btn-clone-schedule"
+                          onClick={() => handleReorder(schedule.id, "up")}
+                          disabled={scheduleList.indexOf(schedule) === 0}
+                          title="Move up"
+                          style={{ opacity: scheduleList.indexOf(schedule) === 0 ? 0.3 : 1 }}
+                        >
+                          <ChevronUp size={14} />
+                        </button>
+                        <button
+                          className="btn-clone-schedule"
+                          onClick={() => handleReorder(schedule.id, "down")}
+                          disabled={scheduleList.indexOf(schedule) === scheduleList.length - 1}
+                          title="Move down"
+                          style={{ opacity: scheduleList.indexOf(schedule) === scheduleList.length - 1 ? 0.3 : 1 }}
+                        >
+                          <ChevronDown size={14} />
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <button
-                  className="btn-edit-schedule"
-                  onClick={() => navigate(`/schedule-builder/${group.id}`)}
-                >
-                  <Edit2 size={14} />
-                  Edit Schedule
-                </button>
               </div>
-            </div>
-          ))}
+            ))}
 
-          {scheduleGroups.length === 0 && (
-            <div className="hub-empty">
-              <h3>No Schedule Groups Yet</h3>
-              <p>Create a schedule group for {activeLevel}</p>
-              {canEdit && (
-                <button
-                  className="btn-add"
-                  onClick={() => setShowCreateModal(true)}
-                >
-                  <Plus size={16} />
-                  Add Schedule Group
-                </button>
-              )}
-            </div>
-          )}
-        </div>
+            {scheduleList.length === 0 && (
+              <div className="hub-empty">
+                <h3>No Schedule Groups Yet</h3>
+                <p>Create a schedule group for {activeLevel}</p>
+                {canEdit && !isLocked && (
+                  <button
+                    className="btn-add"
+                    onClick={() => setShowCreateModal(true)}
+                  >
+                    <Plus size={16} />
+                    Add Schedule Group
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
-      {showCreateModal && (
+      {showCreateModal && semester && (
         <CreateScheduleModal
-          semesterId={semesterId!}
+          semesterId={semIdNum}
           level={activeLevel}
           onClose={() => setShowCreateModal(false)}
           onSuccess={() => {
-            loadScheduleGroups();
+            loadSchedules();
             setShowCreateModal(false);
           }}
         />
       )}
 
-      {deleteConfirm && (
+      {deleteConfirm != null && (
         <div className="delete-overlay" onClick={() => setDeleteConfirm(null)}>
           <div className="delete-box" onClick={(e) => e.stopPropagation()}>
             <div className="delete-box-icon">
@@ -499,6 +753,61 @@ export function SemesterHub() {
                 onClick={() => handleDeleteSchedule(deleteConfirm)}
               >
                 Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {cloneSemesterConfirm && (
+        <div className="delete-overlay" onClick={() => setCloneSemesterConfirm(false)}>
+          <div className="delete-box" onClick={(e) => e.stopPropagation()}>
+            <div className="delete-box-icon" style={{ background: "#f0faf5" }}>
+              <Copy size={20} color="#00563f" />
+            </div>
+            <h3>Clone Semester?</h3>
+            <p>
+              This will create a copy of this semester with all schedule groups
+              and sections, but without students or instructor assignments.
+            </p>
+            <div className="delete-box-actions">
+              <button className="delete-btn-cancel" onClick={() => setCloneSemesterConfirm(false)}>
+                Cancel
+              </button>
+              <button
+                className="delete-btn-confirm"
+                style={{ background: "#00563f" }}
+                onClick={handleCloneSemester}
+                disabled={cloning}
+              >
+                {cloning ? "Cloning..." : "Clone"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {cloneScheduleId != null && (
+        <div className="delete-overlay" onClick={() => setCloneScheduleId(null)}>
+          <div className="delete-box" onClick={(e) => e.stopPropagation()}>
+            <div className="delete-box-icon" style={{ background: "#f0faf5" }}>
+              <Copy size={20} color="#00563f" />
+            </div>
+            <h3>Duplicate Schedule?</h3>
+            <p>
+              This will create a copy of this schedule group with all its sections.
+            </p>
+            <div className="delete-box-actions">
+              <button className="delete-btn-cancel" onClick={() => setCloneScheduleId(null)}>
+                Cancel
+              </button>
+              <button
+                className="delete-btn-confirm"
+                style={{ background: "#00563f" }}
+                onClick={() => handleCloneSchedule(cloneScheduleId)}
+                disabled={cloning}
+              >
+                {cloning ? "Cloning..." : "Duplicate"}
               </button>
             </div>
           </div>

@@ -1,67 +1,42 @@
 import { useEffect, useState } from "react";
 import "../App.css";
 import { Eye, X, ChevronRight } from "lucide-react";
-import { dataStore } from "../Lib/Store";
-import type {
-  Course,
-  CourseSection,
-  ScheduleGroup,
-  ScheduleSection,
-} from "../Lib/Types";
+import { schedules as schedulesApi } from "../Lib/api";
+import type { Schedule } from "../Lib/Types";
+import { courseTypeColor, dayOfWeekName, timeSpanToDisplay } from "../Lib/Types";
 
 interface ScheduleViewerProps {
-  semesterId: string;
-  currentScheduleGroupId: string;
-  courses: Course[];
-  courseSections: CourseSection[];
+  semesterId: number;
+  currentScheduleId: number;
 }
 
 export function ScheduleViewer({
   semesterId,
-  currentScheduleGroupId,
-  courses,
-  courseSections,
+  currentScheduleId,
 }: ScheduleViewerProps) {
-  const [scheduleGroups, setScheduleGroups] = useState<ScheduleGroup[]>([]);
-  const [scheduleSections, setScheduleSections] = useState<ScheduleSection[]>(
-    [],
-  );
+  const [otherSchedules, setOtherSchedules] = useState<Schedule[]>([]);
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
-    const groups = dataStore
-      .getScheduleGroups(semesterId)
-      .filter((g) => g.id !== currentScheduleGroupId);
-    setScheduleGroups(groups);
+    loadOtherSchedules();
+  }, [semesterId, currentScheduleId]);
 
-    // Load sections for ALL other groups, not just the current one
-    const allSections = groups.flatMap((g) =>
-      dataStore.getScheduleSections(g.id),
-    );
-    setScheduleSections(allSections);
-  }, [semesterId, currentScheduleGroupId]);
+  const loadOtherSchedules = async () => {
+    try {
+      const all = await schedulesApi.getBySemester(semesterId);
+      setOtherSchedules(all.filter((s) => s.id !== currentScheduleId));
+    } catch {
+      //non-critical
+    }
+  };
 
-  const getScheduleInfo = (scheduleGroupId: string) => {
-    const sections = scheduleSections.filter(
-      (ss) => ss.scheduleGroupId === scheduleGroupId,
-    );
-    return sections
-      .map((ss) => {
-        const courseSection = courseSections.find(
-          (cs) => cs.id === ss.courseSectionId,
-        );
-        if (!courseSection) return null;
-        const course = courses.find((c) => c.id === courseSection.courseId);
-        return { courseSection, course };
-      })
-      .filter(Boolean) as { courseSection: CourseSection; course: Course }[];
+  const getColor = (courseType: string) => {
+    return courseTypeColor(courseType as any);
   };
 
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=DM+Sans:wght@300;400;500&display=swap');
-
         .sv-trigger {
           position: fixed;
           right: 0;
@@ -94,7 +69,6 @@ export function ScheduleViewer({
           text-transform: uppercase;
         }
 
-        /* Overlay */
         .sv-overlay {
           position: fixed;
           inset: 0;
@@ -105,12 +79,8 @@ export function ScheduleViewer({
           transition: opacity 0.25s;
         }
 
-        .sv-overlay.open {
-          opacity: 1;
-          pointer-events: all;
-        }
+        .sv-overlay.open { opacity: 1; pointer-events: all; }
 
-        /* Panel */
         .sv-panel {
           position: fixed;
           top: 0;
@@ -127,9 +97,7 @@ export function ScheduleViewer({
           font-family: 'DM Sans', sans-serif;
         }
 
-        .sv-panel.open {
-          transform: translateX(0);
-        }
+        .sv-panel.open { transform: translateX(0); }
 
         .sv-panel-header {
           background: #00563f;
@@ -140,11 +108,7 @@ export function ScheduleViewer({
           flex-shrink: 0;
         }
 
-        .sv-panel-header-left {
-          display: flex;
-          align-items: center;
-          gap: 0.6rem;
-        }
+        .sv-panel-header-left { display: flex; align-items: center; gap: 0.6rem; }
 
         .sv-panel-header h3 {
           font-family: 'Playfair Display', serif;
@@ -202,11 +166,7 @@ export function ScheduleViewer({
           margin: 0 0 0.1rem 0;
         }
 
-        .sv-group-location {
-          font-size: 0.75rem;
-          color: #9ca3af;
-          margin: 0;
-        }
+        .sv-group-location { font-size: 0.75rem; color: #9ca3af; margin: 0; }
 
         .sv-group-body {
           padding: 0.75rem;
@@ -222,16 +182,8 @@ export function ScheduleViewer({
           border-left: 3px solid transparent;
         }
 
-        .sv-course-code {
-          font-weight: 600;
-          color: #0a1f14;
-          margin-bottom: 0.1rem;
-        }
-
-        .sv-course-time {
-          color: #6b7280;
-          font-size: 0.72rem;
-        }
+        .sv-course-code { font-weight: 600; color: #0a1f14; margin-bottom: 0.1rem; }
+        .sv-course-time { color: #6b7280; font-size: 0.72rem; }
 
         .sv-empty {
           font-size: 0.78rem;
@@ -249,20 +201,17 @@ export function ScheduleViewer({
         }
       `}</style>
 
-      {/* Trigger button on right edge */}
       <button className="sv-trigger" onClick={() => setIsOpen(true)}>
         <Eye size={16} />
         <span className="sv-trigger-label">Other Schedules</span>
         <ChevronRight size={14} />
       </button>
 
-      {/* Overlay */}
       <div
         className={`sv-overlay ${isOpen ? "open" : ""}`}
         onClick={() => setIsOpen(false)}
       />
 
-      {/* Slide-out panel */}
       <div className={`sv-panel ${isOpen ? "open" : ""}`}>
         <div className="sv-panel-header">
           <div>
@@ -278,56 +227,50 @@ export function ScheduleViewer({
         </div>
 
         <div className="sv-panel-body">
-          {scheduleGroups.length === 0 ? (
+          {otherSchedules.length === 0 ? (
             <p className="sv-no-groups">No other schedules in this semester</p>
           ) : (
-            scheduleGroups.map((group) => {
-              const scheduleInfo = getScheduleInfo(group.id);
-              return (
-                <div key={group.id} className="sv-group">
-                  <div className="sv-group-header">
-                    <p className="sv-group-name">{group.name}</p>
-                    <p className="sv-group-location">{group.locationNote}</p>
-                  </div>
-                  <div className="sv-group-body">
-                    {scheduleInfo.length > 0 ? (
-                      scheduleInfo.map(({ courseSection, course }, idx) => (
+            otherSchedules.map((sched) => (
+              <div key={sched.id} className="sv-group">
+                <div className="sv-group-header">
+                  <p className="sv-group-name">{sched.name}</p>
+                  <p className="sv-group-location">{sched.locationDisplay}</p>
+                </div>
+                <div className="sv-group-body">
+                  {sched.sections.length > 0 ? (
+                    sched.sections.map((section) => {
+                      const color = getColor(section.courseType);
+                      return (
                         <div
-                          key={idx}
+                          key={section.id}
                           className="sv-course-item"
                           style={{
-                            backgroundColor: `${course.color}18`,
-                            borderLeftColor: course.color,
+                            backgroundColor: `${color}18`,
+                            borderLeftColor: color,
                           }}
                         >
                           <div className="sv-course-code">
-                            {course.code}-{courseSection.sectionNumber}
+                            {section.courseCode}-{section.sectionNumber}
                           </div>
                           <div className="sv-course-time">
-                            {courseSection.dayOfWeek && courseSection.timeSlot
-                              ? `${courseSection.dayOfWeek} at ${courseSection.timeSlot}`
-                              : courseSection.dateRange}
+                            {section.dayOfWeek != null && section.startTime
+                              ? `${dayOfWeekName(section.dayOfWeek)} at ${timeSpanToDisplay(section.startTime)}`
+                              : section.dateRange}
                           </div>
-                          {courseSection.notes && (
-                            <div
-                              style={{
-                                fontSize: "0.7rem",
-                                color: "#9ca3af",
-                                marginTop: "0.1rem",
-                              }}
-                            >
-                              {courseSection.notes}
+                          {section.notes && (
+                            <div style={{ fontSize: "0.7rem", color: "#9ca3af", marginTop: "0.1rem" }}>
+                              {section.notes}
                             </div>
                           )}
                         </div>
-                      ))
-                    ) : (
-                      <p className="sv-empty">No courses scheduled</p>
-                    )}
-                  </div>
+                      );
+                    })
+                  ) : (
+                    <p className="sv-empty">No courses scheduled</p>
+                  )}
                 </div>
-              );
-            })
+              </div>
+            ))
           )}
         </div>
       </div>
