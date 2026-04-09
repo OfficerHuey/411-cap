@@ -265,7 +265,7 @@ export function SemesterHub() {
                 exportsApi
                   .roster(semIdNum, semester.name)
                   .then(() => addToast("success", "Roster exported"))
-                  .catch(() => addToast("error", "Export failed"))
+                  .catch((err) => addToast("error", `Export failed: ${err.message || "Unknown error"}`))
               }
             >
               Export
