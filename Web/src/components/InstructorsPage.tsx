@@ -1,9 +1,10 @@
 import { useEffect, useState, useMemo } from "react";
 import "../App.css";
-import { Plus, Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown, GraduationCap, Loader2 } from "lucide-react";
+import { Plus, Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown, GraduationCap, Loader2, Upload } from "lucide-react";
 import { instructors as instructorsApi } from "../Lib/api";
 import type { Instructor, InstructorType } from "../Lib/Types";
 import { useToast } from "../Lib/ToastContext";
+import { InstructorImportModal } from "./Imports/InstructorImportModal";
 
 const INSTRUCTOR_TYPES: InstructorType[] = ["FullTime", "Adjunct", "Overload"];
 
@@ -18,6 +19,7 @@ export function InstructorsPage() {
   const [search, setSearch] = useState("");
   const [sortCol, setSortCol] = useState<string>("name");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const [showImport, setShowImport] = useState(false);
 
   const toggleSort = (col: string) => {
     if (sortCol === col) {
@@ -149,10 +151,16 @@ export function InstructorsPage() {
             <div className="inst-header-divider" />
             <p>Manage faculty and adjunct instructors</p>
           </div>
-          <button className="btn-add" onClick={() => { setEditInst(null); setShowModal(true); }}>
-            <Plus size={16} />
-            Add Instructor
-          </button>
+          <div style={{ display: "flex", gap: "0.5rem" }}>
+            <button className="btn-add" style={{ background: "#ffffff", color: "#00563f", border: "1.5px solid #c6e8d8" }} onClick={() => setShowImport(true)}>
+              <Upload size={16} />
+              Import
+            </button>
+            <button className="btn-add" onClick={() => { setEditInst(null); setShowModal(true); }}>
+              <Plus size={16} />
+              Add Instructor
+            </button>
+          </div>
         </div>
 
         {error && <div className="error-banner">{error}</div>}
@@ -232,6 +240,13 @@ export function InstructorsPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {showImport && (
+        <InstructorImportModal
+          onClose={() => setShowImport(false)}
+          onSuccess={() => { setShowImport(false); loadInstructors(); addToast("success", "Instructors imported"); }}
+        />
       )}
     </>
   );

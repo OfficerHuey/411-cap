@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { ArrowLeft, Download, CalendarIcon, Users, Lock } from "lucide-react";
+import { ArrowLeft, Download, CalendarIcon, Users, Lock, StickyNote } from "lucide-react";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { useParams, useNavigate } from "react-router-dom";
@@ -23,6 +23,9 @@ import { NumberBadge } from "./ui/NumberBadge";
 import { HairlineRule } from "./ui/HairlineRule";
 import { Badge } from "./ui/Badge";
 import { Skeleton } from "./ui/Skeleton";
+import { NotesPanel } from "./Notes/NotesPanel";
+import { InstructorDetailPanel } from "./InstructorDetailPanel";
+import { useNotes } from "../hooks/useNotes";
 import styles from "./ScheduleBuilder.module.css";
 
 interface CourseDetailsData {
@@ -45,9 +48,12 @@ export function ScheduleBuilder() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showExportMenu, setShowExportMenu] = useState(false);
+  const [showNotes, setShowNotes] = useState(false);
+  const [detailInstructorId, setDetailInstructorId] = useState<number | null>(null);
   const exportRef = useRef<HTMLDivElement>(null);
 
   const scheduleId = parseInt(scheduleGroupId || "0");
+  const { openCount: noteCount } = useNotes({ scheduleId: scheduleId || undefined });
 
   //breadcrumbs
   useEffect(() => {
@@ -166,6 +172,17 @@ export function ScheduleBuilder() {
           </div>
 
           <div className={styles.heroRight}>
+            <Button
+              variant="ghost"
+              size="md"
+              iconLeft={<StickyNote size={14} />}
+              onClick={() => setShowNotes(true)}
+            >
+              Notes
+              {noteCount > 0 && (
+                <Badge variant="gold" size="sm">{noteCount}</Badge>
+              )}
+            </Button>
             <div className={styles.exportDropdown} ref={exportRef}>
               <Button
                 variant="secondary"
@@ -245,6 +262,7 @@ export function ScheduleBuilder() {
                 onDrop={(courseId, dayOfWeek, timeSlot, dateRange) =>
                   setDetailsModal({ courseId, dayOfWeek, timeSlot, dateRange })
                 }
+                onInstructorClick={(id) => setDetailInstructorId(id)}
               />
             </div>
             <ScheduleViewer
@@ -281,6 +299,19 @@ export function ScheduleBuilder() {
           }}
         />
       )}
+
+      <NotesPanel
+        isOpen={showNotes}
+        onClose={() => setShowNotes(false)}
+        scheduleId={schedule.id}
+      />
+
+      <InstructorDetailPanel
+        isOpen={detailInstructorId != null}
+        onClose={() => setDetailInstructorId(null)}
+        instructorId={detailInstructorId}
+        semesterId={schedule.semesterId}
+      />
     </DndProvider>
   );
 }

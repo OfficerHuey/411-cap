@@ -1,9 +1,10 @@
 import { useEffect, useState, useMemo } from "react";
 import "../App.css";
-import { Plus, Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown, DoorOpen, Loader2 } from "lucide-react";
+import { Plus, Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown, DoorOpen, Loader2, Upload } from "lucide-react";
 import { rooms as roomsApi } from "../Lib/api";
 import type { Room, RoomType } from "../Lib/Types";
 import { useToast } from "../Lib/ToastContext";
+import { RoomImportModal } from "./Imports/RoomImportModal";
 
 const ROOM_TYPES: RoomType[] = ["Lecture", "Lab", "SimLab", "Clinical", "Online"];
 
@@ -18,6 +19,7 @@ export function RoomsPage() {
   const [search, setSearch] = useState("");
   const [sortCol, setSortCol] = useState<string>("roomNumber");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const [showImport, setShowImport] = useState(false);
 
   const toggleSort = (col: string) => {
     if (sortCol === col) {
@@ -151,10 +153,16 @@ export function RoomsPage() {
             <div className="rooms-header-divider" />
             <p>Manage classrooms, labs, and clinical sites</p>
           </div>
-          <button className="btn-add" onClick={() => { setEditRoom(null); setShowModal(true); }}>
-            <Plus size={16} />
-            Add Room
-          </button>
+          <div style={{ display: "flex", gap: "0.5rem" }}>
+            <button className="btn-add" style={{ background: "#ffffff", color: "#00563f", border: "1.5px solid #c6e8d8" }} onClick={() => setShowImport(true)}>
+              <Upload size={16} />
+              Import
+            </button>
+            <button className="btn-add" onClick={() => { setEditRoom(null); setShowModal(true); }}>
+              <Plus size={16} />
+              Add Room
+            </button>
+          </div>
         </div>
 
         {error && <div className="error-banner">{error}</div>}
@@ -236,6 +244,13 @@ export function RoomsPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {showImport && (
+        <RoomImportModal
+          onClose={() => setShowImport(false)}
+          onSuccess={() => { setShowImport(false); loadRooms(); addToast("success", "Rooms imported"); }}
+        />
       )}
     </>
   );

@@ -1,7 +1,8 @@
 import type {
-  UserDto, LoginDto, RegisterDto, Semester, CreateSemesterDto,
+  UserDto, LoginDto, RegisterDto, ProfileDto, UpdateProfileDto,
+  Semester, CreateSemesterDto,
   Schedule, CreateScheduleDto, Course, Section, CreateSectionDto,
-  Student, CreateStudentDto, Room, Instructor, ConflictResult,
+  Student, StudentDetail, CreateStudentDto, Room, Instructor, ConflictResult,
   SectionWithConflicts
 } from "./Types";
 
@@ -140,6 +141,7 @@ export async function login(dto: LoginDto): Promise<UserDto> {
   setToken(user.token);
   localStorage.setItem("username", user.username);
   localStorage.setItem("user_role", user.role);
+  if (user.displayName) localStorage.setItem("display_name", user.displayName);
   return user;
 }
 
@@ -157,6 +159,28 @@ export async function register(dto: RegisterDto): Promise<UserDto> {
 export function logout(): void {
   clearToken();
   window.location.href = "/login";
+}
+
+// ===== profile api =====
+export const profile = {
+  getMe: () => apiFetch<ProfileDto>("/auth/me"),
+  updateMe: (dto: UpdateProfileDto) =>
+    apiFetch<ProfileDto>("/auth/me", { method: "PUT", body: JSON.stringify(dto) }),
+};
+
+// ===== password reset api =====
+export async function forgotPassword(email: string): Promise<void> {
+  await apiFetch<{ message: string }>("/auth/forgot-password", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
+}
+
+export async function resetPassword(token: string, newPassword: string): Promise<void> {
+  await apiFetch<{ message: string }>("/auth/reset-password", {
+    method: "POST",
+    body: JSON.stringify({ token, newPassword }),
+  });
 }
 
 // ===== semesters api =====
@@ -209,6 +233,7 @@ export const sections = {
 // ===== students api =====
 export const students = {
   getBySchedule: (scheduleId: number) => apiFetch<Student[]>(`/students/schedule/${scheduleId}`),
+  getDetail: (id: number) => apiFetch<StudentDetail>(`/students/${id}/detail`),
   create: (dto: CreateStudentDto) => apiFetch<Student>("/students", { method: "POST", body: JSON.stringify(dto) }),
   update: (id: number, dto: Partial<CreateStudentDto>) => apiFetch<void>(`/students/${id}`, { method: "PUT", body: JSON.stringify(dto) }),
   delete: (id: number) => apiFetch<void>(`/students/${id}`, { method: "DELETE" }),
@@ -229,6 +254,7 @@ export const rooms = {
 export const instructors = {
   getAll: () => apiFetch<Instructor[]>("/instructors"),
   getById: (id: number) => apiFetch<Instructor>(`/instructors/${id}`),
+  getWorkload: (id: number, semesterId: number) => apiFetch<any>(`/instructors/${id}/workload?semesterId=${semesterId}`),
   create: (dto: Partial<Instructor>) => apiFetch<Instructor>("/instructors", { method: "POST", body: JSON.stringify(dto) }),
   update: (id: number, dto: Partial<Instructor>) => apiFetch<void>(`/instructors/${id}`, { method: "PUT", body: JSON.stringify(dto) }),
   delete: (id: number) => apiFetch<void>(`/instructors/${id}`, { method: "DELETE" }),
@@ -245,16 +271,138 @@ export const importApi = {
   uploadStudents: (semesterId: number, file: File) => {
     const formData = new FormData();
     formData.append("file", file);
-    return apiUpload<any>(`/import/students/${semesterId}`, formData);
+    return apiUpload<ImportResult>(`/import/students/${semesterId}`, formData);
   },
-  commitStudents: (assignments: { name: string; wNumber: string; email: string; scheduleId: number }[]) =>
-    apiFetch<{ committed: number }>("/import/students/commit", { method: "POST", body: JSON.stringify(assignments) }),
+  commitStudents: (assignments: CommitStudent[]) =>
+    apiFetch<{ committed: number; rejected: any[] }>("/import/students/commit", { method: "POST", body: JSON.stringify(assignments) }),
+  downloadTemplate: async () => {
+    const blob = await apiDownload("/import/students/template");
+    downloadBlob(blob, "Nursing_Student_Import_Template.xlsx");
+  },
 };
+
+// ===== instructor import api =====
+export const importInstructors = {
+  upload: (file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    return apiUpload<InstructorImportResult>("/import/instructors", formData);
+  },
+  commit: (instructors: CommitInstructor[]) =>
+    apiFetch<{ inserted: number; updated: number }>("/import/instructors/commit", { method: "POST", body: JSON.stringify(instructors) }),
+  downloadTemplate: async () => {
+    const blob = await apiDownload("/import/instructors/template");
+    downloadBlob(blob, "Nursing_Instructor_Import_Template.xlsx");
+  },
+};
+
+// ===== room import api =====
+export const importRooms = {
+  upload: (file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    return apiUpload<RoomImportResult>("/import/rooms", formData);
+  },
+  commit: (rooms: CommitRoom[]) =>
+    apiFetch<{ inserted: number; updated: number }>("/import/rooms/commit", { method: "POST", body: JSON.stringify(rooms) }),
+  downloadTemplate: async () => {
+    const blob = await apiDownload("/import/rooms/template");
+    downloadBlob(blob, "Nursing_Room_Import_Template.xlsx");
+  },
+};
+
+// ===== import types =====
+export interface ImportedStudent {
+  name: string;
+  wNumber: string;
+  semesterLevel: number;
+  locationTag: string;
+  validationError: string | null;
+  rowNumber: number;
+}
+
+export interface StudentAssignment {
+  student: ImportedStudent;
+  scheduleId: number;
+  scheduleName: string;
+  requiresOverride: boolean;
+}
+
+export interface ImportResult {
+  totalParsed: number;
+  assignments: StudentAssignment[];
+  unassigned: ImportedStudent[];
+  errors: ImportedStudent[];
+}
+
+export interface CommitStudent {
+  name: string;
+  wNumber: string;
+  scheduleId: number;
+  acknowledgeOverride?: boolean;
+  overrideReason?: string;
+}
+
+export interface ImportedInstructor {
+  name: string;
+  email: string | null;
+  type: string;
+  phone: string | null;
+  validationError: string | null;
+  rowNumber: number;
+}
+
+export interface ImportRowError {
+  row: number;
+  field: string;
+  message: string;
+}
+
+export interface InstructorImportResult {
+  totalParsed: number;
+  valid: ImportedInstructor[];
+  errors: ImportRowError[];
+}
+
+export interface CommitInstructor {
+  name: string;
+  email: string | null;
+  type: string;
+  phone: string | null;
+}
+
+export interface ImportedRoom {
+  number: string;
+  building: string;
+  campus: string;
+  capacity: number;
+  type: string;
+  validationError: string | null;
+  rowNumber: number;
+}
+
+export interface RoomImportResult {
+  totalParsed: number;
+  valid: ImportedRoom[];
+  errors: ImportRowError[];
+}
+
+export interface CommitRoom {
+  number: string;
+  building: string;
+  campus: string;
+  capacity: number;
+  type: string;
+}
 
 // ===== changelog api =====
 export const changelog = {
   get: (semesterId?: number) =>
     apiFetch<any[]>(`/changelog${semesterId ? `?semesterId=${semesterId}` : ""}`),
+  latest: (entityType: string, entityId: number) =>
+    apiFetch<{ performedBy: string; timestamp: string } | null>(
+      `/changelog/latest?entityType=${entityType}&entityId=${entityId}`
+    ),
 };
 
 // ===== export api =====

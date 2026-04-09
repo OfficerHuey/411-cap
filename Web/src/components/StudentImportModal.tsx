@@ -1,30 +1,8 @@
 import { useRef, useState } from "react";
-import { X, Upload, FileSpreadsheet, CheckCircle, AlertCircle, Download, Loader2 } from "lucide-react";
+import { X, Upload, FileSpreadsheet, CheckCircle, AlertCircle, Download, Loader2, AlertTriangle } from "lucide-react";
 import { importApi, schedules as schedulesApi } from "../Lib/api";
+import type { ImportResult, CommitStudent } from "../Lib/api";
 import type { Schedule } from "../Lib/Types";
-
-interface ImportedStudent {
-  name: string;
-  wNumber: string;
-  email: string;
-  preferredLocation: string | null;
-  firstChoice: string | null;
-  secondChoice: string | null;
-  employedAt: string | null;
-}
-
-interface StudentAssignment {
-  student: ImportedStudent;
-  scheduleId: number;
-  scheduleName: string;
-  matchType: string;
-}
-
-interface ImportResult {
-  totalParsed: number;
-  assignments: StudentAssignment[];
-  unassigned: ImportedStudent[];
-}
 
 interface StudentImportModalProps {
   semesterId: number;
@@ -91,14 +69,15 @@ export function StudentImportModal({ semesterId, onClose, onSuccess }: StudentIm
 
     try {
       //build commit list from auto-assigned + manually assigned
-      const commitList: { name: string; wNumber: string; email: string; scheduleId: number }[] = [];
+      const commitList: CommitStudent[] = [];
 
       for (const a of result.assignments) {
         commitList.push({
           name: a.student.name,
           wNumber: a.student.wNumber,
-          email: a.student.email,
           scheduleId: a.scheduleId,
+          acknowledgeOverride: a.requiresOverride,
+          overrideReason: a.requiresOverride ? "Bulk import override — reviewed in preview" : undefined,
         });
       }
 
@@ -109,7 +88,6 @@ export function StudentImportModal({ semesterId, onClose, onSuccess }: StudentIm
           commitList.push({
             name: student.name,
             wNumber: student.wNumber,
-            email: student.email,
             scheduleId: schedId,
           });
         }
@@ -131,18 +109,23 @@ export function StudentImportModal({ semesterId, onClose, onSuccess }: StudentIm
     }
   };
 
-  const downloadTemplate = () => {
-    const headers = "First Name,Last Name,W Number,Email,Preferred Location,Phone,1st Choice,2nd Choice,Employed At";
-    const blob = new Blob([headers + "\n"], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "student_import_template.csv";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+  const downloadTemplate = async () => {
+    try {
+      await importApi.downloadTemplate();
+    } catch {
+      setError("Failed to download template");
+    }
   };
+
+  //location tag display helper
+  const tagLabel = (tag: string) => tag === "B" ? "Baton Rouge" : tag === "H" ? "Hammond" : tag;
+
+  //count assignable students
+  const assignableCount = (result?.assignments.length ?? 0)
+    + Object.values(manualAssignments).filter(v => v > 0).length;
+
+  //count override-required assignments
+  const overrideCount = result?.assignments.filter(a => a.requiresOverride).length ?? 0;
 
   return (
     <>
@@ -332,6 +315,8 @@ export function StudentImportModal({ semesterId, onClose, onSuccess }: StudentIm
         .sim-stat.assigned .sim-stat-value { color: #00563f; }
         .sim-stat.unassigned { background: #fffbeb; border-color: #fde68a; }
         .sim-stat.unassigned .sim-stat-value { color: #92400e; }
+        .sim-stat.errors { background: #fef2f2; border-color: #fecaca; }
+        .sim-stat.errors .sim-stat-value { color: #991b1b; }
 
         .sim-section-title {
           font-size: 0.78rem;
@@ -383,25 +368,22 @@ export function StudentImportModal({ semesterId, onClose, onSuccess }: StudentIm
           vertical-align: middle;
         }
 
-        .sim-match-badge {
+        .sim-tag-badge {
           display: inline-block;
           padding: 0.15rem 0.5rem;
           border-radius: 4px;
           font-size: 0.72rem;
           font-weight: 500;
           white-space: nowrap;
-        }
-
-        .sim-match-badge.first-choice {
-          background: #f0faf5;
-          color: #00563f;
-          border: 1px solid #c6e8d8;
-        }
-
-        .sim-match-badge.auto {
           background: #eff6ff;
           color: #1e40af;
           border: 1px solid #bfdbfe;
+        }
+
+        .sim-tag-badge.override {
+          background: #fffbeb;
+          color: #92400e;
+          border-color: #fde68a;
         }
 
         .sim-select {
@@ -513,6 +495,28 @@ export function StudentImportModal({ semesterId, onClose, onSuccess }: StudentIm
         @keyframes sim-spin {
           to { transform: rotate(360deg); }
         }
+
+        .sim-error-row {
+          background: #fef2f2 !important;
+        }
+
+        .sim-override-textarea {
+          width: 100%;
+          min-height: 80px;
+          padding: 0.75rem;
+          border: 1.5px solid #e5e7eb;
+          border-radius: 8px;
+          font-family: 'Inter', sans-serif;
+          font-size: 0.85rem;
+          resize: vertical;
+          outline: none;
+          margin-top: 0.75rem;
+        }
+
+        .sim-override-textarea:focus {
+          border-color: #00563f;
+          box-shadow: 0 0 0 3px rgba(0, 86, 63, 0.1);
+        }
       `}</style>
 
       <div className="sim-overlay" onClick={onClose}>
@@ -526,7 +530,7 @@ export function StudentImportModal({ semesterId, onClose, onSuccess }: StudentIm
                 {step === "done" && "Import Complete"}
               </h2>
               <p>
-                {step === "upload" && "Upload a CSV or Excel file with student data"}
+                {step === "upload" && "Upload a CSV or Excel file with the Mass Enrollment Template format"}
                 {step === "preview" && `${result?.totalParsed || 0} students parsed — review assignments below`}
                 {step === "done" && `${committedCount} students imported successfully`}
               </p>
@@ -568,7 +572,7 @@ export function StudentImportModal({ semesterId, onClose, onSuccess }: StudentIm
                         or <span className="browse-link">browse</span> to select a file
                       </p>
                       <p style={{ marginTop: "0.5rem", fontSize: "0.75rem" }}>
-                        Accepts .csv and .xlsx files
+                        Accepts .csv and .xlsx — columns: Student Name, W#, Semester, Location Tag
                       </p>
                       <input
                         ref={fileInputRef}
@@ -605,7 +609,52 @@ export function StudentImportModal({ semesterId, onClose, onSuccess }: StudentIm
                     <p className="sim-stat-value">{result.unassigned.length}</p>
                     <p className="sim-stat-label">Unassigned</p>
                   </div>
+                  {result.errors.length > 0 && (
+                    <div className="sim-stat errors">
+                      <p className="sim-stat-value">{result.errors.length}</p>
+                      <p className="sim-stat-label">Errors</p>
+                    </div>
+                  )}
                 </div>
+
+                {overrideCount > 0 && (
+                  <div style={{
+                    background: "#fffbeb", border: "1px solid #fde68a", borderRadius: "8px",
+                    padding: "0.75rem 1rem", marginBottom: "1rem", display: "flex", alignItems: "center", gap: "0.5rem",
+                    fontSize: "0.82rem", color: "#92400e"
+                  }}>
+                    <AlertTriangle size={14} />
+                    {overrideCount} student{overrideCount !== 1 ? "s" : ""} will be assigned to groups at or above capacity (override required)
+                  </div>
+                )}
+
+                {result.errors.length > 0 && (
+                  <>
+                    <div className="sim-section-title">Validation Errors</div>
+                    <div className="sim-table-wrap">
+                      <table className="sim-table">
+                        <thead>
+                          <tr>
+                            <th>Row</th>
+                            <th>Name</th>
+                            <th>W#</th>
+                            <th>Error</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {result.errors.map((s, i) => (
+                            <tr key={i} className="sim-error-row">
+                              <td style={{ fontFamily: "monospace", fontSize: "0.78rem" }}>{s.rowNumber}</td>
+                              <td>{s.name}</td>
+                              <td style={{ fontFamily: "monospace", fontSize: "0.78rem" }}>{s.wNumber}</td>
+                              <td style={{ color: "#991b1b" }}>{s.validationError}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
+                )}
 
                 {result.assignments.length > 0 && (
                   <>
@@ -616,9 +665,9 @@ export function StudentImportModal({ semesterId, onClose, onSuccess }: StudentIm
                           <tr>
                             <th>Name</th>
                             <th>W#</th>
-                            <th>Email</th>
+                            <th>Semester</th>
+                            <th>Campus</th>
                             <th>Assigned To</th>
-                            <th>Match</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -628,12 +677,17 @@ export function StudentImportModal({ semesterId, onClose, onSuccess }: StudentIm
                               <td style={{ fontFamily: "monospace", fontSize: "0.78rem", color: "#6b7280" }}>
                                 {a.student.wNumber}
                               </td>
-                              <td style={{ color: "#6b7280" }}>{a.student.email}</td>
-                              <td>{a.scheduleName}</td>
+                              <td>{a.student.semesterLevel}</td>
                               <td>
-                                <span className={`sim-match-badge ${a.matchType.includes("1st") ? "first-choice" : "auto"}`}>
-                                  {a.matchType}
-                                </span>
+                                <span className="sim-tag-badge">{tagLabel(a.student.locationTag)}</span>
+                              </td>
+                              <td>
+                                {a.scheduleName}
+                                {a.requiresOverride && (
+                                  <span className="sim-tag-badge override" style={{ marginLeft: "0.4rem" }}>
+                                    override
+                                  </span>
+                                )}
                               </td>
                             </tr>
                           ))}
@@ -654,7 +708,8 @@ export function StudentImportModal({ semesterId, onClose, onSuccess }: StudentIm
                           <tr>
                             <th>Name</th>
                             <th>W#</th>
-                            <th>Email</th>
+                            <th>Semester</th>
+                            <th>Campus</th>
                             <th>Assign To</th>
                           </tr>
                         </thead>
@@ -665,7 +720,10 @@ export function StudentImportModal({ semesterId, onClose, onSuccess }: StudentIm
                               <td style={{ fontFamily: "monospace", fontSize: "0.78rem", color: "#6b7280" }}>
                                 {student.wNumber}
                               </td>
-                              <td style={{ color: "#6b7280" }}>{student.email}</td>
+                              <td>{student.semesterLevel}</td>
+                              <td>
+                                <span className="sim-tag-badge">{tagLabel(student.locationTag)}</span>
+                              </td>
                               <td>
                                 <select
                                   className="sim-select"
@@ -700,10 +758,10 @@ export function StudentImportModal({ semesterId, onClose, onSuccess }: StudentIm
                   <button
                     className="sim-btn-commit"
                     onClick={handleCommit}
-                    disabled={committing}
+                    disabled={committing || assignableCount === 0}
                   >
                     {committing && <Loader2 size={14} className="btn-spinner" />}
-                    {committing ? "Importing..." : `Confirm Import (${result.assignments.length + Object.values(manualAssignments).filter(v => v > 0).length} students)`}
+                    {committing ? "Importing..." : `Confirm Import (${assignableCount} students)`}
                   </button>
                 </div>
               </>

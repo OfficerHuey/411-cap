@@ -172,6 +172,21 @@
   line-height: 1;
 }
 
+/* avatar button — clickable link to profile */
+.avatarBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  border-radius: 50%;
+  transition: opacity 150ms ease-out, box-shadow 150ms ease-out;
+}
+
+.avatarBtn:hover {
+  opacity: 0.85;
+  box-shadow: 0 0 0 2px var(--gold-400);
+}
+
 /* logout icon button */
 .logoutBtn {
   display: inline-flex;

@@ -52,4 +52,20 @@ namespace NursingScheduler.API.Entities
         Thursday,
         Friday
     }
+
+    //default landing page after login
+    public enum LandingPage
+    {
+        Dashboard,
+        SemesterHub,
+        Notes
+    }
+
+    //ui theme preference
+    public enum ThemePreference
+    {
+        System,
+        Light,
+        Dark
+    }
 }

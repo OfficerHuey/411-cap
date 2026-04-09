@@ -23,6 +23,9 @@ builder.Services.AddScoped<IConflictService, ConflictService>();
 //audit trail service
 builder.Services.AddScoped<IAuditService, AuditService>();
 
+//email service (console logger for dev, swap to smtp for prod)
+builder.Services.AddScoped<IEmailService, ConsoleEmailService>();
+
 //cors policy, now allows react frontend
 builder.Services.AddCors(options =>
 {

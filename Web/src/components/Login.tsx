@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { AlertCircle, User, Lock, Eye, EyeOff, Info } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { AlertCircle, User, Lock, Eye, EyeOff, Info, Copy, Check } from "lucide-react";
+import { useNavigate, Link } from "react-router-dom";
 import { login, register } from "../Lib/api";
 import { Card } from "./ui/Card";
 import { Input } from "./ui/Input";
@@ -8,6 +8,8 @@ import { Button } from "./ui/Button";
 import { NumberBadge } from "./ui/NumberBadge";
 import { HairlineRule } from "./ui/HairlineRule";
 import styles from "./Login.module.css";
+
+const SHOW_DEMO = import.meta.env.VITE_SHOW_DEMO_CREDS === "true";
 
 export function Login() {
   const navigate = useNavigate();
@@ -17,7 +19,9 @@ export function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [rememberDevice, setRememberDevice] = useState(false);
   const [showDemo, setShowDemo] = useState(false);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,7 +31,7 @@ export function Login() {
       if (isRegistering) {
         await register({ username, password });
       } else {
-        await login({ username, password });
+        await login({ username, password, rememberDevice });
       }
       navigate("/");
     } catch (err: any) {
@@ -37,9 +41,15 @@ export function Login() {
     }
   };
 
-  const fillDemo = () => {
-    setUsername("admin");
-    setPassword("Password1!");
+  const copyToClipboard = (text: string, field: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedField(field);
+    setTimeout(() => setCopiedField(null), 2000);
+  };
+
+  const fillDemo = (user: string, pass: string) => {
+    setUsername(user);
+    setPassword(pass);
   };
 
   return (
@@ -126,6 +136,23 @@ export function Login() {
               />
             </div>
 
+            {!isRegistering && (
+              <div className={styles.optionsRow}>
+                <label className={styles.rememberLabel}>
+                  <input
+                    type="checkbox"
+                    checked={rememberDevice}
+                    onChange={(e) => setRememberDevice(e.target.checked)}
+                    className={styles.rememberCheck}
+                  />
+                  Remember this device
+                </label>
+                <Link to="/forgot-password" className={styles.forgotLink}>
+                  Forgot password?
+                </Link>
+              </div>
+            )}
+
             <div className={styles.submitWrap}>
               <Button
                 variant="primary"
@@ -153,7 +180,7 @@ export function Login() {
               : "Need an account? Register"}
           </Button>
 
-          {!isRegistering && (
+          {!isRegistering && SHOW_DEMO && (
             <>
               <HairlineRule color="muted" spacing="normal" />
               <button
@@ -168,11 +195,60 @@ export function Login() {
               {showDemo && (
                 <div className={styles.demoPanel}>
                   <div className={styles.demoRow}>
-                    Admin: <code>admin</code> / <code>Password1!</code>
+                    <div className={styles.demoAccount}>
+                      <span className={styles.demoLabel}>Admin</span>
+                      <code>admin@selu.edu</code> / <code>DemoAdmin2026!</code>
+                    </div>
+                    <div className={styles.demoBtns}>
+                      <button
+                        type="button"
+                        className={styles.copyBtn}
+                        onClick={() => copyToClipboard("admin@selu.edu", "admin-user")}
+                        title="Copy username"
+                      >
+                        {copiedField === "admin-user" ? <Check size={12} /> : <Copy size={12} />}
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.copyBtn}
+                        onClick={() => copyToClipboard("DemoAdmin2026!", "admin-pass")}
+                        title="Copy password"
+                      >
+                        {copiedField === "admin-pass" ? <Check size={12} /> : <Copy size={12} />}
+                      </button>
+                      <Button variant="ghost" size="sm" onClick={() => fillDemo("admin@selu.edu", "DemoAdmin2026!")}>
+                        Fill
+                      </Button>
+                    </div>
                   </div>
-                  <Button variant="ghost" size="sm" fullWidth onClick={fillDemo}>
-                    Fill demo credentials
-                  </Button>
+
+                  <div className={styles.demoRow}>
+                    <div className={styles.demoAccount}>
+                      <span className={styles.demoLabel}>Viewer</span>
+                      <code>viewer@selu.edu</code> / <code>DemoViewer2026!</code>
+                    </div>
+                    <div className={styles.demoBtns}>
+                      <button
+                        type="button"
+                        className={styles.copyBtn}
+                        onClick={() => copyToClipboard("viewer@selu.edu", "viewer-user")}
+                        title="Copy username"
+                      >
+                        {copiedField === "viewer-user" ? <Check size={12} /> : <Copy size={12} />}
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.copyBtn}
+                        onClick={() => copyToClipboard("DemoViewer2026!", "viewer-pass")}
+                        title="Copy password"
+                      >
+                        {copiedField === "viewer-pass" ? <Check size={12} /> : <Copy size={12} />}
+                      </button>
+                      <Button variant="ghost" size="sm" onClick={() => fillDemo("viewer@selu.edu", "DemoViewer2026!")}>
+                        Fill
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               )}
             </>

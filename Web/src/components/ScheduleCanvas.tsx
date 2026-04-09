@@ -11,6 +11,7 @@ import { useToast } from "../Lib/ToastContext";
 import { NumberBadge } from "./ui/NumberBadge";
 import { Modal } from "./ui/Modal";
 import { Button } from "./ui/Button";
+import { EditAttribution } from "./EditAttribution";
 import styles from "./ScheduleCanvas.module.css";
 
 interface ScheduleCanvasProps {
@@ -26,6 +27,7 @@ interface ScheduleCanvasProps {
     timeSlot?: string,
     dateRange?: string,
   ) => void;
+  onInstructorClick?: (instructorId: number) => void;
 }
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
@@ -145,6 +147,7 @@ export function ScheduleCanvas({
   isLocked,
   onRefresh,
   onDrop,
+  onInstructorClick,
 }: ScheduleCanvasProps) {
   const { addToast } = useToast();
   const [deleteConfirm, setDeleteConfirm] = useState<DeleteConfirm | null>(null);
@@ -351,7 +354,17 @@ export function ScheduleCanvas({
                       </p>
                     )}
                     {section.instructorName && (
-                      <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", margin: "0.2rem 0 0" }}>
+                      <p
+                        style={{
+                          fontSize: "0.78rem",
+                          color: "var(--text-muted)",
+                          margin: "0.2rem 0 0",
+                          cursor: onInstructorClick && section.instructorId ? "pointer" : undefined,
+                        }}
+                        onClick={() => {
+                          if (onInstructorClick && section.instructorId) onInstructorClick(section.instructorId);
+                        }}
+                      >
                         {section.instructorName}
                       </p>
                     )}
@@ -361,10 +374,11 @@ export function ScheduleCanvas({
                       </p>
                     )}
                     {course.defaultType === "Clinical" && (
-                      <p className={styles.blockPreclinical}>
+                      <p className={styles.sem5Preclinical}>
                         Pre-clinical: typically the day before
                       </p>
                     )}
+                    <EditAttribution entityType="Section" entityId={section.id} />
                   </div>
                   <div className={styles.sem5CardRight}>
                     <span className={styles.sem5SectionBadge}>
@@ -562,7 +576,16 @@ export function ScheduleCanvas({
                                   </div>
                                 )}
                                 {section.instructorName && (
-                                  <div className={styles.blockInstructor}>
+                                  <div
+                                    className={styles.blockInstructor}
+                                    onClick={(e) => {
+                                      if (onInstructorClick && section.instructorId) {
+                                        e.stopPropagation();
+                                        onInstructorClick(section.instructorId);
+                                      }
+                                    }}
+                                    style={onInstructorClick && section.instructorId ? { cursor: "pointer" } : undefined}
+                                  >
                                     {section.instructorName}
                                   </div>
                                 )}
@@ -577,6 +600,11 @@ export function ScheduleCanvas({
                                   </div>
                                 )}
                               </>
+                            )}
+                            {height > SLOT_HEIGHT * 3 && (
+                              <div className={styles.blockAttribution}>
+                                <EditAttribution entityType="Section" entityId={section.id} />
+                              </div>
                             )}
                           </div>
 

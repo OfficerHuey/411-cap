@@ -8,5 +8,7 @@ namespace NursingScheduler.API.Interfaces
     {
         //give me a user, i will give you a jwt string
         string CreateToken(AppUser user);
+        //overload with custom expiry in hours
+        string CreateToken(AppUser user, int expiryHours);
     }
 }

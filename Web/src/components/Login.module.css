@@ -203,6 +203,46 @@
   letter-spacing: 0.06em;
 }
 
+/* remember + forgot row */
+.optionsRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 0.75rem;
+}
+
+.rememberLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  user-select: none;
+}
+
+.rememberCheck {
+  accent-color: var(--green-600);
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+}
+
+.forgotLink {
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--green-600);
+  text-decoration: none;
+  transition: color 150ms ease-out;
+}
+
+.forgotLink:hover {
+  color: var(--green-800);
+  text-decoration: underline;
+}
+
 /* demo section */
 .demoToggle {
   display: inline-flex;
@@ -229,23 +269,73 @@
   background: var(--paper-sunk);
   border: 1px solid var(--cream-300);
   border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 }
 
 .demoRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
   font-family: var(--font-body);
   font-size: 0.8rem;
   color: var(--text-muted);
-  margin-bottom: 0.75rem;
   line-height: 1.5;
+}
+
+.demoAccount {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.demoLabel {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--gold-600);
+  margin-right: 0.25rem;
 }
 
 .demoRow code {
   font-family: var(--font-mono);
-  font-size: 0.78rem;
+  font-size: 0.73rem;
   padding: 0.1rem 0.35rem;
   background: var(--cream-200);
   border-radius: 4px;
   color: var(--text-on-paper);
+}
+
+.demoBtns {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
+.copyBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--cream-300);
+  border-radius: 4px;
+  background: var(--paper-raised);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 150ms ease-out;
+}
+
+.copyBtn:hover {
+  border-color: var(--green-300);
+  color: var(--green-700);
 }
 
 /* password toggle button inside input */

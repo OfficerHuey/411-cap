@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using NursingScheduler.API.Entities;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace NursingScheduler.API.Data
 {
@@ -9,6 +11,9 @@ namespace NursingScheduler.API.Data
 
         public static async Task Seed(DataContext context)
         {
+            //seed demo user accounts
+            await SeedDemoAccounts(context);
+
             //idempotent: skip if demo semester already exists
             if (await context.Semesters.AnyAsync(s => s.Name == DemoSemesterName))
                 return;
@@ -298,6 +303,39 @@ namespace NursingScheduler.API.Data
             }
 
             Console.WriteLine($"Sample data seeded: {DemoSemesterName} with {scheduleGroups.Count} schedule groups and {wNum - 1000001} students");
+        }
+
+        private static async Task SeedDemoAccounts(DataContext context)
+        {
+            //admin demo account
+            if (!await context.Users.AnyAsync(u => u.UserName == "admin@selu.edu"))
+            {
+                using var hmac = new HMACSHA512();
+                context.Users.Add(new AppUser
+                {
+                    UserName = "admin@selu.edu",
+                    PasswordHash = hmac.ComputeHash(Encoding.UTF8.GetBytes("DemoAdmin2026!")),
+                    PasswordSalt = hmac.Key,
+                    Role = "Admin",
+                    DisplayName = "Demo Admin"
+                });
+            }
+
+            //viewer demo account
+            if (!await context.Users.AnyAsync(u => u.UserName == "viewer@selu.edu"))
+            {
+                using var hmac = new HMACSHA512();
+                context.Users.Add(new AppUser
+                {
+                    UserName = "viewer@selu.edu",
+                    PasswordHash = hmac.ComputeHash(Encoding.UTF8.GetBytes("DemoViewer2026!")),
+                    PasswordSalt = hmac.Key,
+                    Role = "Viewer",
+                    DisplayName = "Demo Viewer"
+                });
+            }
+
+            await context.SaveChangesAsync();
         }
     }
 }

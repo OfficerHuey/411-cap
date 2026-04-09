@@ -21,5 +21,9 @@ namespace NursingScheduler.API.DTOs.Student
         //links student directly to the schedule bucket
         [Required]
         public int ScheduleId { get; set; }
+
+        //capacity override fields for the 9-student soft cap
+        public bool AcknowledgeOverride { get; set; }
+        public string? OverrideReason { get; set; }
     }
 }

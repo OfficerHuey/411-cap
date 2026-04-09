@@ -1,0 +1,123 @@
+/* student detail panel */
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.identity {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--cream-300);
+}
+
+.name {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 500;
+  color: var(--text-on-paper);
+  letter-spacing: -0.02em;
+  margin: 0;
+  text-align: center;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.fieldLabel {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.wRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.wNumber {
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-on-paper);
+  letter-spacing: 0.02em;
+}
+
+.copyBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--cream-300);
+  border-radius: 4px;
+  background: var(--paper-raised);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 150ms ease-out;
+}
+
+.copyBtn:hover {
+  border-color: var(--green-300);
+  color: var(--green-700);
+}
+
+.emailLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  color: var(--green-600);
+  text-decoration: none;
+  transition: color 150ms ease-out;
+}
+
+.emailLink:hover {
+  color: var(--green-800);
+  text-decoration: underline;
+}
+
+.breadcrumbLink {
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  color: var(--green-600);
+  cursor: pointer;
+  text-align: left;
+  transition: color 150ms ease-out;
+}
+
+.breadcrumbLink:hover {
+  color: var(--green-800);
+  text-decoration: underline;
+}
+
+.meta {
+  padding-top: 1rem;
+  border-top: 1px solid var(--cream-300);
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  color: var(--text-faint);
+}
+
+.empty {
+  text-align: center;
+  padding: 2rem;
+  font-size: var(--text-sm);
+  color: var(--text-faint);
+}

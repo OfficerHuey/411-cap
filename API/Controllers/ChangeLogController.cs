@@ -46,5 +46,24 @@ namespace NursingScheduler.API.Controllers
 
             return Ok(logs);
         }
+
+        //get the most recent changelog entry for a specific entity
+        [HttpGet("latest")]
+        public async Task<ActionResult> GetLatest([FromQuery] string entityType, [FromQuery] int entityId)
+        {
+            var entry = await _context.ChangeLogs
+                .Where(c => c.EntityType == entityType && c.EntityId == entityId)
+                .OrderByDescending(c => c.Timestamp)
+                .Select(c => new
+                {
+                    c.PerformedBy,
+                    c.Timestamp
+                })
+                .FirstOrDefaultAsync();
+
+            if (entry == null) return Ok((object?)null);
+
+            return Ok(entry);
+        }
     }
 }

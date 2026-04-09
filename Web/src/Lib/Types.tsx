@@ -69,6 +69,21 @@ export interface Student {
   email: string;
 }
 
+export interface StudentDetail {
+  id: number;
+  name: string;
+  wNumber: string;
+  email: string;
+  scheduleId: number | null;
+  scheduleName: string | null;
+  semesterLevel: number | null;
+  locationTag: string | null;
+  semesterId: number | null;
+  semesterName: string | null;
+  addedBy: string | null;
+  addedAt: string | null;
+}
+
 export interface Room {
   id: number;
   roomNumber: string;
@@ -83,6 +98,7 @@ export interface Instructor {
   name: string;
   email: string | null;
   type: InstructorType;
+  phone: string | null;
 }
 
 export interface ConflictResult {
@@ -102,16 +118,33 @@ export interface UserDto {
   username: string;
   token: string;
   role: string;
+  displayName: string | null;
 }
 
 export interface LoginDto {
   username: string;
   password: string;
+  rememberDevice?: boolean;
 }
 
 export interface RegisterDto {
   username: string;
   password: string;
+}
+
+export interface ProfileDto {
+  id: number;
+  username: string;
+  displayName: string | null;
+  role: string;
+  defaultLandingPage: string;
+  themePreference: string;
+}
+
+export interface UpdateProfileDto {
+  displayName?: string;
+  defaultLandingPage?: string;
+  themePreference?: string;
 }
 
 // ===== create dtos =====
@@ -152,6 +185,8 @@ export interface CreateStudentDto {
   wNumber: string;
   email: string;
   scheduleId: number;
+  acknowledgeOverride?: boolean;
+  overrideReason?: string;
 }
 
 // ===== helpers =====

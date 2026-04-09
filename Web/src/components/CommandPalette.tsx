@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Home, DoorOpen, Users, Archive, Keyboard, CalendarPlus, HelpCircle } from "lucide-react";
+import { Search, Home, DoorOpen, Users, Archive, Keyboard, CalendarPlus, HelpCircle, StickyNote, UserCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import styles from "./CommandPalette.module.css";
 
@@ -63,11 +63,27 @@ export function CommandPalette({ isOpen, onClose, onOpenShortcuts }: CommandPale
       group: "navigate",
     },
     {
+      id: "nav.notes",
+      label: "Go to Notes",
+      keywords: ["notes", "sticky", "reminders", "tasks"],
+      icon: <StickyNote size={18} />,
+      action: () => { navigate("/notes"); onClose(); },
+      group: "navigate",
+    },
+    {
       id: "nav.archive",
       label: "Go to Archive",
       keywords: ["locked", "archived", "finalized"],
       icon: <Archive size={18} />,
       action: () => { navigate("/archive"); onClose(); },
+      group: "navigate",
+    },
+    {
+      id: "nav.profile",
+      label: "Go to Profile",
+      keywords: ["profile", "settings", "account", "preferences"],
+      icon: <UserCircle size={18} />,
+      action: () => { navigate("/profile"); onClose(); },
       group: "navigate",
     },
     {

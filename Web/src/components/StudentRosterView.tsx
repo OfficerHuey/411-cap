@@ -13,6 +13,7 @@ import { Avatar } from "./ui/Avatar";
 import { EmptyState } from "./ui/EmptyState";
 import { Modal } from "./ui/Modal";
 import { Skeleton } from "./ui/Skeleton";
+import { StudentDetailPanel } from "./StudentDetailPanel";
 import styles from "./StudentRosterView.module.css";
 
 interface StudentRosterViewProps {
@@ -20,6 +21,12 @@ interface StudentRosterViewProps {
   semesterId: number;
   isLocked?: boolean;
   capacity?: number;
+}
+
+interface OverrideState {
+  pendingStudent: { name: string; wNumber: string; email: string };
+  currentCount: number;
+  capacity: number;
 }
 
 export function StudentRosterView({ scheduleId, semesterId, isLocked, capacity = 8 }: StudentRosterViewProps) {
@@ -30,6 +37,13 @@ export function StudentRosterView({ scheduleId, semesterId, isLocked, capacity =
   const [showImport, setShowImport] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  //override confirmation state
+  const [overrideState, setOverrideState] = useState<OverrideState | null>(null);
+  const [overrideReason, setOverrideReason] = useState("");
+
+  //student detail panel
+  const [detailStudentId, setDetailStudentId] = useState<number | null>(null);
 
   const canEdit = authService.canEdit() && !isLocked;
 
@@ -54,17 +68,68 @@ export function StudentRosterView({ scheduleId, semesterId, isLocked, capacity =
     e.preventDefault();
     setError("");
     try {
-      await studentsApi.create({
+      const response = await studentsApi.create({
         name: newStudent.name,
         wNumber: newStudent.wNumber,
         email: newStudent.email,
         scheduleId,
       });
+
+      //check if server returned an override confirmation request
+      if (response && typeof response === "object" && "requiresOverrideConfirmation" in response) {
+        const overrideResponse = response as any;
+        setOverrideState({
+          pendingStudent: { ...newStudent },
+          currentCount: overrideResponse.currentCount,
+          capacity: overrideResponse.capacity,
+        });
+        return;
+      }
+
       setNewStudent({ name: "", wNumber: "", email: "" });
       addToast("success", "Student added");
       await loadStudents();
     } catch (err: any) {
+      //check for hard cap 409
+      try {
+        const parsed = JSON.parse(err.message);
+        if (parsed.error === "HARD_CAP_EXCEEDED") {
+          addToast("error", "This schedule is at the hard cap. Create a new section instead.");
+          return;
+        }
+        if (parsed.error === "ABSOLUTE_CAP") {
+          addToast("error", "This schedule is at the absolute maximum (12).");
+          return;
+        }
+      } catch {
+        //not json, use raw message
+      }
       addToast("error", err.message || "Failed to add student");
+    }
+  };
+
+  const handleConfirmOverride = async () => {
+    if (!overrideState || overrideReason.length < 10) return;
+
+    try {
+      await studentsApi.create({
+        name: overrideState.pendingStudent.name,
+        wNumber: overrideState.pendingStudent.wNumber,
+        email: overrideState.pendingStudent.email,
+        scheduleId,
+        acknowledgeOverride: true,
+        overrideReason,
+      });
+
+      setNewStudent({ name: "", wNumber: "", email: "" });
+      setOverrideState(null);
+      setOverrideReason("");
+      addToast("success", "Student added (capacity override logged)");
+      await loadStudents();
+    } catch (err: any) {
+      addToast("error", err.message || "Failed to add student with override");
+      setOverrideState(null);
+      setOverrideReason("");
     }
   };
 
@@ -149,10 +214,13 @@ export function StudentRosterView({ scheduleId, semesterId, isLocked, capacity =
                   {String(idx + 1).padStart(2, "0")}
                 </span>
                 <span className={styles.rowWNumber}>{student.wNumber}</span>
-                <div className={styles.rowName}>
+                <button
+                  className={styles.rowName}
+                  onClick={(e) => { e.stopPropagation(); setDetailStudentId(student.id); }}
+                >
                   <Avatar name={student.name} size="sm" />
                   {student.name}
-                </div>
+                </button>
                 <span className={styles.rowEmail}>{student.email}</span>
                 {canEdit ? (
                   <div className={styles.rowAction}>
@@ -249,6 +317,59 @@ export function StudentRosterView({ scheduleId, semesterId, isLocked, capacity =
         </p>
       </Modal>
 
+      {/* ── capacity override confirm ── */}
+      <Modal
+        open={overrideState != null}
+        onClose={() => { setOverrideState(null); setOverrideReason(""); }}
+        title="Override schedule capacity?"
+        subtitle={overrideState ? `${overrideState.pendingStudent.name} (${overrideState.pendingStudent.wNumber})` : ""}
+        size="sm"
+        number="OVERRIDE"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => { setOverrideState(null); setOverrideReason(""); }}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleConfirmOverride}
+              disabled={overrideReason.length < 10}
+            >
+              Confirm Override
+            </Button>
+          </>
+        }
+      >
+        <div>
+          <p style={{ color: "var(--text-muted)", lineHeight: 1.6, margin: "0 0 0.75rem 0" }}>
+            This schedule already has {overrideState?.currentCount} students — Ashley's firm cap
+            is {overrideState?.capacity}. Adding a {(overrideState?.currentCount ?? 0) + 1}th student is
+            allowed only as an intentional override. Please enter a reason so the audit log has context.
+          </p>
+          <textarea
+            value={overrideReason}
+            onChange={(e) => setOverrideReason(e.target.value)}
+            placeholder="Reason for override (minimum 10 characters)..."
+            style={{
+              width: "100%",
+              minHeight: "80px",
+              padding: "0.75rem",
+              border: "1.5px solid var(--border)",
+              borderRadius: "8px",
+              fontFamily: "var(--font-body)",
+              fontSize: "0.85rem",
+              resize: "vertical",
+              outline: "none",
+            }}
+          />
+          {overrideReason.length > 0 && overrideReason.length < 10 && (
+            <p style={{ fontSize: "0.75rem", color: "var(--error)", marginTop: "0.25rem" }}>
+              {10 - overrideReason.length} more characters needed
+            </p>
+          )}
+        </div>
+      </Modal>
+
       {showImport && (
         <StudentImportModal
           semesterId={semesterId}
@@ -259,6 +380,12 @@ export function StudentRosterView({ scheduleId, semesterId, isLocked, capacity =
           }}
         />
       )}
+
+      <StudentDetailPanel
+        isOpen={detailStudentId != null}
+        onClose={() => setDetailStudentId(null)}
+        studentId={detailStudentId}
+      />
     </div>
   );
 }

@@ -1,15 +1,14 @@
 namespace NursingScheduler.API.DTOs.Import
 {
-    //parsed student record from csv/xlsx file
+    //parsed student record from the mass enrollment template
     public class ImportedStudentDto
     {
         public string Name { get; set; } = "";
         public string WNumber { get; set; } = "";
-        public string Email { get; set; } = "";
-        public string? PreferredLocation { get; set; }
-        public string? FirstChoice { get; set; }
-        public string? SecondChoice { get; set; }
-        public string? EmployedAt { get; set; }
+        public int SemesterLevel { get; set; }
+        public string LocationTag { get; set; } = ""; //"B" or "H"
+        public string? ValidationError { get; set; }
+        public int RowNumber { get; set; }
     }
 
     //auto-assignment result for a single student
@@ -18,7 +17,7 @@ namespace NursingScheduler.API.DTOs.Import
         public ImportedStudentDto Student { get; set; } = new();
         public int ScheduleId { get; set; }
         public string ScheduleName { get; set; } = "";
-        public string MatchType { get; set; } = "";
+        public bool RequiresOverride { get; set; }
     }
 
     //full import preview returned before committing
@@ -27,6 +26,7 @@ namespace NursingScheduler.API.DTOs.Import
         public int TotalParsed { get; set; }
         public List<StudentAssignmentDto> Assignments { get; set; } = new();
         public List<ImportedStudentDto> Unassigned { get; set; } = new();
+        public List<ImportedStudentDto> Errors { get; set; } = new();
     }
 
     //data sent when committing an import after review
@@ -34,7 +34,8 @@ namespace NursingScheduler.API.DTOs.Import
     {
         public required string Name { get; set; }
         public required string WNumber { get; set; }
-        public required string Email { get; set; }
         public int ScheduleId { get; set; }
+        public bool AcknowledgeOverride { get; set; }
+        public string? OverrideReason { get; set; }
     }
 }

@@ -21,6 +21,8 @@ namespace NursingScheduler.API.Data
         public DbSet<Instructor> Instructors { get; set; }
         public DbSet<ChangeLog> ChangeLogs { get; set; }
         public DbSet<SectionInstructor> SectionInstructors { get; set; }
+        public DbSet<Note> Notes { get; set; }
+        public DbSet<PasswordResetToken> PasswordResetTokens { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -50,6 +52,31 @@ namespace NursingScheduler.API.Data
                 .WithMany(s => s.ScheduleSections)
                 .HasForeignKey(ss => ss.SectionId)
                 .OnDelete(DeleteBehavior.Restrict); //had to change because of db confusion on deletetion pathway
+
+            //notes — cascade delete when parent entity is removed
+            modelBuilder.Entity<Note>()
+                .HasOne(n => n.Semester)
+                .WithMany()
+                .HasForeignKey(n => n.SemesterId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Note>()
+                .HasOne(n => n.Schedule)
+                .WithMany()
+                .HasForeignKey(n => n.ScheduleId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Note>()
+                .HasOne(n => n.Section)
+                .WithMany()
+                .HasForeignKey(n => n.SectionId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<Note>()
+                .HasOne(n => n.Author)
+                .WithMany()
+                .HasForeignKey(n => n.AuthorId)
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

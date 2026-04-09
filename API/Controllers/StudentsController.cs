@@ -56,23 +56,46 @@ namespace NursingScheduler.API.Controllers
             {
                 var cap = schedule.Capacity;
 
-                //hard block: would bring group to cap+2 or more (10+ for default 8)
-                if (currentCount >= cap + 1)
-                    return BadRequest(new
+                //absolute hard block at 12+
+                if (currentCount >= 12)
+                    return Conflict(new
                     {
-                        error = "HARD_CAP_EXCEEDED",
-                        message = $"Schedule group is at {currentCount}/{cap} students. {cap + 1} is the firm cap — adding more requires creating a new schedule group.",
-                        suggestNewGroup = true
+                        error = "ABSOLUTE_CAP",
+                        message = "This schedule is at the absolute maximum (12). No further additions are allowed."
                     });
 
-                //soft override: would bring group to exactly cap+1 (9 for default 8)
-                if (currentCount >= cap)
-                    return Ok(new
+                //hard block at 10+: no override possible
+                if (currentCount >= 10)
+                    return Conflict(new
                     {
-                        warning = "SOFT_CAP_OVERRIDE",
-                        message = $"Adding this student brings the group to {currentCount + 1}/{cap}. {cap + 1} students is the firm cap — this should only be used for borderline students likely to repeat.",
-                        requiresOverrideConfirmation = true
+                        error = "HARD_CAP_EXCEEDED",
+                        message = "This schedule is at the hard cap. Create a new section instead.",
+                        currentCount,
+                        capacity = cap
                     });
+
+                //soft override at 9 (currentCount >= cap and < 10)
+                if (currentCount >= cap)
+                {
+                    //check if override was acknowledged
+                    if (!createDto.AcknowledgeOverride)
+                    {
+                        return Ok(new
+                        {
+                            requiresOverrideConfirmation = true,
+                            message = $"This schedule already has {currentCount} students — Ashley's firm cap is {cap}. Adding a {currentCount + 1}th student is allowed only as an intentional override.",
+                            currentCount,
+                            capacity = cap
+                        });
+                    }
+
+                    //override acknowledged — log it
+                    var username = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "unknown";
+                    await _auditService.LogChange(
+                        "Schedule", schedule.Id, "CapacityOverride", username,
+                        $"Override to {currentCount + 1}/{cap}: {createDto.OverrideReason ?? "No reason provided"}",
+                        schedule.SemesterId);
+                }
             }
 
             var student = new Student
@@ -86,8 +109,8 @@ namespace NursingScheduler.API.Controllers
             _context.Students.Add(student);
             await _context.SaveChangesAsync();
 
-            var username = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "unknown";
-            await _auditService.LogChange("Student", student.Id, "Created", username, null, schedule?.SemesterId);
+            var auditUser = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "unknown";
+            await _auditService.LogChange("Student", student.Id, "Created", auditUser, null, schedule?.SemesterId);
 
             return Ok(new StudentDto
             {
@@ -114,6 +137,40 @@ namespace NursingScheduler.API.Controllers
                 .ToListAsync();
 
             return Ok(students);
+        }
+
+        //get full student detail for the side panel
+        [HttpGet("{id}/detail")]
+        public async Task<ActionResult> GetStudentDetail(int id)
+        {
+            var student = await _context.Students
+                .Include(s => s.Schedule)
+                    .ThenInclude(sch => sch!.Semester)
+                .FirstOrDefaultAsync(s => s.Id == id);
+
+            if (student == null) return NotFound();
+
+            //find who added this student from the changelog
+            var addedLog = await _context.ChangeLogs
+                .Where(c => c.EntityType == "Student" && c.EntityId == id && c.Action == "Created")
+                .OrderByDescending(c => c.Timestamp)
+                .FirstOrDefaultAsync();
+
+            return Ok(new
+            {
+                student.Id,
+                student.Name,
+                student.WNumber,
+                student.Email,
+                ScheduleId = student.Schedule?.Id,
+                ScheduleName = student.Schedule?.Name,
+                SemesterLevel = student.Schedule?.SemesterLevel,
+                LocationTag = student.Schedule?.LocationDisplay,
+                SemesterId = student.Schedule?.Semester?.Id,
+                SemesterName = student.Schedule?.Semester?.Name,
+                AddedBy = addedLog?.PerformedBy,
+                AddedAt = addedLog?.Timestamp
+            });
         }
 
         //delete a student from a schedule

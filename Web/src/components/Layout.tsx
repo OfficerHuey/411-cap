@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Calendar, LogOut, DoorOpen, GraduationCap, Archive, Search } from "lucide-react";
+import { Calendar, LogOut, DoorOpen, GraduationCap, Archive, Search, StickyNote } from "lucide-react";
 import { useNavigate, useLocation, Outlet } from "react-router-dom";
 import { authService } from "../Lib/Auth";
 import { useBreadcrumbs } from "../Lib/BreadcrumbContext";
@@ -75,6 +75,7 @@ export function Layout() {
     { path: "/", label: "Dashboard", icon: null },
     { path: "/rooms", label: "Rooms", icon: DoorOpen },
     { path: "/instructors", label: "Instructors", icon: GraduationCap },
+    { path: "/notes", label: "Notes", icon: StickyNote },
     { path: "/archive", label: "Archive", icon: Archive },
   ];
 
@@ -116,7 +117,13 @@ export function Layout() {
             </button>
 
             {currentUser && (
-              <Avatar name={currentUser.name || "User"} size="sm" />
+              <button
+                className={styles.avatarBtn}
+                onClick={() => navigate("/profile")}
+                aria-label="Go to profile"
+              >
+                <Avatar name={currentUser.name || "User"} size="sm" />
+              </button>
             )}
 
             <Tooltip content="Sign out" position="bottom">

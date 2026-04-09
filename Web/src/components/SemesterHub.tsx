@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Plus, Trash2, Lock, Copy, Download, History, Upload, ChevronRight, MapPin, Calendar } from "lucide-react";
+import { Plus, Trash2, Lock, Copy, Download, History, Upload, ChevronRight, MapPin, Calendar, StickyNote } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
 import { authService } from "../Lib/Auth";
 import { semesters as semestersApi, schedules as schedulesApi, exports as exportsApi } from "../Lib/api";
@@ -20,6 +20,9 @@ import { Badge } from "./ui/Badge";
 import { EmptyState } from "./ui/EmptyState";
 import { Modal } from "./ui/Modal";
 import { Skeleton } from "./ui/Skeleton";
+import { NotesPanel } from "./Notes/NotesPanel";
+import { useNotes } from "../hooks/useNotes";
+import { EditAttribution } from "./EditAttribution";
 import styles from "./SemesterHub.module.css";
 
 const LEVELS: SemesterLevel[] = [
@@ -85,9 +88,11 @@ export function SemesterHub() {
   const [cloning, setCloning] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [showNotes, setShowNotes] = useState(false);
 
   const canEdit = authService.canEdit();
   const semIdNum = parseInt(semesterId || "0");
+  const { openCount: noteCount } = useNotes({ semesterId: semIdNum || undefined });
 
   //breadcrumbs
   useEffect(() => {
@@ -232,6 +237,17 @@ export function SemesterHub() {
         </div>
 
         <div className={styles.heroActions}>
+          <Button
+            variant="ghost"
+            size="md"
+            iconLeft={<StickyNote size={14} />}
+            onClick={() => setShowNotes(true)}
+          >
+            Notes
+            {noteCount > 0 && (
+              <Badge variant="gold" size="sm">{noteCount}</Badge>
+            )}
+          </Button>
           <Button
             variant="ghost"
             size="md"
@@ -409,6 +425,7 @@ export function SemesterHub() {
                         </span>
                         <ChevronRight size={16} className={styles.cardCtaChevron} />
                       </div>
+                      <EditAttribution entityType="Schedule" entityId={schedule.id} />
                     </div>
                   </Card>
                 );
@@ -503,6 +520,12 @@ export function SemesterHub() {
           }}
         />
       )}
+
+      <NotesPanel
+        isOpen={showNotes}
+        onClose={() => setShowNotes(false)}
+        semesterId={semIdNum}
+      />
     </div>
   );
 }
