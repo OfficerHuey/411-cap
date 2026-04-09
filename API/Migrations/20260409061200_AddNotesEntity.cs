@@ -41,13 +41,13 @@ namespace API.Migrations
                         column: x => x.SectionId,
                         principalTable: "Sections",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.SetNull);
+                        onDelete: ReferentialAction.NoAction);
                     table.ForeignKey(
                         name: "FK_Notes_Semesters_SemesterId",
                         column: x => x.SemesterId,
                         principalTable: "Semesters",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.NoAction);
                     table.ForeignKey(
                         name: "FK_Notes_Users_AuthorId",
                         column: x => x.AuthorId,

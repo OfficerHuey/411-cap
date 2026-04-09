@@ -242,6 +242,25 @@ namespace NursingScheduler.API.Controllers
             if (link == null) return NotFound();
 
             _context.ScheduleSections.Remove(link);
+
+            //check if this was the last link — if so, clean up notes and delete the orphan section
+            var remainingLinks = await _context.ScheduleSections
+                .CountAsync(ss => ss.SectionId == sectionId && ss.Id != link.Id);
+
+            if (remainingLinks == 0)
+            {
+                //clear notes referencing this section (NoAction FK, app-layer cleanup)
+                var affectedNotes = await _context.Notes
+                    .Where(n => n.SectionId == sectionId)
+                    .ToListAsync();
+                foreach (var note in affectedNotes)
+                    note.SectionId = null;
+
+                var section = await _context.Sections.FindAsync(sectionId);
+                if (section != null)
+                    _context.Sections.Remove(section);
+            }
+
             await _context.SaveChangesAsync();
 
             var username = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "unknown";

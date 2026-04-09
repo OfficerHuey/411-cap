@@ -70,6 +70,13 @@ namespace NursingScheduler.API.Controllers
             if (semester == null) return NotFound();
             if (semester.IsLocked) return BadRequest("This semester is locked and cannot be modified");
 
+            //clear notes referencing this semester (NoAction FK, app-layer cleanup)
+            var affectedNotes = await _context.Notes
+                .Where(n => n.SemesterId == id)
+                .ToListAsync();
+            foreach (var note in affectedNotes)
+                note.SemesterId = null;
+
             _context.Semesters.Remove(semester);
             await _context.SaveChangesAsync();
 

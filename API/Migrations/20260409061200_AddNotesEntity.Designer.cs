@@ -467,12 +467,12 @@ namespace API.Migrations
                     b.HasOne("NursingScheduler.API.Entities.Section", "Section")
                         .WithMany()
                         .HasForeignKey("SectionId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.NoAction);
 
                     b.HasOne("NursingScheduler.API.Entities.Semester", "Semester")
                         .WithMany()
                         .HasForeignKey("SemesterId")
-                        .OnDelete(DeleteBehavior.Cascade);
+                        .OnDelete(DeleteBehavior.NoAction);
 
                     b.Navigation("Author");
 

@@ -53,12 +53,12 @@ namespace NursingScheduler.API.Data
                 .HasForeignKey(ss => ss.SectionId)
                 .OnDelete(DeleteBehavior.Restrict); //had to change because of db confusion on deletetion pathway
 
-            //notes — cascade delete when parent entity is removed
+            //notes — schedule cascade, semester/section use NoAction to avoid cycle
             modelBuilder.Entity<Note>()
                 .HasOne(n => n.Semester)
                 .WithMany()
                 .HasForeignKey(n => n.SemesterId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.NoAction);
 
             modelBuilder.Entity<Note>()
                 .HasOne(n => n.Schedule)
@@ -70,7 +70,7 @@ namespace NursingScheduler.API.Data
                 .HasOne(n => n.Section)
                 .WithMany()
                 .HasForeignKey(n => n.SectionId)
-                .OnDelete(DeleteBehavior.SetNull);
+                .OnDelete(DeleteBehavior.NoAction);
 
             modelBuilder.Entity<Note>()
                 .HasOne(n => n.Author)

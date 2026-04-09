@@ -100,7 +100,20 @@ try
 catch (Exception ex)
 {
     var logger = services.GetRequiredService<ILogger<Program>>();
-    logger.LogError(ex, "error during migration");
+    logger.LogError(ex, "Fatal error during migration or seeding");
+
+    if (app.Environment.IsDevelopment())
+    {
+        //in development, migration failures are always fatal so bugs surface immediately
+        Console.Error.WriteLine("\n============================================");
+        Console.Error.WriteLine("MIGRATION OR SEEDING FAILED — TERMINATING");
+        Console.Error.WriteLine("============================================");
+        Console.Error.WriteLine(ex.ToString());
+        Console.Error.WriteLine("============================================\n");
+        Environment.Exit(1);
+    }
+
+    //in production, log and continue so the app serves read-only traffic
 }
 
 app.Run();
