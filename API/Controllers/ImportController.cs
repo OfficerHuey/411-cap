@@ -107,8 +107,36 @@ namespace NursingScheduler.API.Controllers
         [HttpPost("students/commit")]
         public async Task<ActionResult> CommitImport([FromBody] List<CommitStudentDto> assignments)
         {
+            //pre-load schedule capacities and current counts
+            var scheduleIds = assignments.Select(a => a.ScheduleId).Distinct().ToList();
+            var schedules = await _context.Schedules
+                .Include(s => s.Students)
+                .Where(s => scheduleIds.Contains(s.Id))
+                .ToDictionaryAsync(s => s.Id);
+
+            //track how many we're adding per schedule during this commit
+            var addedPerSchedule = new Dictionary<int, int>();
+            var rejected = new List<object>();
+
             foreach (var assignment in assignments)
             {
+                if (!schedules.TryGetValue(assignment.ScheduleId, out var schedule))
+                {
+                    rejected.Add(new { assignment.WNumber, reason = "Schedule not found" });
+                    continue;
+                }
+
+                addedPerSchedule.TryGetValue(assignment.ScheduleId, out var alreadyAdded);
+                var currentCount = schedule.Students.Count + alreadyAdded;
+                var cap = schedule.Capacity;
+
+                //hard block at cap+1 existing (would bring to cap+2)
+                if (currentCount >= cap + 1)
+                {
+                    rejected.Add(new { assignment.WNumber, reason = $"Schedule \"{schedule.Name}\" is at hard cap ({currentCount}/{cap})" });
+                    continue;
+                }
+
                 var student = new Student
                 {
                     Name = assignment.Name,
@@ -117,9 +145,12 @@ namespace NursingScheduler.API.Controllers
                     ScheduleId = assignment.ScheduleId
                 };
                 _context.Students.Add(student);
+                addedPerSchedule[assignment.ScheduleId] = alreadyAdded + 1;
             }
+
             await _context.SaveChangesAsync();
-            return Ok(new { Committed = assignments.Count });
+            var committed = assignments.Count - rejected.Count;
+            return Ok(new { Committed = committed, Rejected = rejected });
         }
 
         //parse csv file into student records

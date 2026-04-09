@@ -1,0 +1,31 @@
+/* skeleton — calm loading placeholder */
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--paper-sunk) 0%,
+    var(--cream-200) 40%,
+    var(--paper-sunk) 80%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes skeleton-pulse {
+  0%, 100% { background-position: 0% 0%; }
+  50% { background-position: 100% 0%; }
+}
+
+/* radius by variant */
+.radius-text { border-radius: var(--radius-sm); }
+.radius-card { border-radius: var(--radius-lg); }
+.radius-avatar { border-radius: 50%; }
+.radius-button { border-radius: var(--radius-md); }
+.radius-custom { border-radius: var(--radius-sm); }
+
+/* text stack spacing */
+.textStack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5em;
+}

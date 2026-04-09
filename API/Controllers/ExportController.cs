@@ -1,9 +1,11 @@
+using System.Text.RegularExpressions;
 using ClosedXML.Excel;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using NursingScheduler.API.Data;
 using NursingScheduler.API.Entities;
+using NursingScheduler.API.Services;
 
 namespace NursingScheduler.API.Controllers
 {
@@ -162,7 +164,7 @@ namespace NursingScheduler.API.Controllers
             return File(stream.ToArray(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"{semester.Name}_Visual_Grids.xlsx");
         }
 
-        //export one row per student-per-course for workday/registrar import
+        //export one row per student-per-course for workday mass enrollment
         [HttpGet("registrar/{semesterId}")]
         public async Task<IActionResult> ExportForRegistrar(int semesterId)
         {
@@ -178,16 +180,14 @@ namespace NursingScheduler.API.Controllers
             if (semester == null) return NotFound();
 
             using var workbook = new XLWorkbook();
-            var sheet = workbook.Worksheets.Add("Registrar Export");
+            var sheet = workbook.Worksheets.Add("Mass Enrollment");
 
-            //headers
-            var headers = new[] { "Student Name", "W#", "Email", "Course Code", "Section", "Term", "Schedule Group" };
+            //headers matching workday template exactly
+            var headers = new[] { "W#", "Student Name", "Academic Period", "Course", "Section" };
             for (int i = 0; i < headers.Length; i++)
             {
                 sheet.Cell(1, i + 1).Value = headers[i];
                 sheet.Cell(1, i + 1).Style.Font.Bold = true;
-                sheet.Cell(1, i + 1).Style.Fill.BackgroundColor = XLColor.CornflowerBlue;
-                sheet.Cell(1, i + 1).Style.Font.FontColor = XLColor.White;
             }
 
             int row = 2;
@@ -198,13 +198,11 @@ namespace NursingScheduler.API.Controllers
                     foreach (var ss in schedule.ScheduleSections)
                     {
                         var section = ss.Section!;
-                        sheet.Cell(row, 1).Value = student.Name;
-                        sheet.Cell(row, 2).Value = student.WNumber;
-                        sheet.Cell(row, 3).Value = student.Email;
-                        sheet.Cell(row, 4).Value = section.Course!.Code;
+                        sheet.Cell(row, 1).Value = student.WNumber;
+                        sheet.Cell(row, 2).Value = student.Name;
+                        sheet.Cell(row, 3).Value = AcademicPeriodFormatter.Format(semester, section.Term);
+                        sheet.Cell(row, 4).Value = NormalizeCourseCode(section.Course!.Code);
                         sheet.Cell(row, 5).Value = section.SectionNumber;
-                        sheet.Cell(row, 6).Value = section.Term?.ToString() ?? "Full";
-                        sheet.Cell(row, 7).Value = schedule.Name;
                         row++;
                     }
                 }
@@ -216,7 +214,14 @@ namespace NursingScheduler.API.Controllers
             workbook.SaveAs(stream);
             return File(stream.ToArray(),
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                $"{semester.Name}_Registrar_Export.xlsx");
+                $"{semester.Name}_Mass_Enrollment.xlsx");
+        }
+
+        //ensures exactly one space between alpha prefix and numeric portion
+        private static string NormalizeCourseCode(string rawCode)
+        {
+            var match = Regex.Match(rawCode, @"^([A-Z]+)\s*(\d+)$");
+            return match.Success ? $"{match.Groups[1].Value} {match.Groups[2].Value}" : rawCode;
         }
 
         private string ValidateSheetName(string name)

@@ -100,6 +100,15 @@ namespace API.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int>("CreditHours")
+                        .HasColumnType("int");
+
+                    b.Property<int>("DefaultLabCapacity")
+                        .HasColumnType("int");
+
+                    b.Property<int>("DefaultLectureCapacity")
+                        .HasColumnType("int");
+
                     b.Property<int>("DefaultType")
                         .HasColumnType("int");
 
@@ -156,6 +165,9 @@ namespace API.Migrations
 
                     b.Property<int>("Capacity")
                         .HasColumnType("int");
+
+                    b.Property<bool>("IsRequestOnly")
+                        .HasColumnType("bit");
 
                     b.Property<string>("RoomNumber")
                         .IsRequired()
@@ -289,6 +301,36 @@ namespace API.Migrations
                     b.ToTable("Sections");
                 });
 
+            modelBuilder.Entity("NursingScheduler.API.Entities.SectionInstructor", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("InstructorId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SectionId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal?>("WorkloadOverride")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<string>("WorkloadOverrideReason")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InstructorId");
+
+                    b.HasIndex("SectionId");
+
+                    b.ToTable("SectionInstructors");
+                });
+
             modelBuilder.Entity("NursingScheduler.API.Entities.Semester", b =>
                 {
                     b.Property<int>("Id")
@@ -297,11 +339,17 @@ namespace API.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<int?>("AnchorRotation")
+                        .HasColumnType("int");
+
                     b.Property<string>("ClinicalDays")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("EndDate")
                         .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsAnchorTemplate")
+                        .HasColumnType("bit");
 
                     b.Property<bool>("IsLocked")
                         .HasColumnType("bit");
@@ -409,6 +457,25 @@ namespace API.Migrations
                     b.Navigation("Semester");
                 });
 
+            modelBuilder.Entity("NursingScheduler.API.Entities.SectionInstructor", b =>
+                {
+                    b.HasOne("NursingScheduler.API.Entities.Instructor", "Instructor")
+                        .WithMany("SectionInstructors")
+                        .HasForeignKey("InstructorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("NursingScheduler.API.Entities.Section", "Section")
+                        .WithMany("SectionInstructors")
+                        .HasForeignKey("SectionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Instructor");
+
+                    b.Navigation("Section");
+                });
+
             modelBuilder.Entity("NursingScheduler.API.Entities.Student", b =>
                 {
                     b.HasOne("NursingScheduler.API.Entities.Schedule", "Schedule")
@@ -427,6 +494,8 @@ namespace API.Migrations
 
             modelBuilder.Entity("NursingScheduler.API.Entities.Instructor", b =>
                 {
+                    b.Navigation("SectionInstructors");
+
                     b.Navigation("Sections");
                 });
 
@@ -445,6 +514,8 @@ namespace API.Migrations
             modelBuilder.Entity("NursingScheduler.API.Entities.Section", b =>
                 {
                     b.Navigation("ScheduleSections");
+
+                    b.Navigation("SectionInstructors");
                 });
 
             modelBuilder.Entity("NursingScheduler.API.Entities.Semester", b =>

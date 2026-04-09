@@ -20,6 +20,7 @@ namespace NursingScheduler.API.Data
         public DbSet<Room> Rooms { get; set; }
         public DbSet<Instructor> Instructors { get; set; }
         public DbSet<ChangeLog> ChangeLogs { get; set; }
+        public DbSet<SectionInstructor> SectionInstructors { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -29,6 +30,11 @@ namespace NursingScheduler.API.Data
             modelBuilder.Entity<Schedule>()
                 .Property(s => s.Capacity)
                 .HasDefaultValue(8);
+
+            //decimal precision for workload override
+            modelBuilder.Entity<SectionInstructor>()
+                .Property(si => si.WorkloadOverride)
+                .HasPrecision(5, 2);
 
             //if you delete a schedule(bucket), delete the sections in it
             //this configures the many to many bridge table

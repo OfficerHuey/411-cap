@@ -1,0 +1,124 @@
+/* modal component — editorial design system */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 15, 8, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: var(--space-6);
+}
+
+.container {
+  background: var(--paper-raised);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--elevation-modal);
+  max-height: 90vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  position: relative;
+}
+
+/* sizes */
+.sm { max-width: 420px; }
+.md { max-width: 580px; }
+.lg { max-width: 760px; }
+.xl { max-width: 960px; }
+.full { max-width: 90vw; }
+
+/* header */
+.header {
+  padding: 2rem 2.25rem 0;
+  flex-shrink: 0;
+}
+
+.numberBadge {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--gold-600);
+}
+
+.closeButton {
+  position: absolute;
+  top: 1.5rem;
+  right: 1.5rem;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-md);
+  color: var(--text-on-paper-muted);
+  cursor: pointer;
+  transition: background 150ms ease-out, color 150ms ease-out;
+  z-index: 1;
+}
+
+.closeButton:hover {
+  background: var(--paper-sunk);
+  color: var(--text-on-paper);
+}
+
+.closeButton:focus-visible {
+  outline: 3px solid rgba(0, 61, 42, 0.25);
+  outline-offset: 2px;
+}
+
+.title {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: var(--display-sm);
+  color: var(--text-on-paper);
+  letter-spacing: var(--tracking-tighter);
+  line-height: var(--leading-tight);
+  margin: 0;
+  padding-right: 3rem;
+}
+
+.titleWithNumber {
+  margin-top: var(--space-4);
+}
+
+.subtitle {
+  font-family: var(--font-body);
+  font-weight: 400;
+  font-size: var(--text-base);
+  color: var(--text-on-paper-muted);
+  margin-top: var(--space-2);
+}
+
+.goldRule {
+  height: 1px;
+  background: var(--gold-400);
+  border: none;
+  margin-top: var(--space-6);
+}
+
+/* body */
+.body {
+  padding: 2rem 2.25rem;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+/* footer */
+.footer {
+  padding: 1.5rem 2.25rem;
+  background: var(--paper-sunk);
+  border-top: 1px solid var(--cream-300);
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  flex-shrink: 0;
+}

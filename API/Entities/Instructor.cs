@@ -15,7 +15,10 @@ namespace NursingScheduler.API.Entities
         //employment type for workload tracking
         public InstructorType Type { get; set; }
 
-        //sections this instructor is assigned to
+        //sections this instructor is assigned to (via simple FK on section)
         public ICollection<Section> Sections { get; set; } = new List<Section>();
+
+        //join table for workload tracking and multi-instructor support
+        public ICollection<SectionInstructor> SectionInstructors { get; set; } = new List<SectionInstructor>();
     }
 }

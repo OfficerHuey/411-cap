@@ -1,15 +1,21 @@
-import { useRef, useEffect, useState, useMemo } from "react";
-import "../App.css";
-import { Plus, Trash2, Pencil, Building2 } from "lucide-react";
+import { useRef, useEffect, useState, useMemo, useCallback } from "react";
+import { Plus, Trash2, Pencil, Building2, AlertTriangle, Info } from "lucide-react";
 import { useDrop } from "react-dnd";
 import { sections as sectionsApi } from "../Lib/api";
 import type { Schedule, Course, Section } from "../Lib/Types";
 import { courseTypeColor, dayOfWeekName, timeSpanToDisplay } from "../Lib/Types";
 import { CourseDetailsModal } from "./CourseDetailsModal";
+import { ConflictBanner } from "./ConflictBanner";
+import type { ConflictEntry } from "./ConflictBanner";
 import { useToast } from "../Lib/ToastContext";
+import { NumberBadge } from "./ui/NumberBadge";
+import { Modal } from "./ui/Modal";
+import { Button } from "./ui/Button";
+import styles from "./ScheduleCanvas.module.css";
 
 interface ScheduleCanvasProps {
   schedule: Schedule;
+  semesterId: number;
   isSemester5: boolean;
   courses: Course[];
   isLocked: boolean;
@@ -90,21 +96,9 @@ function DropZone({
   return (
     <div
       ref={elementRef}
-      style={{
-        position: "absolute",
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        transition: "background 0.15s",
-        background: isOver ? "rgba(0, 86, 63, 0.08)" : "transparent",
-        borderRadius: "3px",
-      }}
+      className={`${styles.dropZoneInner} ${isOver ? styles.over : ""}`}
     >
-      {isOver && <Plus size={12} color="#00563f" />}
+      {isOver && <Plus size={12} color="var(--gold-500)" />}
     </div>
   );
 }
@@ -129,28 +123,14 @@ function Semester5DropZone({ onDrop }: { onDrop: (courseId: number) => void }) {
   return (
     <div
       ref={elementRef}
-      style={{
-        border: `2px dashed ${isOver ? "#00563f" : "#d1d5db"}`,
-        borderRadius: "10px",
-        padding: "2rem",
-        textAlign: "center",
-        background: isOver ? "rgba(0, 86, 63, 0.04)" : "transparent",
-        transition: "all 0.15s",
-      }}
+      className={`${styles.sem5DropZone} ${isOver ? styles.over : ""}`}
     >
       <Plus
         size={28}
-        color={isOver ? "#00563f" : "#9ca3af"}
+        color={isOver ? "var(--gold-500)" : "var(--text-faint)"}
         style={{ margin: "0 auto 0.5rem" }}
       />
-      <p
-        style={{
-          fontSize: "0.85rem",
-          color: "#9ca3af",
-          margin: 0,
-          fontFamily: "Inter, sans-serif",
-        }}
-      >
+      <p className={styles.sem5DropText}>
         Drop course here to add to schedule
       </p>
     </div>
@@ -159,6 +139,7 @@ function Semester5DropZone({ onDrop }: { onDrop: (courseId: number) => void }) {
 
 export function ScheduleCanvas({
   schedule,
+  semesterId,
   isSemester5,
   courses,
   isLocked,
@@ -168,9 +149,17 @@ export function ScheduleCanvas({
   const { addToast } = useToast();
   const [deleteConfirm, setDeleteConfirm] = useState<DeleteConfirm | null>(null);
   const [editModal, setEditModal] = useState<EditModal | null>(null);
+  const [allSemesterSections, setAllSemesterSections] = useState<Section[]>([]);
 
   const [tooltipSection, setTooltipSection] = useState<number | null>(null);
   const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+
+  //fetch all semester sections for cross-schedule conflict detection
+  useEffect(() => {
+    sectionsApi.getAllForSemester(semesterId)
+      .then(setAllSemesterSections)
+      .catch(() => {});
+  }, [semesterId, schedule.sections.length]);
 
   //map sections to display data
   const scheduledSections = schedule.sections.map((section) => {
@@ -178,12 +167,20 @@ export function ScheduleCanvas({
     return { section, course };
   }).filter((s) => s.course) as { section: Section; course: Course }[];
 
-  //detect overlapping sections on same day/time (conflicts)
-  const conflictSectionIds = useMemo(() => {
-    const ids = new Set<number>();
+  //detect conflicts: time overlap (within schedule), room double-booking, instructor overlap (cross-schedule)
+  const sectionConflictMap = useMemo(() => {
+    const map = new Map<number, ConflictEntry[]>();
+    const addConflict = (sectionId: number, entry: ConflictEntry) => {
+      if (!map.has(sectionId)) map.set(sectionId, []);
+      map.get(sectionId)!.push(entry);
+    };
+
+    const schedSectionIds = new Set(schedule.sections.map((s) => s.id));
     const timed = scheduledSections.filter(({ section }) =>
       section.dayOfWeek != null && section.startTime && section.endTime
     );
+
+    //time overlaps within this schedule
     for (let i = 0; i < timed.length; i++) {
       for (let j = i + 1; j < timed.length; j++) {
         const a = timed[i].section;
@@ -194,19 +191,92 @@ export function ScheduleCanvas({
         const bStart = timeSpanToMinutes(b.startTime);
         const bEnd = timeSpanToMinutes(b.endTime);
         if (aStart < bEnd && bStart < aEnd) {
-          ids.add(a.id);
-          ids.add(b.id);
+          addConflict(a.id, {
+            sectionId: a.id,
+            type: "Schedule overlap",
+            severity: "Warning",
+            message: `${a.courseCode} overlaps with ${b.courseCode} on ${a.dayOfWeek}`,
+          });
+          addConflict(b.id, {
+            sectionId: b.id,
+            type: "Schedule overlap",
+            severity: "Warning",
+            message: `${b.courseCode} overlaps with ${a.courseCode} on ${b.dayOfWeek}`,
+          });
         }
       }
     }
-    return ids;
-  }, [scheduledSections]);
+
+    //cross-schedule: room double-booking and instructor overlap
+    const otherSections = allSemesterSections.filter(
+      (s) => !schedSectionIds.has(s.id) && s.dayOfWeek && s.startTime && s.endTime
+    );
+
+    for (const { section } of timed) {
+      for (const other of otherSections) {
+        if (section.dayOfWeek !== other.dayOfWeek) continue;
+        const aStart = timeSpanToMinutes(section.startTime);
+        const aEnd = timeSpanToMinutes(section.endTime);
+        const bStart = timeSpanToMinutes(other.startTime);
+        const bEnd = timeSpanToMinutes(other.endTime);
+        if (!(aStart < bEnd && bStart < aEnd)) continue;
+
+        //room conflict
+        if (section.roomId && section.roomId === other.roomId) {
+          addConflict(section.id, {
+            sectionId: section.id,
+            type: "Room double-booking",
+            severity: "Error",
+            message: `${section.roomBuilding} ${section.roomNumber} is also booked by ${other.courseCode}-${other.sectionNumber} on ${other.dayOfWeek}`,
+          });
+        }
+
+        //instructor conflict
+        if (section.instructorId && section.instructorId === other.instructorId) {
+          addConflict(section.id, {
+            sectionId: section.id,
+            type: "Instructor overlap",
+            severity: "Error",
+            message: `${section.instructorName} is also teaching ${other.courseCode}-${other.sectionNumber} on ${other.dayOfWeek}`,
+          });
+        }
+      }
+    }
+
+    return map;
+  }, [scheduledSections, allSemesterSections, schedule.sections]);
+
+  //flat list for the banner
+  const allConflicts = useMemo(() => {
+    const list: ConflictEntry[] = [];
+    const seen = new Set<string>();
+    sectionConflictMap.forEach((entries) => {
+      entries.forEach((e) => {
+        const key = `${e.sectionId}-${e.type}-${e.message}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          list.push(e);
+        }
+      });
+    });
+    return list;
+  }, [sectionConflictMap]);
 
   const handleTooltipEnter = (sectionId: number, e: React.MouseEvent) => {
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
     setTooltipPos({ x: rect.left + rect.width / 2, y: rect.top - 8 });
     setTooltipSection(sectionId);
   };
+
+  const handleJumpTo = useCallback((sectionId: number) => {
+    const el = document.getElementById(`section-block-${sectionId}`);
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    el.style.animation = "none";
+    void el.offsetHeight;
+    el.style.animation = "conflictFlash 2s ease-out";
+    el.focus({ preventScroll: true });
+  }, []);
 
   //build occupied slot map for drop zone hiding
   const occupiedSlots = useMemo(() => {
@@ -244,361 +314,72 @@ export function ScheduleCanvas({
 
   return (
     <>
-      <style>{`
-        .canvas-root {
-          background: #ffffff;
-          border: 1px solid #e5e7eb;
-          border-radius: 10px;
-          overflow: hidden;
-          font-family: 'Inter', sans-serif;
-        }
-
-        .canvas-header {
-          padding: 1rem 1.25rem;
-          border-bottom: 1px solid #e5e7eb;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          background: #fafaf9;
-        }
-
-        .canvas-header h3 {
-          font-family: 'Playfair Display', serif;
-          font-size: 1rem;
-          font-weight: 600;
-          color: #111827;
-          margin: 0;
-        }
-
-        .canvas-body { padding: 0.75rem; overflow-x: auto; }
-
-        .cal-grid {
-          display: grid;
-          grid-template-columns: 64px repeat(5, 1fr);
-          border: 1px solid #e5e7eb;
-          border-radius: 6px;
-          overflow: hidden;
-          min-width: 600px;
-        }
-
-        .cal-corner {
-          background: #003d2a;
-          border-right: 2px solid #e5e7eb;
-          border-bottom: 2px solid #e5e7eb;
-        }
-
-        .cal-day-header {
-          padding: 0.6rem 0.5rem;
-          text-align: center;
-          font-size: 0.78rem;
-          font-weight: 500;
-          letter-spacing: 0.04em;
-          text-transform: uppercase;
-          color: #ffffff;
-          background: #00563f;
-          border-bottom: 2px solid #e5e7eb;
-          border-right: 1px solid rgba(255,255,255,0.1);
-        }
-
-        .cal-day-header:last-child { border-right: none; }
-
-        .cal-time-col {
-          border-right: 2px solid #e5e7eb;
-        }
-
-        .cal-time-label {
-          height: ${SLOT_HEIGHT}px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 0.68rem;
-          color: #9ca3af;
-          background: #fafaf9;
-          border-bottom: 1px solid #f3f4f6;
-          font-weight: 500;
-          white-space: nowrap;
-          padding: 0 0.25rem;
-        }
-
-        .cal-time-label.hour-mark {
-          border-bottom-color: #e5e7eb;
-          color: #6b7280;
-        }
-
-        .cal-day-col {
-          position: relative;
-          border-right: 1px solid #e5e7eb;
-        }
-
-        .cal-day-col:last-child { border-right: none; }
-
-        .cal-slot-line {
-          position: absolute;
-          left: 0;
-          right: 0;
-          border-bottom: 1px solid #f3f4f6;
-          pointer-events: none;
-        }
-
-        .cal-slot-line.hour-mark {
-          border-bottom-color: #e5e7eb;
-        }
-
-        .cal-drop-zone {
-          position: absolute;
-          left: 0;
-          right: 0;
-        }
-
-        .course-block {
-          position: absolute;
-          left: 3px;
-          right: 3px;
-          border-radius: 6px;
-          color: #ffffff;
-          font-size: 0.75rem;
-          overflow: hidden;
-          cursor: default;
-          transition: box-shadow 0.15s;
-          z-index: 2;
-          display: flex;
-          flex-direction: column;
-          border-left: 4px solid rgba(0,0,0,0.2);
-        }
-
-        .course-block:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
-
-        .course-block-inner {
-          padding: 0.3rem 0.4rem;
-          flex: 1;
-          min-height: 0;
-          overflow: hidden;
-        }
-
-        .course-block-actions {
-          position: absolute;
-          top: 2px;
-          right: 2px;
-          display: flex;
-          gap: 2px;
-          opacity: 0;
-          transition: opacity 0.15s;
-        }
-
-        .course-block:hover .course-block-actions { opacity: 1; }
-
-        .course-block-btn {
-          background: rgba(0,0,0,0.3);
-          border: none;
-          border-radius: 3px;
-          color: #ffffff;
-          cursor: pointer;
-          padding: 2px;
-          display: flex;
-          align-items: center;
-          transition: background 0.15s;
-        }
-
-        .course-block-btn.edit:hover { background: rgba(0, 86, 63, 0.8); }
-        .course-block-btn.delete:hover { background: rgba(220, 38, 38, 0.7); }
-
-        .course-block-time { font-size: 0.62rem; opacity: 0.85; margin-bottom: 1px; }
-        .course-block-code { font-weight: 600; font-size: 0.78rem; padding-right: 30px; line-height: 1.2; }
-        .course-block-sec { opacity: 0.85; font-size: 0.68rem; }
-        .course-block-room { font-size: 0.66rem; opacity: 0.85; margin-top: 1px; }
-        .course-block-instructor { font-size: 0.64rem; opacity: 0.75; }
-        .course-block-term { font-size: 0.62rem; opacity: 0.8; font-weight: 600; background: rgba(255,255,255,0.2); display: inline-block; padding: 0 4px; border-radius: 3px; margin-top: 1px; }
-
-        @keyframes conflictPulse {
-          0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
-          50% { box-shadow: 0 0 8px 2px rgba(220, 38, 38, 0.35); }
-        }
-
-        .course-block.has-conflict {
-          animation: conflictPulse 2s ease-in-out infinite;
-          border-left-color: #dc2626 !important;
-        }
-
-        .course-block-tooltip {
-          position: fixed;
-          z-index: 9999;
-          background: #1c1917;
-          color: #ffffff;
-          border-radius: 8px;
-          padding: 0.65rem 0.85rem;
-          font-family: 'Inter', sans-serif;
-          font-size: 0.75rem;
-          line-height: 1.55;
-          pointer-events: none;
-          transform: translate(-50%, -100%);
-          box-shadow: 0 8px 24px rgba(0,0,0,0.3);
-          max-width: 240px;
-          white-space: normal;
-        }
-
-        .course-block-tooltip::after {
-          content: '';
-          position: absolute;
-          top: 100%;
-          left: 50%;
-          transform: translateX(-50%);
-          border: 5px solid transparent;
-          border-top-color: #1c1917;
-        }
-
-        .tooltip-label { color: #9ca3af; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.04em; }
-        .tooltip-value { color: #ffffff; font-weight: 500; }
-        .tooltip-row { display: flex; gap: 0.4rem; align-items: baseline; }
-        .tooltip-conflict { color: #fca5a5; font-weight: 500; margin-top: 0.3rem; }
-
-        .sem5-card {
-          border-radius: 8px;
-          padding: 1rem 1.25rem;
-          border: 1px solid #e5e7eb;
-          margin-bottom: 0.75rem;
-          border-left-width: 4px;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          background: #ffffff;
-          transition: box-shadow 0.15s;
-        }
-
-        .sem5-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.07); }
-        .sem5-card-title { font-family: 'Playfair Display', serif; font-size: 0.95rem; font-weight: 600; color: #111827; margin: 0 0 0.2rem 0; }
-        .sem5-card-name { font-size: 0.82rem; color: #6b7280; margin: 0 0 0.2rem 0; }
-        .sem5-card-date { font-size: 0.78rem; color: #9ca3af; margin: 0; }
-        .sem5-card-room { font-size: 0.78rem; color: #00563f; margin: 0.2rem 0 0 0; }
-        .sem5-card-right { display: flex; align-items: center; gap: 0.5rem; }
-        .sem5-section-badge { font-size: 0.75rem; font-weight: 500; color: #6b7280; background: #f3f4f6; padding: 0.2rem 0.6rem; border-radius: 4px; }
-
-        .sem5-action-btn {
-          background: none;
-          border: none;
-          cursor: pointer;
-          color: #d1d5db;
-          padding: 0.25rem;
-          border-radius: 4px;
-          display: flex;
-          align-items: center;
-          transition: color 0.15s, background 0.15s;
-        }
-
-        .sem5-action-btn.edit:hover { color: #00563f; background: #f0faf5; }
-        .sem5-action-btn.delete:hover { color: #dc2626; background: #fef2f2; }
-
-        .delete-overlay {
-          position: fixed;
-          inset: 0;
-          background: rgba(0,0,0,0.5);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          z-index: 9999;
-          backdrop-filter: blur(2px);
-        }
-
-        .delete-box {
-          background: #ffffff;
-          border-radius: 12px;
-          padding: 1.75rem;
-          max-width: 360px;
-          width: 100%;
-          box-shadow: 0 24px 60px rgba(0,0,0,0.2);
-          font-family: 'Inter', sans-serif;
-          text-align: center;
-        }
-
-        .delete-box-icon {
-          width: 48px;
-          height: 48px;
-          background: #fef2f2;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          margin: 0 auto 1rem;
-        }
-
-        .delete-box h3 { font-family: 'Playfair Display', serif; font-size: 1.1rem; color: #111827; margin: 0 0 0.5rem 0; }
-        .delete-box p { font-size: 0.85rem; color: #6b7280; margin: 0 0 1.5rem 0; line-height: 1.5; }
-        .delete-box-actions { display: flex; gap: 0.75rem; }
-
-        .delete-btn-cancel {
-          flex: 1; padding: 0.65rem;
-          border: 1.5px solid #e5e7eb; border-radius: 8px;
-          background: #ffffff; color: #6b7280;
-          font-family: 'Inter', sans-serif; font-size: 0.85rem; font-weight: 500;
-          cursor: pointer; transition: background 0.15s;
-        }
-
-        .delete-btn-cancel:hover { background: #f9fafb; }
-
-        .delete-btn-confirm {
-          flex: 1; padding: 0.65rem;
-          background: #dc2626; color: #ffffff; border: none; border-radius: 8px;
-          font-family: 'Inter', sans-serif; font-size: 0.85rem; font-weight: 500;
-          cursor: pointer; transition: background 0.15s;
-        }
-
-        .delete-btn-confirm:hover { background: #b91c1c; }
-      `}</style>
-
-      <div className="canvas-root">
-        <div className="canvas-header">
-          <h3>{isSemester5 ? "Rotation Schedule" : "Weekly Calendar"}</h3>
-          {!isSemester5 && (
-            <span style={{ fontSize: "0.72rem", color: "#9ca3af" }}>
-              {schedule.sections.length} section{schedule.sections.length !== 1 ? "s" : ""} scheduled
-            </span>
-          )}
+      <div className={styles.root}>
+        <div className={styles.header}>
+          <div className={styles.headerLeft}>
+            <NumberBadge number="02" variant="gold" size="sm" />
+            <h3 className={styles.headerTitle}>{isSemester5 ? "Rotation Schedule" : "Weekly Calendar"}</h3>
+            {!isSemester5 && (
+              <span className={styles.headerCount}>
+                {schedule.sections.length} section{schedule.sections.length !== 1 ? "s" : ""} scheduled
+              </span>
+            )}
+          </div>
         </div>
 
-        <div className="canvas-body">
+        <div className={styles.body}>
+          {!isSemester5 && (
+            <ConflictBanner conflicts={allConflicts} onJumpTo={handleJumpTo} />
+          )}
           {isSemester5 ? (
-            <div>
+            <div style={{ padding: "1.5rem", display: "flex", flexDirection: "column", gap: "1rem" }}>
               {scheduledSections.map(({ section, course }) => (
                 <div
                   key={section.id}
-                  className="sem5-card"
+                  className={styles.sem5Card}
                   style={{ borderLeftColor: getColor(course) }}
                 >
                   <div>
-                    <p className="sem5-card-title">{section.courseCode}</p>
-                    <p className="sem5-card-name">{section.courseName}</p>
+                    <p className={styles.sem5CardCode}>{section.courseCode}</p>
+                    <p className={styles.sem5CardName}>{section.courseName}</p>
                     {section.dateRange && (
-                      <p className="sem5-card-date">{section.dateRange}</p>
+                      <p className={styles.sem5CardDate}>{section.dateRange}</p>
                     )}
                     {section.roomNumber && (
-                      <p className="sem5-card-room">
+                      <p className={styles.sem5CardRoom}>
                         {section.roomBuilding} {section.roomNumber}
                       </p>
                     )}
                     {section.instructorName && (
-                      <p style={{ fontSize: "0.75rem", color: "#6b7280", margin: "0.2rem 0 0" }}>
+                      <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", margin: "0.2rem 0 0" }}>
                         {section.instructorName}
                       </p>
                     )}
                     {section.notes && (
-                      <p style={{ fontSize: "0.75rem", color: "#9ca3af", margin: "0.2rem 0 0" }}>
+                      <p style={{ fontSize: "0.75rem", color: "var(--text-faint)", margin: "0.2rem 0 0" }}>
                         {section.notes}
                       </p>
                     )}
+                    {course.defaultType === "Clinical" && (
+                      <p className={styles.blockPreclinical}>
+                        Pre-clinical: typically the day before
+                      </p>
+                    )}
                   </div>
-                  <div className="sem5-card-right">
-                    <span className="sem5-section-badge">
+                  <div className={styles.sem5CardRight}>
+                    <span className={styles.sem5SectionBadge}>
                       Section {section.sectionNumber}
                     </span>
                     {!isLocked && (
                       <>
                         <button
-                          className="sem5-action-btn edit"
+                          className={`${styles.sem5ActionBtn} ${styles.edit}`}
                           onClick={() => setEditModal({ section, course })}
                         >
                           <Pencil size={14} />
                         </button>
                         <button
-                          className="sem5-action-btn delete"
+                          className={`${styles.sem5ActionBtn} ${styles.delete}`}
                           onClick={() =>
                             setDeleteConfirm({
                               sectionId: section.id,
@@ -620,19 +401,20 @@ export function ScheduleCanvas({
               )}
             </div>
           ) : (
-            <div className="cal-grid">
+            <div className={styles.calGrid}>
               {/* header row */}
-              <div className="cal-corner" />
+              <div className={styles.calCorner} />
               {DAYS.map((day) => (
-                <div key={day} className="cal-day-header">{day}</div>
+                <div key={day} className={styles.calDayHeader}>{day}</div>
               ))}
 
               {/* time column */}
-              <div className="cal-time-col">
+              <div className={styles.calTimeCol}>
                 {SLOTS.map((slot, i) => (
                   <div
                     key={slot}
-                    className={`cal-time-label ${i % 2 === 0 ? "hour-mark" : ""}`}
+                    className={`${styles.calTimeLabel} ${i % 2 === 0 ? styles.hourMark : ""}`}
+                    style={{ height: SLOT_HEIGHT }}
                   >
                     {i % 2 === 0 ? slot : ""}
                   </div>
@@ -650,14 +432,14 @@ export function ScheduleCanvas({
                 return (
                   <div
                     key={day}
-                    className="cal-day-col"
+                    className={styles.calDayCol}
                     style={{ height: totalHeight }}
                   >
                     {/* slot grid lines */}
                     {SLOTS.map((_, i) => (
                       <div
                         key={i}
-                        className={`cal-slot-line ${i % 2 === 0 ? "hour-mark" : ""}`}
+                        className={`${styles.calSlotLine} ${i % 2 === 0 ? styles.hourMark : ""}`}
                         style={{ top: (i + 1) * SLOT_HEIGHT }}
                       />
                     ))}
@@ -671,7 +453,7 @@ export function ScheduleCanvas({
                       return (
                         <div
                           key={i}
-                          className="cal-drop-zone"
+                          className={styles.calDropZone}
                           style={{
                             top: i * SLOT_HEIGHT,
                             height: SLOT_HEIGHT,
@@ -695,31 +477,60 @@ export function ScheduleCanvas({
                       const color = getColor(course);
                       const startDisplay = timeSpanToDisplay(section.startTime);
                       const endDisplay = timeSpanToDisplay(section.endTime);
-                      const hasConflict = conflictSectionIds.has(section.id);
+                      const sectionConflicts = sectionConflictMap.get(section.id) || [];
+                      const hasHard = sectionConflicts.some((c) => c.severity === "Error");
+                      const hasSoft = sectionConflicts.some((c) => c.severity === "Warning");
+                      const hasInfo = sectionConflicts.some((c) => c.severity === "Info");
+                      const conflictClass = hasHard ? ` ${styles.conflictHard}` : hasSoft ? ` ${styles.conflictSoft}` : "";
+                      const tooltipId = `conflict-tip-${section.id}`;
 
                       return (
                         <div
+                          id={`section-block-${section.id}`}
                           key={section.id}
-                          className={`course-block${hasConflict ? " has-conflict" : ""}`}
+                          className={`${styles.courseBlock}${conflictClass}`}
+                          tabIndex={0}
                           style={{
                             top,
                             height: Math.max(height - 2, SLOT_HEIGHT - 2),
-                            backgroundColor: color,
+                            background: `linear-gradient(135deg, ${color}d9, ${color})`,
+                            borderLeft: `3px solid ${color}`,
                           }}
                           onMouseEnter={(e) => handleTooltipEnter(section.id, e)}
                           onMouseLeave={() => setTooltipSection(null)}
+                          onFocus={(e) => handleTooltipEnter(section.id, e as unknown as React.MouseEvent)}
+                          onBlur={() => setTooltipSection(null)}
+                          aria-describedby={sectionConflicts.length > 0 ? tooltipId : undefined}
                         >
-                          <div className="course-block-inner">
+                          {sectionConflicts.length > 0 && (
+                            <span
+                              className={styles.conflictIcon}
+                              tabIndex={0}
+                              role="img"
+                              aria-label={sectionConflicts.map((c) => `${c.type}: ${c.message}`).join("; ")}
+                              onFocus={(e) => { e.stopPropagation(); handleTooltipEnter(section.id, e as unknown as React.MouseEvent); }}
+                              onBlur={() => setTooltipSection(null)}
+                            >
+                              {hasHard ? (
+                                <AlertTriangle size={10} color="#fca5a5" />
+                              ) : hasInfo ? (
+                                <Info size={10} color="#93c5fd" />
+                              ) : (
+                                <AlertTriangle size={10} color="#fcd34d" />
+                              )}
+                            </span>
+                          )}
+                          <div className={styles.courseBlockInner}>
                             {!isLocked && (
-                              <div className="course-block-actions">
+                              <div className={styles.courseBlockActions}>
                                 <button
-                                  className="course-block-btn edit"
+                                  className={`${styles.courseBlockBtn} ${styles.edit}`}
                                   onClick={() => setEditModal({ section, course })}
                                 >
                                   <Pencil size={10} />
                                 </button>
                                 <button
-                                  className="course-block-btn delete"
+                                  className={`${styles.courseBlockBtn} ${styles.delete}`}
                                   onClick={() =>
                                     setDeleteConfirm({
                                       sectionId: section.id,
@@ -733,32 +544,37 @@ export function ScheduleCanvas({
                                 </button>
                               </div>
                             )}
-                            <div className="course-block-time">
-                              {startDisplay} – {endDisplay}
+                            <div className={styles.blockTime}>
+                              {startDisplay} &ndash; {endDisplay}
                             </div>
-                            <div className="course-block-code">
+                            <div className={styles.blockCode}>
                               {section.courseCode}
                             </div>
-                            <div className="course-block-sec">
+                            <div className={styles.blockSec}>
                               Sec {section.sectionNumber}
                             </div>
                             {height > SLOT_HEIGHT * 2 && (
                               <>
                                 {section.roomNumber && (
-                                  <div className="course-block-room">
+                                  <div className={styles.blockRoom}>
                                     <Building2 size={9} style={{ display: "inline", verticalAlign: "middle", marginRight: "2px", opacity: 0.85 }} />
                                     {section.roomBuilding} {section.roomNumber}
                                   </div>
                                 )}
                                 {section.instructorName && (
-                                  <div className="course-block-instructor">
+                                  <div className={styles.blockInstructor}>
                                     {section.instructorName}
                                   </div>
                                 )}
                                 {section.term && section.term !== "Full" && (
-                                  <span className="course-block-term">
+                                  <span className={styles.blockTerm}>
                                     {section.term === "Term1" ? "T1" : "T2"}
                                   </span>
+                                )}
+                                {course.defaultType === "Clinical" && (
+                                  <div className={styles.blockPreclinical}>
+                                    Pre-clinical: typically the day before
+                                  </div>
                                 )}
                               </>
                             )}
@@ -766,27 +582,31 @@ export function ScheduleCanvas({
 
                           {tooltipSection === section.id && (
                             <div
-                              className="course-block-tooltip"
+                              id={tooltipId}
+                              role="tooltip"
+                              className={styles.blockTooltip}
                               style={{ left: tooltipPos.x, top: tooltipPos.y }}
                             >
                               <div style={{ fontWeight: 600, marginBottom: "0.3rem" }}>
-                                {section.courseCode} — {section.courseName}
+                                {section.courseCode} &mdash; {section.courseName}
                               </div>
-                              <div className="tooltip-row"><span className="tooltip-label">Section:</span> <span className="tooltip-value">{section.sectionNumber}</span></div>
-                              <div className="tooltip-row"><span className="tooltip-label">Time:</span> <span className="tooltip-value">{startDisplay} – {endDisplay}</span></div>
-                              <div className="tooltip-row"><span className="tooltip-label">Day:</span> <span className="tooltip-value">{day}</span></div>
+                              <div className={styles.tooltipRow}><span className={styles.tooltipLabel}>Section:</span> <span className={styles.tooltipValue}>{section.sectionNumber}</span></div>
+                              <div className={styles.tooltipRow}><span className={styles.tooltipLabel}>Time:</span> <span className={styles.tooltipValue}>{startDisplay} &ndash; {endDisplay}</span></div>
+                              <div className={styles.tooltipRow}><span className={styles.tooltipLabel}>Day:</span> <span className={styles.tooltipValue}>{day}</span></div>
                               {section.roomNumber && (
-                                <div className="tooltip-row"><span className="tooltip-label">Room:</span> <span className="tooltip-value">{section.roomBuilding} {section.roomNumber}</span></div>
+                                <div className={styles.tooltipRow}><span className={styles.tooltipLabel}>Room:</span> <span className={styles.tooltipValue}>{section.roomBuilding} {section.roomNumber}</span></div>
                               )}
                               {section.instructorName && (
-                                <div className="tooltip-row"><span className="tooltip-label">Instructor:</span> <span className="tooltip-value">{section.instructorName}</span></div>
+                                <div className={styles.tooltipRow}><span className={styles.tooltipLabel}>Instructor:</span> <span className={styles.tooltipValue}>{section.instructorName}</span></div>
                               )}
                               {section.term && section.term !== "Full" && (
-                                <div className="tooltip-row"><span className="tooltip-label">Term:</span> <span className="tooltip-value">{section.term === "Term1" ? "Term 1" : "Term 2"}</span></div>
+                                <div className={styles.tooltipRow}><span className={styles.tooltipLabel}>Term:</span> <span className={styles.tooltipValue}>{section.term === "Term1" ? "Term 1" : "Term 2"}</span></div>
                               )}
-                              {hasConflict && (
-                                <div className="tooltip-conflict">⚠ Time conflict detected</div>
-                              )}
+                              {sectionConflicts.map((c, ci) => (
+                                <div key={ci} className={styles.tooltipConflict} style={{ color: c.severity === "Error" ? "#fca5a5" : c.severity === "Warning" ? "#fcd34d" : "#93c5fd" }}>
+                                  {c.severity === "Error" ? "\u26a0" : c.severity === "Warning" ? "\u26a0" : "\u2139"} {c.type}: {c.message}
+                                </div>
+                              ))}
                             </div>
                           )}
                         </div>
@@ -800,36 +620,26 @@ export function ScheduleCanvas({
         </div>
       </div>
 
-      {deleteConfirm && (
-        <div className="delete-overlay" onClick={() => setDeleteConfirm(null)}>
-          <div className="delete-box" onClick={(e) => e.stopPropagation()}>
-            <div className="delete-box-icon">
-              <Trash2 size={20} color="#dc2626" />
-            </div>
-            <h3>Remove from Schedule?</h3>
-            <p>
-              This will remove <strong>{deleteConfirm.courseCode}</strong>
-              {deleteConfirm.dayOfWeek && ` on ${deleteConfirm.dayOfWeek}`}
-              {deleteConfirm.timeSlot && ` at ${deleteConfirm.timeSlot}`} from
-              the schedule.
-            </p>
-            <div className="delete-box-actions">
-              <button
-                className="delete-btn-cancel"
-                onClick={() => setDeleteConfirm(null)}
-              >
-                Cancel
-              </button>
-              <button
-                className="delete-btn-confirm"
-                onClick={() => handleDelete(deleteConfirm.sectionId)}
-              >
-                Remove
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <Modal
+        open={deleteConfirm != null}
+        onClose={() => setDeleteConfirm(null)}
+        title="Remove from schedule?"
+        subtitle={deleteConfirm ? `${deleteConfirm.courseCode}${deleteConfirm.dayOfWeek ? ` on ${deleteConfirm.dayOfWeek}` : ""}${deleteConfirm.timeSlot ? ` at ${deleteConfirm.timeSlot}` : ""}` : ""}
+        size="sm"
+        number="ATTENTION"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setDeleteConfirm(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={() => deleteConfirm && handleDelete(deleteConfirm.sectionId)}>
+              Remove
+            </Button>
+          </>
+        }
+      >
+        <p style={{ color: "var(--text-muted)", lineHeight: 1.6, margin: 0 }}>
+          This will remove the section from this schedule group.
+        </p>
+      </Modal>
 
       {editModal && !isLocked && (
         <CourseDetailsModal

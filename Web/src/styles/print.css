@@ -1,0 +1,95 @@
+/* print stylesheet — schedule-first layout */
+
+@media print {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    box-shadow: none !important;
+  }
+
+  body {
+    background: #fff !important;
+    color: #1a1a1a !important;
+    font-size: 11pt;
+    line-height: 1.4;
+  }
+
+  /* hide chrome */
+  nav,
+  .cmdTrigger,
+  [class*="Breadcrumbs"],
+  [class*="LoadingBar"],
+  [class*="CommandPalette"],
+  [class*="KeyboardShortcuts"],
+  [class*="Toast"],
+  [class*="Tooltip"],
+  button[aria-label="Sign out"] {
+    display: none !important;
+  }
+
+  /* main content fills page */
+  main {
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+  }
+
+  /* cards print flat */
+  [class*="card"],
+  [class*="Card"] {
+    border: 1px solid #ccc !important;
+    background: #fff !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* schedule canvas — keep grid intact */
+  [class*="scheduleGrid"],
+  [class*="ScheduleCanvas"] {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* course blocks — solid borders instead of shadows */
+  [class*="courseBlock"] {
+    border: 1px solid #999 !important;
+    background: #f5f5f5 !important;
+    color: #1a1a1a !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* badges — visible with border */
+  [class*="badge"],
+  [class*="Badge"] {
+    border: 1px solid #999 !important;
+    background: #f0f0f0 !important;
+    color: #1a1a1a !important;
+  }
+
+  /* links */
+  a {
+    color: #1a1a1a !important;
+    text-decoration: underline;
+  }
+
+  /* page setup */
+  @page {
+    margin: 1.5cm;
+    size: landscape;
+  }
+
+  /* print header */
+  main::before {
+    content: "Nursing Scheduler — SELU School of Nursing";
+    display: block;
+    font-family: "Playfair Display", Georgia, serif;
+    font-size: 14pt;
+    font-weight: 600;
+    margin-bottom: 0.75cm;
+    padding-bottom: 0.25cm;
+    border-bottom: 1px solid #ccc;
+  }
+}

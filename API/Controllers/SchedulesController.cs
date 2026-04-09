@@ -259,9 +259,9 @@ namespace NursingScheduler.API.Controllers
                     s.LocationDisplay,
                     StudentCount = s.Students.Count,
                     s.Capacity,
-                    Status = s.Students.Count < s.Capacity - 1 ? "OK" :
+                    Status = s.Students.Count < s.Capacity ? "OK" :
                              s.Students.Count == s.Capacity ? "Full" :
-                             s.Students.Count <= s.Capacity + 2 ? "Warning" : "Critical"
+                             s.Students.Count == s.Capacity + 1 ? "Override" : "Critical"
                 })
                 .ToListAsync();
 

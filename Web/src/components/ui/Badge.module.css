@@ -1,0 +1,61 @@
+/* badge — pill label */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-family: var(--font-body);
+  font-weight: 500;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+/* sizes */
+.md {
+  font-size: var(--text-xs);
+  padding: 0.25rem 0.625rem;
+  letter-spacing: var(--tracking-wide);
+}
+
+.sm {
+  font-size: 0.6875rem;
+  padding: 0.1875rem 0.5rem;
+  letter-spacing: var(--tracking-wide);
+}
+
+/* variants */
+.green {
+  background: rgba(0, 86, 63, 0.1);
+  color: var(--green-700);
+  border: 1px solid rgba(0, 86, 63, 0.2);
+}
+
+.gold {
+  background: rgba(200, 149, 44, 0.12);
+  color: var(--gold-700);
+  border: 1px solid rgba(200, 149, 44, 0.3);
+}
+
+.red {
+  background: rgba(220, 38, 38, 0.08);
+  color: var(--error);
+  border: 1px solid rgba(220, 38, 38, 0.2);
+}
+
+.amber {
+  background: rgba(217, 119, 6, 0.1);
+  color: var(--warning);
+  border: 1px solid rgba(217, 119, 6, 0.25);
+}
+
+.neutral {
+  background: var(--paper-sunk);
+  color: var(--text-on-paper-muted);
+  border: 1px solid var(--cream-300);
+}
+
+.inverse {
+  background: var(--green-900);
+  color: var(--text-on-dark);
+  border: none;
+}

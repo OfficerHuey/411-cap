@@ -52,8 +52,28 @@ namespace NursingScheduler.API.Controllers
 
             //check capacity before adding
             var currentCount = await _context.Students.CountAsync(s => s.ScheduleId == createDto.ScheduleId);
-            if (schedule != null && currentCount >= schedule.Capacity + 3)
-                return BadRequest("This schedule group is critically over capacity. Consider creating a new lab section.");
+            if (schedule != null)
+            {
+                var cap = schedule.Capacity;
+
+                //hard block: would bring group to cap+2 or more (10+ for default 8)
+                if (currentCount >= cap + 1)
+                    return BadRequest(new
+                    {
+                        error = "HARD_CAP_EXCEEDED",
+                        message = $"Schedule group is at {currentCount}/{cap} students. {cap + 1} is the firm cap — adding more requires creating a new schedule group.",
+                        suggestNewGroup = true
+                    });
+
+                //soft override: would bring group to exactly cap+1 (9 for default 8)
+                if (currentCount >= cap)
+                    return Ok(new
+                    {
+                        warning = "SOFT_CAP_OVERRIDE",
+                        message = $"Adding this student brings the group to {currentCount + 1}/{cap}. {cap + 1} students is the firm cap — this should only be used for borderline students likely to repeat.",
+                        requiresOverrideConfirmation = true
+                    });
+            }
 
             var student = new Student
             {
@@ -65,10 +85,6 @@ namespace NursingScheduler.API.Controllers
 
             _context.Students.Add(student);
             await _context.SaveChangesAsync();
-
-            //warn if nearing or over capacity
-            if (schedule != null && currentCount + 1 >= schedule.Capacity)
-                Response.Headers.Append("X-Capacity-Warning", $"Schedule is at {currentCount + 1}/{schedule.Capacity} students");
 
             var username = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "unknown";
             await _auditService.LogChange("Student", student.Id, "Created", username, null, schedule?.SemesterId);

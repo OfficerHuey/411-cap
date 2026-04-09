@@ -5,7 +5,12 @@ import type {
   SectionWithConflicts
 } from "./Types";
 
+import { loadingBar } from "../components/ui/LoadingBar";
+
 const API_BASE = "/api";
+
+//track concurrent requests so bar stays active until all finish
+let activeRequests = 0;
 
 // ===== token management =====
 function getToken(): string | null {
@@ -48,27 +53,35 @@ async function apiFetch<T>(
     headers["Authorization"] = `Bearer ${token}`;
   }
 
-  const response = await fetch(`${API_BASE}${endpoint}`, {
-    ...options,
-    headers,
-  });
+  if (activeRequests === 0) loadingBar.start();
+  activeRequests++;
 
-  if (response.status === 401) {
-    clearToken();
-    window.location.href = "/login";
-    throw new Error("Unauthorized");
+  try {
+    const response = await fetch(`${API_BASE}${endpoint}`, {
+      ...options,
+      headers,
+    });
+
+    if (response.status === 401) {
+      clearToken();
+      window.location.href = "/login";
+      throw new Error("Unauthorized");
+    }
+
+    if (response.status === 204) {
+      return undefined as T;
+    }
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || `HTTP ${response.status}`);
+    }
+
+    return response.json();
+  } finally {
+    activeRequests--;
+    if (activeRequests === 0) loadingBar.finish();
   }
-
-  if (response.status === 204) {
-    return undefined as T;
-  }
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(errorText || `HTTP ${response.status}`);
-  }
-
-  return response.json();
 }
 
 async function apiUpload<T>(endpoint: string, formData: FormData): Promise<T> {

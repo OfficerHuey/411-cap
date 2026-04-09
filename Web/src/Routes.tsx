@@ -7,6 +7,7 @@ import { ScheduleBuilder } from "./components/ScheduleBuilder";
 import { RoomsPage } from "./components/RoomsPage";
 import { InstructorsPage } from "./components/InstructorsPage";
 import { ChangeLogPage } from "./components/ChangeLogPage";
+import { Archive } from "./components/Archive";
 import { Login } from "./components/Login";
 import { NotFound } from "./components/NotFound";
 import { ProtectedRoute } from "./components/ProjectedRoute";
@@ -30,6 +31,7 @@ export const router = createBrowserRouter([
       { path: "rooms", Component: RoomsPage },
       { path: "instructors", Component: InstructorsPage },
       { path: "changelog/:semesterId", Component: ChangeLogPage },
+      { path: "archive", Component: Archive },
       { path: "*", Component: NotFound },
     ],
   },

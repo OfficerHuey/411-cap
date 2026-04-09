@@ -87,6 +87,12 @@ try
     await context.Database.MigrateAsync();
     await Seed.SeedCourses(context);
     await Seed.SeedRooms(context);
+
+    //only seed sample data in non-production environments
+    if (!app.Environment.IsProduction())
+    {
+        await SeedSampleData.Seed(context);
+    }
 }
 catch (Exception ex)
 {

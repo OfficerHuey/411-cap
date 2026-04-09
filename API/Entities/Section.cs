@@ -46,5 +46,8 @@ namespace NursingScheduler.API.Entities
 
         //a single section (lecture 01) can be linked to multiple schedules
         public ICollection<ScheduleSection> ScheduleSections { get; set; } = new List<ScheduleSection>();
+
+        //supports multiple instructors per section for workload tracking
+        public ICollection<SectionInstructor> SectionInstructors { get; set; } = new List<SectionInstructor>();
     }
 }

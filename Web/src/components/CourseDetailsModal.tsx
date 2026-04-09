@@ -1,9 +1,13 @@
 import { useEffect, useState } from "react";
 import type { Course, Section, Room, Instructor, ConflictResult, TermType, CreateSectionDto, DayOfWeekEnum } from "../Lib/Types";
 import { timeSlotToTimeSpan } from "../Lib/Types";
-import { X, Pencil, AlertTriangle, AlertCircle, Info, Loader2 } from "lucide-react";
+import { AlertTriangle, AlertCircle, Info } from "lucide-react";
 import { sections as sectionsApi, rooms as roomsApi, instructors as instructorsApi } from "../Lib/api";
 import { useToast } from "../Lib/ToastContext";
+import { Modal } from "./ui/Modal";
+import { Input } from "./ui/Input";
+import { Select } from "./ui/Select";
+import { Button } from "./ui/Button";
 
 interface CourseDetailsModalProps {
   scheduleId: number;
@@ -100,6 +104,31 @@ export function CourseDetailsModal({
 
   const hasBlockingConflict = conflicts.some((c) => c.severity === "Error");
 
+  const dayOptions = [
+    { value: "", label: "Select day" },
+    { value: "Monday", label: "Monday" },
+    { value: "Tuesday", label: "Tuesday" },
+    { value: "Wednesday", label: "Wednesday" },
+    { value: "Thursday", label: "Thursday" },
+    { value: "Friday", label: "Friday" },
+  ];
+
+  const roomOptions = [
+    { value: "", label: "No room selected" },
+    ...roomList.map((room) => ({
+      value: String(room.id),
+      label: `${room.building} ${room.roomNumber} (${room.capacity} seats, ${room.type})`,
+    })),
+  ];
+
+  const instructorOptions = [
+    { value: "", label: "No instructor selected" },
+    ...instructorList.map((inst) => ({
+      value: String(inst.id),
+      label: `${inst.name} (${inst.type})`,
+    })),
+  ];
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -114,7 +143,6 @@ export function CourseDetailsModal({
 
       if (isEditing && editSection) {
         await sectionsApi.update(editSection.id, {
-
           sectionNumber: formData.sectionNumber,
           dayOfWeek: !isSemester5 ? parsedDay : null,
           startTime: !isSemester5 ? startTimeVal : null,
@@ -174,432 +202,212 @@ export function CourseDetailsModal({
     }
   };
 
+  const modalTitle = isEditing
+    ? `Edit Section`
+    : `Add ${course?.code ?? ""} to Calendar`;
+
+  const modalSubtitle = isEditing
+    ? `${course?.code} \u2014 ${course?.name} \u00b7 Section ${editSection?.sectionNumber}`
+    : `${course?.code} \u2014 ${course?.name}${!isSemester5 && dayOfWeek && timeSlot ? ` \u00b7 ${dayOfWeek} at ${timeSlot}` : ""}`;
+
   return (
-    <>
-      <style>{`
-        .cdm-overlay {
-          position: fixed;
-          inset: 0;
-          background: rgba(0, 0, 0, 0.5);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 1.5rem;
-          z-index: 9999;
-          backdrop-filter: blur(2px);
-        }
+    <Modal
+      open
+      onClose={onClose}
+      title={modalTitle}
+      subtitle={modalSubtitle}
+      number="02"
+      size="md"
+      footer={
+        <>
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button
+            variant="primary"
+            loading={loading}
+            disabled={hasBlockingConflict}
+            onClick={(e) => handleSubmit(e as any)}
+          >
+            {loading ? "Saving\u2026" : isEditing ? "Save Changes" : "Add to Schedule"}
+          </Button>
+        </>
+      }
+    >
+      {error && (
+        <div style={{
+          background: "rgba(153,27,27,0.06)",
+          border: "1px solid rgba(153,27,27,0.2)",
+          borderLeft: "3px solid var(--error)",
+          borderRadius: "6px",
+          padding: "0.6rem 0.875rem",
+          marginBottom: "1rem",
+          fontFamily: "var(--font-body)",
+          fontSize: "0.82rem",
+          color: "#991b1b",
+        }}>
+          {error}
+        </div>
+      )}
 
-        .cdm-box {
-          background: #ffffff;
-          border-radius: 12px;
-          width: 100%;
-          max-width: 480px;
-          max-height: 90vh;
-          overflow-y: auto;
-          box-shadow: 0 24px 60px rgba(0,0,0,0.2);
-          font-family: 'Inter', sans-serif;
-        }
-
-        .cdm-header {
-          background: #00563f;
-          padding: 1.25rem 1.5rem;
-          display: flex;
-          align-items: flex-start;
-          justify-content: space-between;
-        }
-
-        .cdm-header-info h2 {
-          font-family: 'Playfair Display', serif;
-          font-size: 1.2rem;
-          font-weight: 600;
-          color: #ffffff;
-          margin: 0 0 0.2rem 0;
-        }
-
-        .cdm-header-info p {
-          font-size: 0.8rem;
-          color: rgba(255,255,255,0.65);
-          margin: 0;
-          font-weight: 300;
-        }
-
-        .cdm-close {
-          background: rgba(255,255,255,0.1);
-          border: 1px solid rgba(255,255,255,0.2);
-          border-radius: 6px;
-          color: #ffffff;
-          cursor: pointer;
-          padding: 0.3rem;
-          display: flex;
-          align-items: center;
-          transition: background 0.15s;
-          flex-shrink: 0;
-          margin-left: 1rem;
-        }
-
-        .cdm-close:hover { background: rgba(255,255,255,0.2); }
-
-        .cdm-body { padding: 1.5rem; }
-
-        .cdm-form-group { margin-bottom: 1.1rem; }
-
-        .cdm-label {
-          display: block;
-          font-size: 0.75rem;
-          font-weight: 500;
-          color: #374151;
-          text-transform: uppercase;
-          letter-spacing: 0.04em;
-          margin-bottom: 0.4rem;
-        }
-
-        .cdm-required { color: #dc2626; margin-left: 0.2rem; }
-
-        .cdm-input, .cdm-select {
-          width: 100%;
-          padding: 0.65rem 0.875rem;
-          border: 1.5px solid #e5e7eb;
-          border-radius: 8px;
-          font-family: 'Inter', sans-serif;
-          font-size: 0.88rem;
-          color: #111827;
-          outline: none;
-          transition: border-color 0.15s, box-shadow 0.15s;
-          box-sizing: border-box;
-          background: #fafafa;
-        }
-
-        .cdm-input:focus, .cdm-select:focus {
-          border-color: #00563f;
-          box-shadow: 0 0 0 3px rgba(0, 86, 63, 0.1);
-          background: #ffffff;
-        }
-
-        .cdm-footer {
-          display: flex;
-          justify-content: flex-end;
-          gap: 0.75rem;
-          padding-top: 1rem;
-          border-top: 1px solid #f3f4f6;
-          margin-top: 0.5rem;
-        }
-
-        .cdm-btn-cancel {
-          padding: 0.6rem 1.25rem;
-          border: 1.5px solid #e5e7eb;
-          border-radius: 8px;
-          background: #ffffff;
-          color: #6b7280;
-          font-family: 'Inter', sans-serif;
-          font-size: 0.85rem;
-          font-weight: 500;
-          cursor: pointer;
-          transition: background 0.15s;
-        }
-
-        .cdm-btn-cancel:hover { background: #f9fafb; color: #374151; }
-
-        .cdm-btn-submit {
-          padding: 0.6rem 1.5rem;
-          background: #00563f;
-          color: #ffffff;
-          border: none;
-          border-radius: 8px;
-          font-family: 'Inter', sans-serif;
-          font-size: 0.85rem;
-          font-weight: 500;
-          cursor: pointer;
-          transition: background 0.15s, transform 0.1s;
-        }
-
-        .cdm-btn-submit:hover { background: #003d2a; }
-        .cdm-btn-submit:active { transform: scale(0.98); }
-        .cdm-btn-submit:disabled { background: #6b7280; cursor: not-allowed; }
-        .cdm-btn-submit .btn-spinner { animation: cdm-spin 0.7s linear infinite; }
-        @keyframes cdm-spin { to { transform: rotate(360deg); } }
-
-        .cdm-error {
-          background: #fef2f2;
-          border: 1px solid #fecaca;
-          border-left: 3px solid #dc2626;
-          border-radius: 6px;
-          padding: 0.6rem 0.875rem;
-          margin-bottom: 1rem;
-          font-size: 0.82rem;
-          color: #991b1b;
-        }
-
-        .cdm-conflict {
-          display: flex;
-          align-items: flex-start;
-          gap: 0.5rem;
-          border-radius: 8px;
-          padding: 0.75rem 1rem;
-          margin-bottom: 0.75rem;
-          font-size: 0.82rem;
-          line-height: 1.5;
-        }
-
-        .cdm-conflict-error {
-          background: #fef2f2;
-          border: 1px solid #fecaca;
-          color: #991b1b;
-        }
-
-        .cdm-conflict-warning {
-          background: #fffbeb;
-          border: 1px solid #fde68a;
-          color: #92400e;
-        }
-
-        .cdm-conflict-info {
-          background: #eff6ff;
-          border: 1px solid #bfdbfe;
-          color: #1e40af;
-        }
-
-        .cdm-term-radios {
-          display: flex;
-          gap: 1rem;
-          margin-bottom: 0.75rem;
-        }
-
-        .cdm-term-radio {
-          display: flex;
-          align-items: center;
-          gap: 0.35rem;
-          font-size: 0.85rem;
-          color: #374151;
-          cursor: pointer;
-        }
-
-        .cdm-term-dates {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 0.75rem;
-        }
-      `}</style>
-
-      <div className="cdm-overlay" onClick={onClose}>
-        <div className="cdm-box" onClick={(e) => e.stopPropagation()}>
-          <div className="cdm-header">
-            <div className="cdm-header-info">
-              <h2>
-                {isEditing ? (
-                  <>
-                    <Pencil size={14} style={{ marginRight: "0.4rem", verticalAlign: "middle" }} />
-                    Edit Section
-                  </>
-                ) : (
-                  "Add to Schedule"
-                )}
-              </h2>
-              <p>
-                {course?.code} — {course?.name}
-                {!isSemester5 && dayOfWeek && timeSlot && ` · ${dayOfWeek} at ${timeSlot}`}
-                {isEditing && editSection && ` · Section ${editSection.sectionNumber}`}
-              </p>
-            </div>
-            <button className="cdm-close" onClick={onClose}>
-              <X size={16} />
-            </button>
-          </div>
-
-          <div className="cdm-body">
-            {error && <div className="cdm-error">{error}</div>}
-
-            {conflicts.map((c, i) => (
-              <div
-                key={i}
-                className={`cdm-conflict ${
-                  c.severity === "Error" ? "cdm-conflict-error" :
-                  c.severity === "Warning" ? "cdm-conflict-warning" :
-                  "cdm-conflict-info"
-                }`}
-              >
-                {c.severity === "Error" && <AlertCircle size={16} style={{ flexShrink: 0, marginTop: 1 }} />}
-                {c.severity === "Warning" && <AlertTriangle size={16} style={{ flexShrink: 0, marginTop: 1 }} />}
-                {c.severity === "Info" && <Info size={16} style={{ flexShrink: 0, marginTop: 1 }} />}
-                <div>
-                  <strong>{c.message}</strong>
-                  {c.details && <div>{c.details}</div>}
-                </div>
-              </div>
-            ))}
-
-            <form onSubmit={handleSubmit}>
-              <div className="cdm-form-group">
-                <label className="cdm-label">
-                  Section Number <span className="cdm-required">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={formData.sectionNumber}
-                  onChange={(e) => setFormData({ ...formData, sectionNumber: e.target.value })}
-                  className="cdm-input"
-                  placeholder="01"
-                />
-              </div>
-
-              {isSemester5 ? (
-                <div className="cdm-form-group">
-                  <label className="cdm-label">
-                    Date Range <span className="cdm-required">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.dateRange}
-                    onChange={(e) => setFormData({ ...formData, dateRange: e.target.value })}
-                    className="cdm-input"
-                    placeholder="Jan 13 - Feb 9"
-                  />
-                </div>
-              ) : (
-                <>
-                  <div className="cdm-form-group">
-                    <label className="cdm-label">Day of Week <span className="cdm-required">*</span></label>
-                    <select
-                      required
-                      value={formData.dayOfWeek}
-                      onChange={(e) => setFormData({ ...formData, dayOfWeek: e.target.value })}
-                      className="cdm-select"
-                    >
-                      <option value="">Select day</option>
-                      <option value="Monday">Monday</option>
-                      <option value="Tuesday">Tuesday</option>
-                      <option value="Wednesday">Wednesday</option>
-                      <option value="Thursday">Thursday</option>
-                      <option value="Friday">Friday</option>
-                    </select>
-                  </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
-                    <div className="cdm-form-group">
-                      <label className="cdm-label">Start Time <span className="cdm-required">*</span></label>
-                      <input
-                        type="time"
-                        required
-                        value={formData.startTime ? formData.startTime.substring(0, 5) : ""}
-                        onChange={(e) => setFormData({ ...formData, startTime: e.target.value + ":00" })}
-                        className="cdm-input"
-                      />
-                    </div>
-                    <div className="cdm-form-group">
-                      <label className="cdm-label">End Time <span className="cdm-required">*</span></label>
-                      <input
-                        type="time"
-                        required
-                        value={formData.endTime ? formData.endTime.substring(0, 5) : ""}
-                        onChange={(e) => setFormData({ ...formData, endTime: e.target.value + ":00" })}
-                        className="cdm-input"
-                      />
-                    </div>
-                  </div>
-                </>
-              )}
-
-              <div className="cdm-form-group">
-                <label className="cdm-label">Room</label>
-                <select
-                  value={formData.roomId ?? ""}
-                  onChange={(e) => setFormData({ ...formData, roomId: e.target.value ? parseInt(e.target.value) : null })}
-                  className="cdm-select"
-                >
-                  <option value="">No room selected</option>
-                  {roomList.map((room) => (
-                    <option key={room.id} value={room.id}>
-                      {room.building} {room.roomNumber} ({room.capacity} seats, {room.type})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="cdm-form-group">
-                <label className="cdm-label">Instructor</label>
-                <select
-                  value={formData.instructorId ?? ""}
-                  onChange={(e) => setFormData({ ...formData, instructorId: e.target.value ? parseInt(e.target.value) : null })}
-                  className="cdm-select"
-                >
-                  <option value="">No instructor selected</option>
-                  {instructorList.map((inst) => (
-                    <option key={inst.id} value={inst.id}>
-                      {inst.name} ({inst.type})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {semesterLevel === 4 && (
-                <div className="cdm-form-group">
-                  <label className="cdm-label">Term</label>
-                  <div className="cdm-term-radios">
-                    {(["Full", "Term1", "Term2"] as TermType[]).map((t) => (
-                      <label key={t} className="cdm-term-radio">
-                        <input
-                          type="radio"
-                          name="term"
-                          checked={formData.term === t}
-                          onChange={() => setFormData({ ...formData, term: t })}
-                        />
-                        {t === "Full" ? "Full Semester" : t === "Term1" ? "Term 1" : "Term 2"}
-                      </label>
-                    ))}
-                  </div>
-                  {formData.term !== "Full" && (
-                    <div className="cdm-term-dates">
-                      <div>
-                        <label className="cdm-label">Term Start</label>
-                        <input
-                          type="date"
-                          value={formData.termStartDate}
-                          onChange={(e) => setFormData({ ...formData, termStartDate: e.target.value })}
-                          className="cdm-input"
-                        />
-                      </div>
-                      <div>
-                        <label className="cdm-label">Term End</label>
-                        <input
-                          type="date"
-                          value={formData.termEndDate}
-                          onChange={(e) => setFormData({ ...formData, termEndDate: e.target.value })}
-                          className="cdm-input"
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              <div className="cdm-form-group">
-                <label className="cdm-label">Notes</label>
-                <input
-                  type="text"
-                  value={formData.notes}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  className="cdm-input"
-                  placeholder="Optional notes"
-                />
-              </div>
-
-              <div className="cdm-footer">
-                <button type="button" className="cdm-btn-cancel" onClick={onClose}>
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="cdm-btn-submit"
-                  disabled={loading || hasBlockingConflict}
-                >
-                  {loading && <Loader2 size={14} className="btn-spinner" />}
-                  {loading ? "Saving..." : isEditing ? "Save Changes" : "Add to Schedule"}
-                </button>
-              </div>
-            </form>
+      {conflicts.map((c, i) => (
+        <div
+          key={i}
+          style={{
+            display: "flex",
+            alignItems: "flex-start",
+            gap: "0.5rem",
+            borderRadius: "8px",
+            padding: "0.75rem 1rem",
+            marginBottom: "0.75rem",
+            fontSize: "0.82rem",
+            lineHeight: 1.5,
+            background: c.severity === "Error" ? "rgba(153,27,27,0.06)" : c.severity === "Warning" ? "#fffbeb" : "#eff6ff",
+            border: `1px solid ${c.severity === "Error" ? "rgba(153,27,27,0.2)" : c.severity === "Warning" ? "#fde68a" : "#bfdbfe"}`,
+            color: c.severity === "Error" ? "#991b1b" : c.severity === "Warning" ? "#92400e" : "#1e40af",
+          }}
+        >
+          {c.severity === "Error" && <AlertCircle size={16} style={{ flexShrink: 0, marginTop: 1 }} />}
+          {c.severity === "Warning" && <AlertTriangle size={16} style={{ flexShrink: 0, marginTop: 1 }} />}
+          {c.severity === "Info" && <Info size={16} style={{ flexShrink: 0, marginTop: 1 }} />}
+          <div>
+            <strong>{c.message}</strong>
+            {c.details && <div>{c.details}</div>}
           </div>
         </div>
-      </div>
-    </>
+      ))}
+
+      <form onSubmit={handleSubmit} id="course-details-form">
+        <div style={{ display: "flex", flexDirection: "column", gap: "1.1rem" }}>
+          <Input
+            label="Section Number"
+            type="text"
+            required
+            value={formData.sectionNumber}
+            onChange={(e) => setFormData({ ...formData, sectionNumber: e.target.value })}
+            placeholder="01"
+            fullWidth
+          />
+
+          {isSemester5 ? (
+            <Input
+              label="Date Range"
+              type="text"
+              required
+              value={formData.dateRange}
+              onChange={(e) => setFormData({ ...formData, dateRange: e.target.value })}
+              placeholder="Jan 13 - Feb 9"
+              fullWidth
+            />
+          ) : (
+            <>
+              <Select
+                label="Day of Week"
+                options={dayOptions}
+                value={formData.dayOfWeek}
+                onChange={(v) => setFormData({ ...formData, dayOfWeek: v })}
+                fullWidth
+              />
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+                <Input
+                  label="Start Time"
+                  type="time"
+                  required
+                  value={formData.startTime ? formData.startTime.substring(0, 5) : ""}
+                  onChange={(e) => setFormData({ ...formData, startTime: e.target.value + ":00" })}
+                  fullWidth
+                />
+                <Input
+                  label="End Time"
+                  type="time"
+                  required
+                  value={formData.endTime ? formData.endTime.substring(0, 5) : ""}
+                  onChange={(e) => setFormData({ ...formData, endTime: e.target.value + ":00" })}
+                  fullWidth
+                />
+              </div>
+            </>
+          )}
+
+          <Select
+            label="Room"
+            options={roomOptions}
+            value={formData.roomId != null ? String(formData.roomId) : ""}
+            onChange={(v) => setFormData({ ...formData, roomId: v ? parseInt(v) : null })}
+            fullWidth
+          />
+
+          <Select
+            label="Instructor"
+            options={instructorOptions}
+            value={formData.instructorId != null ? String(formData.instructorId) : ""}
+            onChange={(v) => setFormData({ ...formData, instructorId: v ? parseInt(v) : null })}
+            fullWidth
+          />
+
+          {semesterLevel === 4 && (
+            <div>
+              <label style={{
+                display: "block",
+                fontFamily: "var(--font-mono)",
+                fontSize: "0.72rem",
+                fontWeight: 500,
+                letterSpacing: "0.1em",
+                textTransform: "uppercase" as const,
+                color: "var(--text-muted)",
+                marginBottom: "0.5rem",
+              }}>
+                Term
+              </label>
+              <div style={{ display: "flex", gap: "1rem", marginBottom: "0.75rem" }}>
+                {(["Full", "Term1", "Term2"] as TermType[]).map((t) => (
+                  <label key={t} style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.35rem",
+                    fontSize: "0.85rem",
+                    color: "var(--text-secondary)",
+                    cursor: "pointer",
+                  }}>
+                    <input
+                      type="radio"
+                      name="term"
+                      checked={formData.term === t}
+                      onChange={() => setFormData({ ...formData, term: t })}
+                    />
+                    {t === "Full" ? "Full Semester" : t === "Term1" ? "Term 1" : "Term 2"}
+                  </label>
+                ))}
+              </div>
+              {formData.term !== "Full" && (
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+                  <Input
+                    label="Term Start"
+                    type="date"
+                    value={formData.termStartDate}
+                    onChange={(e) => setFormData({ ...formData, termStartDate: e.target.value })}
+                    fullWidth
+                  />
+                  <Input
+                    label="Term End"
+                    type="date"
+                    value={formData.termEndDate}
+                    onChange={(e) => setFormData({ ...formData, termEndDate: e.target.value })}
+                    fullWidth
+                  />
+                </div>
+              )}
+            </div>
+          )}
+
+          <Input
+            label="Notes"
+            type="text"
+            value={formData.notes}
+            onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+            placeholder="Optional notes"
+            fullWidth
+          />
+        </div>
+      </form>
+    </Modal>
   );
 }

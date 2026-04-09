@@ -1,5 +1,4 @@
 import { useEffect, useState, useRef } from "react";
-import "../App.css";
 import { ArrowLeft, Download, CalendarIcon, Users, Lock } from "lucide-react";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
@@ -17,7 +16,14 @@ import { ScheduleCanvas } from "./ScheduleCanvas";
 import { ScheduleViewer } from "./ScheduleViewer";
 import { StudentRosterView } from "./StudentRosterView";
 import { CourseDetailsModal } from "./CourseDetailsModal";
+import { useBreadcrumbs } from "../Lib/BreadcrumbContext";
 import { useToast } from "../Lib/ToastContext";
+import { Button } from "./ui/Button";
+import { NumberBadge } from "./ui/NumberBadge";
+import { HairlineRule } from "./ui/HairlineRule";
+import { Badge } from "./ui/Badge";
+import { Skeleton } from "./ui/Skeleton";
+import styles from "./ScheduleBuilder.module.css";
 
 interface CourseDetailsData {
   courseId: number;
@@ -30,6 +36,7 @@ export function ScheduleBuilder() {
   const { scheduleGroupId } = useParams<{ scheduleGroupId: string }>();
   const navigate = useNavigate();
   const { addToast } = useToast();
+  const { setItems: setBreadcrumbs } = useBreadcrumbs();
   const [schedule, setSchedule] = useState<Schedule | null>(null);
   const [semester, setSemester] = useState<Semester | null>(null);
   const [courseList, setCourseList] = useState<Course[]>([]);
@@ -41,6 +48,16 @@ export function ScheduleBuilder() {
   const exportRef = useRef<HTMLDivElement>(null);
 
   const scheduleId = parseInt(scheduleGroupId || "0");
+
+  //breadcrumbs
+  useEffect(() => {
+    setBreadcrumbs([
+      { label: "Dashboard", href: "/" },
+      { label: semester?.name ?? "Loading", href: `/semester/${semester?.id}` },
+      { label: `Semester ${schedule?.semesterLevel}`, href: `/semester/${semester?.id}` },
+      { label: schedule?.name ?? "Loading" },
+    ]);
+  }, [schedule, semester, setBreadcrumbs]);
 
   useEffect(() => {
     loadData();
@@ -90,13 +107,18 @@ export function ScheduleBuilder() {
 
   if (loading) {
     return (
-      <div className="loading-spinner"><span>Loading schedule…</span></div>
+      <div style={{ padding: "2rem" }}>
+        <Skeleton variant="text" count={2} />
+        <div style={{ marginTop: "1rem" }}>
+          <Skeleton variant="card" height={400} />
+        </div>
+      </div>
     );
   }
 
   if (!schedule) {
     return (
-      <div style={{ textAlign: "center", padding: "3rem", color: "#6b7280", fontFamily: "Inter, sans-serif" }}>
+      <div style={{ textAlign: "center", padding: "3rem", color: "var(--text-muted)", fontFamily: "var(--font-body)" }}>
         Schedule not found
       </div>
     );
@@ -106,248 +128,80 @@ export function ScheduleBuilder() {
   const isLocked = semester?.isLocked ?? false;
   const levelLabel = numberToLevel(schedule.semesterLevel);
 
+  //schedule letter from position
+  const scheduleLetter = "A";
+
   return (
     <DndProvider backend={HTML5Backend}>
-      <style>{`
-        .sb-root { font-family: 'Inter', sans-serif; }
+      <div className={styles.root}>
+        {error && <div className={styles.errorBanner}>{error}</div>}
 
-        .sb-header {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          margin-bottom: 1.75rem;
-          flex-wrap: wrap;
-          gap: 1rem;
-        }
-
-        .sb-header-left {
-          display: flex;
-          align-items: center;
-          gap: 1rem;
-        }
-
-        .sb-btn-back {
-          width: 36px;
-          height: 36px;
-          background: #ffffff;
-          border: 1.5px solid #e5e7eb;
-          border-radius: 10px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          cursor: pointer;
-          color: #6b7280;
-          transition: all 0.2s;
-          flex-shrink: 0;
-        }
-
-        .sb-btn-back:hover {
-          background: #00563f;
-          color: #ffffff;
-          border-color: #00563f;
-        }
-
-        .sb-title h1 {
-          font-family: 'Playfair Display', serif;
-          font-size: 1.5rem;
-          font-weight: 600;
-          color: #111827;
-          margin: 0 0 0.15rem 0;
-          letter-spacing: -0.01em;
-        }
-
-        .sb-title p {
-          font-size: 0.82rem;
-          color: #9ca3af;
-          margin: 0;
-          font-weight: 400;
-        }
-
-        .sb-lock-badge {
-          display: inline-flex;
-          align-items: center;
-          gap: 0.25rem;
-          padding: 0.15rem 0.55rem;
-          background: rgba(220, 38, 38, 0.06);
-          color: #dc2626;
-          border: 1px solid rgba(220, 38, 38, 0.15);
-          border-radius: 20px;
-          font-size: 0.7rem;
-          font-weight: 500;
-          margin-left: 0.65rem;
-          vertical-align: middle;
-        }
-
-        .sb-actions {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-        }
-
-        .sb-btn {
-          display: inline-flex;
-          align-items: center;
-          gap: 0.4rem;
-          padding: 0.6rem 1rem;
-          border-radius: 8px;
-          font-family: 'Inter', sans-serif;
-          font-size: 0.85rem;
-          font-weight: 500;
-          cursor: pointer;
-          transition: background 0.15s, transform 0.1s;
-          border: none;
-          white-space: nowrap;
-        }
-
-        .sb-btn:active { transform: scale(0.98); }
-
-        .sb-btn-export {
-          background: linear-gradient(135deg, #00563f 0%, #003d2a 100%);
-          color: #ffffff;
-          border: none;
-          position: relative;
-          box-shadow: 0 1px 3px rgba(0,86,63,0.15);
-        }
-
-        .sb-btn-export:hover { box-shadow: 0 1px 3px rgba(0,86,63,0.2), 0 4px 12px rgba(0,86,63,0.1); }
-
-        .export-dropdown {
-          position: relative;
-          display: inline-block;
-        }
-
-        .export-menu {
-          position: absolute;
-          top: 100%;
-          right: 0;
-          margin-top: 0.35rem;
-          background: #ffffff;
-          border: 1px solid #e5e7eb;
-          border-radius: 10px;
-          box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 12px 36px rgba(0,0,0,0.1);
-          z-index: 100;
-          min-width: 220px;
-          overflow: hidden;
-          animation: fadeInUp 0.15s ease;
-        }
-
-        .export-menu button {
-          width: 100%;
-          padding: 0.65rem 1rem;
-          background: none;
-          border: none;
-          text-align: left;
-          font-family: 'Inter', sans-serif;
-          font-size: 0.85rem;
-          color: #374151;
-          cursor: pointer;
-          transition: background 0.15s;
-        }
-
-        .export-menu button:hover { background: #f0faf5; color: #00563f; }
-        .export-menu button + button { border-top: 1px solid #f3f4f6; }
-
-        .sb-view-toggle {
-          display: inline-flex;
-          background: #ffffff;
-          border: 1px solid #e5e7eb;
-          border-radius: 12px;
-          padding: 0.3rem;
-          margin-bottom: 1.75rem;
-          gap: 0.2rem;
-          box-shadow: 0 1px 2px rgba(0,0,0,0.04);
-        }
-
-        .sb-view-btn {
-          display: inline-flex;
-          align-items: center;
-          gap: 0.4rem;
-          padding: 0.55rem 1.1rem;
-          border-radius: 9px;
-          border: none;
-          font-family: 'Inter', sans-serif;
-          font-size: 0.82rem;
-          font-weight: 500;
-          cursor: pointer;
-          transition: all 0.2s;
-          color: #6b7280;
-          background: none;
-        }
-
-        .sb-view-btn:hover {
-          background: #f5f5f4;
-          color: #111827;
-        }
-
-        .sb-view-btn.active {
-          background: #00563f;
-          color: #ffffff;
-          box-shadow: 0 1px 3px rgba(0,86,63,0.2);
-        }
-
-        .sb-grid {
-          display: grid;
-          grid-template-columns: 2fr 10fr;
-          gap: 1.5rem;
-        }
-
-        .error-banner {
-          background: #fef2f2;
-          border: 1px solid #fecaca;
-          border-radius: 10px;
-          padding: 0.85rem 1rem;
-          margin-bottom: 1.5rem;
-          font-size: 0.85rem;
-          color: #991b1b;
-        }
-      `}</style>
-
-      <div className="sb-root">
-        {error && <div className="error-banner">{error}</div>}
-
-        <div className="sb-header">
-          <div className="sb-header-left">
-            <button
-              className="sb-btn-back"
+        {/* ── hero ── */}
+        <div className={styles.hero}>
+          <div className={styles.heroLeft}>
+            <Button
+              variant="ghost"
+              size="sm"
+              iconLeft={<ArrowLeft size={14} />}
               onClick={() => navigate(`/semester/${schedule.semesterId}`)}
             >
-              <ArrowLeft size={15} />
               Back
-            </button>
-            <div className="sb-title">
-              <h1>
-                {schedule.name} — {levelLabel}
-                {isLocked && (
-                  <span className="sb-lock-badge">
+            </Button>
+            <NumberBadge number={scheduleLetter} variant="gold" size="sm" />
+            <HairlineRule width="48px" color="gold" spacing="normal" />
+            <h1 className={styles.heroTitle}>
+              {schedule.name}
+              {isLocked && (
+                <Badge variant="red" size="md">
+                  <span className={styles.lockBadge}>
                     <Lock size={12} />
                     Locked
                   </span>
-                )}
-              </h1>
-              <p>
-                {semester?.name} • {schedule.locationDisplay}
-              </p>
-            </div>
+                </Badge>
+              )}
+            </h1>
+            <p className={styles.heroSubtitle}>
+              {semester?.name} &middot; {schedule.locationDisplay} &middot; {levelLabel}
+            </p>
           </div>
 
-          <div className="sb-actions">
-            <div className="export-dropdown" ref={exportRef}>
-              <button
-                className="sb-btn sb-btn-export"
+          <div className={styles.heroRight}>
+            <div className={styles.exportDropdown} ref={exportRef}>
+              <Button
+                variant="secondary"
+                size="md"
+                iconLeft={<Download size={14} />}
                 onClick={() => setShowExportMenu(!showExportMenu)}
               >
-                <Download size={14} />
-                Export ▾
-              </button>
+                Export &darr;
+              </Button>
               {showExportMenu && semester && (
-                <div className="export-menu">
-                  <button onClick={() => { exportsApi.roster(semester.id, semester.name).then(() => addToast("success", "Roster exported")).catch(() => addToast("error", "Export failed")); setShowExportMenu(false); }}>
+                <div className={styles.exportMenu}>
+                  <button
+                    className={styles.exportMenuItem}
+                    onClick={() => {
+                      exportsApi.roster(semester.id, semester.name).then(() => addToast("success", "Roster exported")).catch(() => addToast("error", "Export failed"));
+                      setShowExportMenu(false);
+                    }}
+                  >
                     Student Rosters (.xlsx)
                   </button>
-                  <button onClick={() => { exportsApi.grid(semester.id, semester.name).then(() => addToast("success", "Grid exported")).catch(() => addToast("error", "Export failed")); setShowExportMenu(false); }}>
+                  <button
+                    className={styles.exportMenuItem}
+                    onClick={() => {
+                      exportsApi.grid(semester.id, semester.name).then(() => addToast("success", "Grid exported")).catch(() => addToast("error", "Export failed"));
+                      setShowExportMenu(false);
+                    }}
+                  >
                     Visual Grid (.xlsx)
                   </button>
-                  <button onClick={() => { exportsApi.registrar(semester.id, semester.name).then(() => addToast("success", "Registrar export downloaded")).catch(() => addToast("error", "Export failed")); setShowExportMenu(false); }}>
+                  <button
+                    className={styles.exportMenuItem}
+                    onClick={() => {
+                      exportsApi.registrar(semester.id, semester.name).then(() => addToast("success", "Registrar export downloaded")).catch(() => addToast("error", "Export failed"));
+                      setShowExportMenu(false);
+                    }}
+                  >
                     Registrar Export (.xlsx)
                   </button>
                 </div>
@@ -356,16 +210,17 @@ export function ScheduleBuilder() {
           </div>
         </div>
 
-        <div className="sb-view-toggle">
+        {/* ── view toggle ── */}
+        <div className={styles.viewToggle}>
           <button
-            className={`sb-view-btn ${view === "calendar" ? "active" : ""}`}
+            className={`${styles.viewBtn} ${view === "calendar" ? styles.active : ""}`}
             onClick={() => setView("calendar")}
           >
             <CalendarIcon size={14} />
             Calendar View
           </button>
           <button
-            className={`sb-view-btn ${view === "students" ? "active" : ""}`}
+            className={`${styles.viewBtn} ${view === "students" ? styles.active : ""}`}
             onClick={() => setView("students")}
           >
             <Users size={14} />
@@ -373,14 +228,16 @@ export function ScheduleBuilder() {
           </button>
         </div>
 
+        {/* ── content ── */}
         {view === "calendar" ? (
-          <div className="sb-grid">
+          <div className={styles.calendarGrid}>
             <div>
               <CoursePalette courses={courseList} />
             </div>
             <div>
               <ScheduleCanvas
                 schedule={schedule}
+                semesterId={schedule.semesterId}
                 isSemester5={isSemester5}
                 courses={courseList}
                 isLocked={isLocked}

@@ -1,0 +1,48 @@
+/* breadcrumbs strip — below nav bar */
+
+.strip {
+  padding: 0.875rem 2rem;
+  border-bottom: 1px solid var(--cream-300);
+}
+
+.list {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.separator {
+  color: var(--text-faint);
+  opacity: 0.5;
+  flex-shrink: 0;
+}
+
+.link {
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: color 150ms ease-out;
+}
+
+.link:hover {
+  color: var(--green-700);
+  text-decoration: none;
+}
+
+.current {
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  font-weight: 400;
+  color: var(--text-primary);
+}

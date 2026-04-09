@@ -79,6 +79,22 @@ namespace NursingScheduler.API.Controllers
                 await _context.SaveChangesAsync(); 
             }
 
+            //sync instructor to join table for workload tracking
+            if (sectionToLink.InstructorId.HasValue)
+            {
+                var existing = await _context.SectionInstructors
+                    .AnyAsync(si => si.SectionId == sectionToLink.Id && si.InstructorId == sectionToLink.InstructorId.Value);
+                if (!existing)
+                {
+                    _context.SectionInstructors.Add(new SectionInstructor
+                    {
+                        SectionId = sectionToLink.Id,
+                        InstructorId = sectionToLink.InstructorId.Value
+                    });
+                    await _context.SaveChangesAsync();
+                }
+            }
+
             //step 2create the bridge link to the schedule bucket
             var link = new ScheduleSection
             {
@@ -190,7 +206,22 @@ namespace NursingScheduler.API.Controllers
             if (updateDto.TermStartDate.HasValue) section.TermStartDate = updateDto.TermStartDate;
             if (updateDto.TermEndDate.HasValue) section.TermEndDate = updateDto.TermEndDate;
             if (updateDto.RoomId.HasValue) section.RoomId = updateDto.RoomId;
-            if (updateDto.InstructorId.HasValue) section.InstructorId = updateDto.InstructorId;
+            if (updateDto.InstructorId.HasValue)
+            {
+                section.InstructorId = updateDto.InstructorId;
+
+                //sync to join table for workload tracking
+                var existing = await _context.SectionInstructors
+                    .AnyAsync(si => si.SectionId == id && si.InstructorId == updateDto.InstructorId.Value);
+                if (!existing)
+                {
+                    _context.SectionInstructors.Add(new SectionInstructor
+                    {
+                        SectionId = id,
+                        InstructorId = updateDto.InstructorId.Value
+                    });
+                }
+            }
 
             await _context.SaveChangesAsync();
 
