@@ -1,6 +1,6 @@
 import { useRef, useEffect, useState, useMemo, useCallback } from "react";
 import { Plus, Trash2, Pencil, Building2, AlertTriangle, Info } from "lucide-react";
-import { useDrop } from "react-dnd";
+import { useDrop, useDrag } from "react-dnd";
 import { sections as sectionsApi } from "../Lib/api";
 import type { Schedule, Course, Section } from "../Lib/Types";
 import { courseTypeColor, dayOfWeekName, timeSpanToDisplay } from "../Lib/Types";
@@ -51,6 +51,15 @@ interface DropItem {
   courseType: string;
 }
 
+interface PlacedSectionDragItem {
+  type: "placed-section";
+  sectionId: number;
+  durationMinutes: number;
+  fromDay: string;
+  fromStartTime: string;
+  courseCode: string;
+}
+
 interface DeleteConfirm {
   sectionId: number;
   courseCode: string;
@@ -70,26 +79,50 @@ function timeSpanToMinutes(ts: string | null): number {
   return parseInt(parts[0]) * 60 + parseInt(parts[1]);
 }
 
+//convert slot label like "8:00 AM" to "08:00:00" timespan format
+function slotLabelToTimeSpan(label: string): string | null {
+  const match = label.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  if (!match) return null;
+  let h = parseInt(match[1]);
+  const m = parseInt(match[2]);
+  const period = match[3].toUpperCase();
+  if (period === "PM" && h !== 12) h += 12;
+  if (period === "AM" && h === 12) h = 0;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:00`;
+}
+
 function DropZone({
   day,
   time,
   onDrop,
+  onPlacedMove,
 }: {
   day?: string;
   time?: string;
   onDrop: (courseId: number, day?: string, time?: string) => void;
+  onPlacedMove: (sectionId: number, durationMinutes: number, day?: string, time?: string) => void;
 }) {
   const elementRef = useRef<HTMLDivElement>(null);
   const onDropRef = useRef(onDrop);
+  const onPlacedMoveRef = useRef(onPlacedMove);
 
   useEffect(() => {
     onDropRef.current = onDrop;
   }, [onDrop]);
 
+  useEffect(() => {
+    onPlacedMoveRef.current = onPlacedMove;
+  }, [onPlacedMove]);
+
   const [{ isOver }, drop] = useDrop(() => ({
-    accept: "course",
-    drop: (item: DropItem) => {
-      onDropRef.current(item.courseId, day, time);
+    accept: ["course", "placed-section"],
+    drop: (item: DropItem | PlacedSectionDragItem) => {
+      if ((item as PlacedSectionDragItem).type === "placed-section") {
+        const placed = item as PlacedSectionDragItem;
+        onPlacedMoveRef.current(placed.sectionId, placed.durationMinutes, day, time);
+      } else {
+        onDropRef.current((item as DropItem).courseId, day, time);
+      }
     },
     collect: (monitor) => ({ isOver: !!monitor.isOver() }),
   }));
@@ -135,6 +168,237 @@ function Semester5DropZone({ onDrop }: { onDrop: (courseId: number) => void }) {
       <p className={styles.sem5DropText}>
         Drop course here to add to schedule
       </p>
+    </div>
+  );
+}
+
+//draggable course block sub-component — hooks can't be called inside map
+function DraggableCourseBlock({
+  section,
+  course,
+  top,
+  height,
+  color,
+  startDisplay,
+  endDisplay,
+  sectionConflicts,
+  hasHard,
+  hasSoft: _hasSoft,
+  hasInfo,
+  conflictClass,
+  isLocked,
+  day,
+  bannerVisible,
+  onEdit,
+  onDelete,
+  onTooltipEnter,
+  onTooltipLeave,
+  tooltipSection,
+  tooltipPos,
+  onInstructorClick,
+}: {
+  section: Section;
+  course: Course;
+  top: number;
+  height: number;
+  color: string;
+  startDisplay: string;
+  endDisplay: string;
+  sectionConflicts: ConflictEntry[];
+  hasHard: boolean;
+  hasSoft: boolean;
+  hasInfo: boolean;
+  conflictClass: string;
+  isLocked: boolean;
+  day: string;
+  bannerVisible: boolean;
+  onEdit: () => void;
+  onDelete: () => void;
+  onTooltipEnter: (sectionId: number, e: React.MouseEvent) => void;
+  onTooltipLeave: () => void;
+  tooltipSection: number | null;
+  tooltipPos: { x: number; y: number };
+  onInstructorClick?: (instructorId: number) => void;
+}) {
+  const elementRef = useRef<HTMLDivElement>(null);
+
+  const durationMinutes =
+    timeSpanToMinutes(section.endTime) - timeSpanToMinutes(section.startTime);
+
+  const [{ isDragging }, drag] = useDrag(
+    () => ({
+      type: "placed-section",
+      item: {
+        type: "placed-section" as const,
+        sectionId: section.id,
+        durationMinutes,
+        fromDay: section.dayOfWeek ?? "",
+        fromStartTime: section.startTime ?? "",
+        courseCode: section.courseCode,
+      },
+      canDrag: !isLocked,
+      collect: (monitor) => ({ isDragging: !!monitor.isDragging() }),
+    }),
+    [section.id, section.dayOfWeek, section.startTime, section.endTime, isLocked],
+  );
+
+  drag(elementRef);
+
+  const tooltipId = `conflict-tip-${section.id}`;
+  const tooltipSuppressed = bannerVisible;
+
+  const handleMouseEnter = (e: React.MouseEvent) => {
+    if (tooltipSuppressed) return;
+    onTooltipEnter(section.id, e);
+  };
+
+  const handleMouseLeave = () => {
+    if (tooltipSuppressed) return;
+    onTooltipLeave();
+  };
+
+  return (
+    <div
+      ref={elementRef}
+      id={`section-block-${section.id}`}
+      className={`${styles.courseBlock}${conflictClass}${isDragging ? " " + styles.dragging : ""}`}
+      tabIndex={0}
+      style={{
+        top,
+        height: Math.max(height - 2, SLOT_HEIGHT - 2),
+        background: `linear-gradient(135deg, ${color}d9, ${color})`,
+        borderLeft: `3px solid ${color}`,
+        cursor: isLocked ? "default" : "grab",
+      }}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      onFocus={(e) => {
+        if (!tooltipSuppressed) onTooltipEnter(section.id, e as unknown as React.MouseEvent);
+      }}
+      onBlur={() => {
+        if (!tooltipSuppressed) onTooltipLeave();
+      }}
+      aria-describedby={sectionConflicts.length > 0 ? tooltipId : undefined}
+    >
+      {sectionConflicts.length > 0 && (
+        <span
+          className={styles.conflictIcon}
+          tabIndex={0}
+          role="img"
+          aria-label={sectionConflicts.map((c) => `${c.type}: ${c.message}`).join("; ")}
+          onFocus={(e) => {
+            e.stopPropagation();
+            if (!tooltipSuppressed) onTooltipEnter(section.id, e as unknown as React.MouseEvent);
+          }}
+          onBlur={onTooltipLeave}
+        >
+          {hasHard ? (
+            <AlertTriangle size={10} color="#fca5a5" />
+          ) : hasInfo ? (
+            <Info size={10} color="#93c5fd" />
+          ) : (
+            <AlertTriangle size={10} color="#fcd34d" />
+          )}
+        </span>
+      )}
+      <div className={`${styles.courseBlockInner}${sectionConflicts.length > 0 ? " " + styles.hasConflict : ""}`}>
+        {!isLocked && (
+          <div className={styles.courseBlockActions}>
+            <button
+              className={`${styles.courseBlockBtn} ${styles.edit}`}
+              onClick={(e) => { e.stopPropagation(); onEdit(); }}
+              aria-label="Edit section"
+            >
+              <Pencil size={12} />
+            </button>
+            <button
+              className={`${styles.courseBlockBtn} ${styles.delete}`}
+              onClick={(e) => { e.stopPropagation(); onDelete(); }}
+              aria-label="Delete section"
+            >
+              <Trash2 size={12} />
+            </button>
+          </div>
+        )}
+        <div className={styles.blockTime}>
+          {startDisplay} &ndash; {endDisplay}
+        </div>
+        <div className={styles.blockCode}>
+          {section.courseCode}
+        </div>
+        <div className={styles.blockSec}>
+          Sec {section.sectionNumber}
+        </div>
+        {height > SLOT_HEIGHT * 2 && (
+          <>
+            {section.roomNumber && (
+              <div className={styles.blockRoom}>
+                <Building2 size={9} style={{ display: "inline", verticalAlign: "middle", marginRight: "2px", opacity: 0.85 }} />
+                {section.roomBuilding} {section.roomNumber}
+              </div>
+            )}
+            {section.instructorName && (
+              <div
+                className={styles.blockInstructor}
+                onClick={(e) => {
+                  if (onInstructorClick && section.instructorId) {
+                    e.stopPropagation();
+                    onInstructorClick(section.instructorId);
+                  }
+                }}
+                style={onInstructorClick && section.instructorId ? { cursor: "pointer" } : undefined}
+              >
+                {section.instructorName}
+              </div>
+            )}
+            {section.term && section.term !== "Full" && (
+              <span className={styles.blockTerm}>
+                {section.term === "Term1" ? "T1" : "T2"}
+              </span>
+            )}
+            {course.defaultType === "Clinical" && (
+              <div className={styles.blockPreclinical}>
+                Pre-clinical: typically the day before
+              </div>
+            )}
+          </>
+        )}
+        {height > SLOT_HEIGHT * 3 && (
+          <div className={styles.blockAttribution}>
+            <EditAttribution entityType="Section" entityId={section.id} />
+          </div>
+        )}
+      </div>
+
+      {!tooltipSuppressed && tooltipSection === section.id && (
+        <div
+          id={tooltipId}
+          role="tooltip"
+          className={styles.blockTooltip}
+          style={{ left: tooltipPos.x, top: tooltipPos.y }}
+        >
+          <div style={{ fontWeight: 600, marginBottom: "0.3rem" }}>
+            {section.courseCode} &mdash; {section.courseName}
+          </div>
+          <div className={styles.tooltipRow}><span className={styles.tooltipLabel}>Section:</span> <span className={styles.tooltipValue}>{section.sectionNumber}</span></div>
+          <div className={styles.tooltipRow}><span className={styles.tooltipLabel}>Time:</span> <span className={styles.tooltipValue}>{startDisplay} &ndash; {endDisplay}</span></div>
+          <div className={styles.tooltipRow}><span className={styles.tooltipLabel}>Day:</span> <span className={styles.tooltipValue}>{day}</span></div>
+          {section.roomNumber && (
+            <div className={styles.tooltipRow}><span className={styles.tooltipLabel}>Room:</span> <span className={styles.tooltipValue}>{section.roomBuilding} {section.roomNumber}</span></div>
+          )}
+          {section.instructorName && (
+            <div className={styles.tooltipRow}><span className={styles.tooltipLabel}>Instructor:</span> <span className={styles.tooltipValue}>{section.instructorName}</span></div>
+          )}
+          {section.term && section.term !== "Full" && (
+            <div className={styles.tooltipRow}><span className={styles.tooltipLabel}>Term:</span> <span className={styles.tooltipValue}>{section.term === "Term1" ? "Term 1" : "Term 2"}</span></div>
+          )}
+          {sectionConflicts.map((c, ci) => (
+            <div key={ci} className={styles.tooltipConflict} style={{ color: c.severity === "Error" ? "#fca5a5" : c.severity === "Warning" ? "#fcd34d" : "#93c5fd" }}>
+              {c.severity === "Error" ? "\u26a0" : c.severity === "Warning" ? "\u26a0" : "\u2139"} {c.type}: {c.message}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -265,6 +529,8 @@ export function ScheduleCanvas({
     return list;
   }, [sectionConflictMap]);
 
+  const bannerVisible = allConflicts.length > 0;
+
   const handleTooltipEnter = (sectionId: number, e: React.MouseEvent) => {
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
     setTooltipPos({ x: rect.left + rect.width / 2, y: rect.top - 8 });
@@ -310,6 +576,52 @@ export function ScheduleCanvas({
       setDeleteConfirm(null);
     }
   };
+
+  //handle moving a placed section to a new day/time slot
+  const handlePlacedMove = useCallback(
+    async (sectionId: number, durationMinutes: number, day?: string, time?: string) => {
+      if (!day || !time) return;
+
+      const startTimeSpan = slotLabelToTimeSpan(time);
+      if (!startTimeSpan) return;
+
+      //compute end time from start + duration
+      const [h, m] = startTimeSpan.split(":").map(Number);
+      const startMinutes = h * 60 + m;
+      const endMinutes = startMinutes + durationMinutes;
+      const endH = Math.floor(endMinutes / 60);
+      const endM = endMinutes % 60;
+      const endTimeSpan = `${String(endH).padStart(2, "0")}:${String(endM).padStart(2, "0")}:00`;
+
+      //client-side overlap check — block same-schedule overlaps
+      const wouldOverlap = schedule.sections.some((other) => {
+        if (other.id === sectionId) return false;
+        if (other.dayOfWeek == null || dayOfWeekName(other.dayOfWeek) !== day) return false;
+        const otherStart = timeSpanToMinutes(other.startTime);
+        const otherEnd = timeSpanToMinutes(other.endTime);
+        return startMinutes < otherEnd && endMinutes > otherStart;
+      });
+
+      if (wouldOverlap) {
+        addToast("error", "Cannot move section here \u2014 it would overlap with another section in this schedule");
+        return;
+      }
+
+      try {
+        await sectionsApi.move(sectionId, {
+          dayOfWeek: day,
+          startTime: startTimeSpan,
+          endTime: endTimeSpan,
+          scheduleId: schedule.id,
+        });
+        addToast("success", "Section moved");
+        onRefresh();
+      } catch (err: any) {
+        addToast("error", err.message || "Failed to move section");
+      }
+    },
+    [addToast, onRefresh, schedule.id, schedule.sections],
+  );
 
   const getColor = (course: Course) => courseTypeColor(course.defaultType);
 
@@ -477,6 +789,7 @@ export function ScheduleCanvas({
                             day={day}
                             time={slot}
                             onDrop={onDrop}
+                            onPlacedMove={handlePlacedMove}
                           />
                         </div>
                       );
@@ -496,148 +809,40 @@ export function ScheduleCanvas({
                       const hasSoft = sectionConflicts.some((c) => c.severity === "Warning");
                       const hasInfo = sectionConflicts.some((c) => c.severity === "Info");
                       const conflictClass = hasHard ? ` ${styles.conflictHard}` : hasSoft ? ` ${styles.conflictSoft}` : "";
-                      const tooltipId = `conflict-tip-${section.id}`;
 
                       return (
-                        <div
-                          id={`section-block-${section.id}`}
+                        <DraggableCourseBlock
                           key={section.id}
-                          className={`${styles.courseBlock}${conflictClass}`}
-                          tabIndex={0}
-                          style={{
-                            top,
-                            height: Math.max(height - 2, SLOT_HEIGHT - 2),
-                            background: `linear-gradient(135deg, ${color}d9, ${color})`,
-                            borderLeft: `3px solid ${color}`,
-                          }}
-                          onMouseEnter={(e) => handleTooltipEnter(section.id, e)}
-                          onMouseLeave={() => setTooltipSection(null)}
-                          onFocus={(e) => handleTooltipEnter(section.id, e as unknown as React.MouseEvent)}
-                          onBlur={() => setTooltipSection(null)}
-                          aria-describedby={sectionConflicts.length > 0 ? tooltipId : undefined}
-                        >
-                          {sectionConflicts.length > 0 && (
-                            <span
-                              className={styles.conflictIcon}
-                              tabIndex={0}
-                              role="img"
-                              aria-label={sectionConflicts.map((c) => `${c.type}: ${c.message}`).join("; ")}
-                              onFocus={(e) => { e.stopPropagation(); handleTooltipEnter(section.id, e as unknown as React.MouseEvent); }}
-                              onBlur={() => setTooltipSection(null)}
-                            >
-                              {hasHard ? (
-                                <AlertTriangle size={10} color="#fca5a5" />
-                              ) : hasInfo ? (
-                                <Info size={10} color="#93c5fd" />
-                              ) : (
-                                <AlertTriangle size={10} color="#fcd34d" />
-                              )}
-                            </span>
-                          )}
-                          <div className={styles.courseBlockInner}>
-                            {!isLocked && (
-                              <div className={styles.courseBlockActions}>
-                                <button
-                                  className={`${styles.courseBlockBtn} ${styles.edit}`}
-                                  onClick={() => setEditModal({ section, course })}
-                                >
-                                  <Pencil size={10} />
-                                </button>
-                                <button
-                                  className={`${styles.courseBlockBtn} ${styles.delete}`}
-                                  onClick={() =>
-                                    setDeleteConfirm({
-                                      sectionId: section.id,
-                                      courseCode: section.courseCode,
-                                      dayOfWeek: day,
-                                      timeSlot: startDisplay,
-                                    })
-                                  }
-                                >
-                                  <Trash2 size={10} />
-                                </button>
-                              </div>
-                            )}
-                            <div className={styles.blockTime}>
-                              {startDisplay} &ndash; {endDisplay}
-                            </div>
-                            <div className={styles.blockCode}>
-                              {section.courseCode}
-                            </div>
-                            <div className={styles.blockSec}>
-                              Sec {section.sectionNumber}
-                            </div>
-                            {height > SLOT_HEIGHT * 2 && (
-                              <>
-                                {section.roomNumber && (
-                                  <div className={styles.blockRoom}>
-                                    <Building2 size={9} style={{ display: "inline", verticalAlign: "middle", marginRight: "2px", opacity: 0.85 }} />
-                                    {section.roomBuilding} {section.roomNumber}
-                                  </div>
-                                )}
-                                {section.instructorName && (
-                                  <div
-                                    className={styles.blockInstructor}
-                                    onClick={(e) => {
-                                      if (onInstructorClick && section.instructorId) {
-                                        e.stopPropagation();
-                                        onInstructorClick(section.instructorId);
-                                      }
-                                    }}
-                                    style={onInstructorClick && section.instructorId ? { cursor: "pointer" } : undefined}
-                                  >
-                                    {section.instructorName}
-                                  </div>
-                                )}
-                                {section.term && section.term !== "Full" && (
-                                  <span className={styles.blockTerm}>
-                                    {section.term === "Term1" ? "T1" : "T2"}
-                                  </span>
-                                )}
-                                {course.defaultType === "Clinical" && (
-                                  <div className={styles.blockPreclinical}>
-                                    Pre-clinical: typically the day before
-                                  </div>
-                                )}
-                              </>
-                            )}
-                            {height > SLOT_HEIGHT * 3 && (
-                              <div className={styles.blockAttribution}>
-                                <EditAttribution entityType="Section" entityId={section.id} />
-                              </div>
-                            )}
-                          </div>
-
-                          {tooltipSection === section.id && (
-                            <div
-                              id={tooltipId}
-                              role="tooltip"
-                              className={styles.blockTooltip}
-                              style={{ left: tooltipPos.x, top: tooltipPos.y }}
-                            >
-                              <div style={{ fontWeight: 600, marginBottom: "0.3rem" }}>
-                                {section.courseCode} &mdash; {section.courseName}
-                              </div>
-                              <div className={styles.tooltipRow}><span className={styles.tooltipLabel}>Section:</span> <span className={styles.tooltipValue}>{section.sectionNumber}</span></div>
-                              <div className={styles.tooltipRow}><span className={styles.tooltipLabel}>Time:</span> <span className={styles.tooltipValue}>{startDisplay} &ndash; {endDisplay}</span></div>
-                              <div className={styles.tooltipRow}><span className={styles.tooltipLabel}>Day:</span> <span className={styles.tooltipValue}>{day}</span></div>
-                              {section.roomNumber && (
-                                <div className={styles.tooltipRow}><span className={styles.tooltipLabel}>Room:</span> <span className={styles.tooltipValue}>{section.roomBuilding} {section.roomNumber}</span></div>
-                              )}
-                              {section.instructorName && (
-                                <div className={styles.tooltipRow}><span className={styles.tooltipLabel}>Instructor:</span> <span className={styles.tooltipValue}>{section.instructorName}</span></div>
-                              )}
-                              {section.term && section.term !== "Full" && (
-                                <div className={styles.tooltipRow}><span className={styles.tooltipLabel}>Term:</span> <span className={styles.tooltipValue}>{section.term === "Term1" ? "Term 1" : "Term 2"}</span></div>
-                              )}
-                              {sectionConflicts.map((c, ci) => (
-                                <div key={ci} className={styles.tooltipConflict} style={{ color: c.severity === "Error" ? "#fca5a5" : c.severity === "Warning" ? "#fcd34d" : "#93c5fd" }}>
-                                  {c.severity === "Error" ? "\u26a0" : c.severity === "Warning" ? "\u26a0" : "\u2139"} {c.type}: {c.message}
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
+                          section={section}
+                          course={course}
+                          top={top}
+                          height={height}
+                          color={color}
+                          startDisplay={startDisplay}
+                          endDisplay={endDisplay}
+                          sectionConflicts={sectionConflicts}
+                          hasHard={hasHard}
+                          hasSoft={hasSoft}
+                          hasInfo={hasInfo}
+                          conflictClass={conflictClass}
+                          isLocked={isLocked}
+                          day={day}
+                          bannerVisible={bannerVisible}
+                          onEdit={() => setEditModal({ section, course })}
+                          onDelete={() =>
+                            setDeleteConfirm({
+                              sectionId: section.id,
+                              courseCode: section.courseCode,
+                              dayOfWeek: day,
+                              timeSlot: startDisplay,
+                            })
+                          }
+                          onTooltipEnter={handleTooltipEnter}
+                          onTooltipLeave={() => setTooltipSection(null)}
+                          tooltipSection={tooltipSection}
+                          tooltipPos={tooltipPos}
+                          onInstructorClick={onInstructorClick}
+                        />
                       );
                     })}
                   </div>

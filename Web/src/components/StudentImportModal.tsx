@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { X, Upload, FileSpreadsheet, CheckCircle, AlertCircle, Download, Loader2, AlertTriangle } from "lucide-react";
 import { importApi, schedules as schedulesApi } from "../Lib/api";
 import type { ImportResult, CommitStudent } from "../Lib/api";
@@ -127,7 +128,7 @@ export function StudentImportModal({ semesterId, onClose, onSuccess }: StudentIm
   //count override-required assignments
   const overrideCount = result?.assignments.filter(a => a.requiresOverride).length ?? 0;
 
-  return (
+  return createPortal(
     <>
       <style>{`
         .sim-overlay {
@@ -782,6 +783,7 @@ export function StudentImportModal({ semesterId, onClose, onSuccess }: StudentIm
           </div>
         </div>
       </div>
-    </>
+    </>,
+    document.body,
   );
 }

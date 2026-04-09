@@ -253,6 +253,8 @@ export const sections = {
     apiFetch<void>(`/sections/${id}`, { method: "PUT", body: JSON.stringify(dto) }),
   removeFromSchedule: (sectionId: number, scheduleId: number) =>
     apiFetch<void>(`/sections/${sectionId}/schedule/${scheduleId}`, { method: "DELETE" }),
+  move: (id: number, dto: { dayOfWeek: string; startTime: string; endTime: string; scheduleId: number }) =>
+    apiFetch<SectionWithConflicts>(`/sections/${id}/move`, { method: "PUT", body: JSON.stringify(dto) }),
 };
 
 // ===== students api =====

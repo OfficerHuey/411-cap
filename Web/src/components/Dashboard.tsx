@@ -70,6 +70,8 @@ export function Dashboard() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<Semester | null>(null);
   const [cloneSource, setCloneSource] = useState<Semester | null>(null);
+  const [totalStudents, setTotalStudents] = useState<number | null>(null);
+  const [attentionCount, setAttentionCount] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -89,20 +91,28 @@ export function Dashboard() {
       const data = await semestersApi.getAll();
       setSemesterList(data);
 
-      //fetch schedule counts per active semester
+      //fetch schedule counts, student totals, and attention flags per active semester
       const counts: Record<number, number> = {};
       const active = data.filter((s) => !s.isLocked);
+      let studentSum = 0;
+      let attention = 0;
       await Promise.all(
         active.map(async (sem) => {
           try {
             const schedules = await schedulesApi.getBySemester(sem.id);
             counts[sem.id] = schedules.length;
+            studentSum += schedules.reduce((acc, s) => acc + (s.students?.length || 0), 0);
+            attention += schedules.filter(
+              (s) => s.students && s.capacity && s.students.length >= s.capacity
+            ).length;
           } catch {
             counts[sem.id] = 0;
           }
         }),
       );
       setScheduleCountMap(counts);
+      setTotalStudents(studentSum);
+      setAttentionCount(attention);
     } catch (err: any) {
       setError(err.message || "Failed to load semesters");
     } finally {
@@ -200,14 +210,24 @@ export function Dashboard() {
             />
             <StatTile
               label="Students Placed"
-              value="\u2014"
+              value={totalStudents ?? 0}
+              accent="green"
               size="sm"
+              trend={totalStudents !== null && totalStudents > 0 ? { direction: "neutral", text: `across ${activeSemesters.length} semester${activeSemesters.length !== 1 ? "s" : ""}` } : undefined}
             />
             <StatTile
               label="Attention Needed"
-              value="\u2014"
+              value={attentionCount ?? 0}
+              accent={attentionCount && attentionCount > 0 ? "gold" : "none"}
               size="sm"
-              trend={{ direction: "neutral", text: "Review details" }}
+              trend={
+                attentionCount !== null
+                  ? {
+                      direction: attentionCount === 0 ? "neutral" : "down",
+                      text: attentionCount === 0 ? "All clear" : "Review details",
+                    }
+                  : undefined
+              }
             />
           </div>
         </Card>

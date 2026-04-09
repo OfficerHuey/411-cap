@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { X, Upload, FileSpreadsheet, CheckCircle, AlertCircle, Download, Loader2 } from "lucide-react";
 import { importInstructors } from "../../Lib/api";
 import type { InstructorImportResult, CommitInstructor } from "../../Lib/api";
@@ -84,7 +85,7 @@ export function InstructorImportModal({ onClose, onSuccess }: InstructorImportMo
     }
   };
 
-  return (
+  return createPortal(
     <>
       <style>{`
         .iim-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; padding: 1.5rem; z-index: 9999; backdrop-filter: blur(2px); }
@@ -326,6 +327,7 @@ export function InstructorImportModal({ onClose, onSuccess }: InstructorImportMo
           </div>
         </div>
       </div>
-    </>
+    </>,
+    document.body,
   );
 }

@@ -145,30 +145,35 @@ export function ScheduleBuilder() {
         {/* ── hero ── */}
         <div className={styles.hero}>
           <div className={styles.heroLeft}>
-            <Button
-              variant="ghost"
-              size="sm"
-              iconLeft={<ArrowLeft size={14} />}
-              onClick={() => navigate(`/semester/${schedule.semesterId}`)}
-            >
-              Back
-            </Button>
-            <NumberBadge number={scheduleLetter} variant="gold" size="sm" />
-            <HairlineRule width="48px" color="gold" spacing="normal" />
-            <h1 className={styles.heroTitle}>
-              {schedule.name}
-              {isLocked && (
-                <Badge variant="red" size="md">
-                  <span className={styles.lockBadge}>
-                    <Lock size={12} />
-                    Locked
-                  </span>
-                </Badge>
-              )}
-            </h1>
-            <p className={styles.heroSubtitle}>
-              {semester?.name} &middot; {schedule.locationDisplay} &middot; {levelLabel}
-            </p>
+            <div className={styles.heroBackRow}>
+              <Button
+                variant="ghost"
+                size="sm"
+                iconLeft={<ArrowLeft size={14} />}
+                onClick={() => navigate(`/semester/${schedule.semesterId}`)}
+                className={styles.backBtn}
+              >
+                Back
+              </Button>
+            </div>
+            <div className={styles.heroTitleGroup}>
+              <NumberBadge number={scheduleLetter} variant="gold" size="sm" />
+              <HairlineRule width="48px" color="gold" spacing="tight" />
+              <h1 className={styles.heroTitle}>
+                {schedule.name}
+                {isLocked && (
+                  <Badge variant="red" size="md">
+                    <span className={styles.lockBadge}>
+                      <Lock size={12} />
+                      Locked
+                    </span>
+                  </Badge>
+                )}
+              </h1>
+              <p className={styles.heroSubtitle}>
+                {semester?.name} &middot; {schedule.locationDisplay} &middot; {levelLabel}
+              </p>
+            </div>
           </div>
 
           <div className={styles.heroRight}>

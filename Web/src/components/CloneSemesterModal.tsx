@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { X, Copy, Loader2 } from "lucide-react";
 import { semesters as semestersApi } from "../Lib/api";
 import type { Semester, ClinicalDays } from "../Lib/Types";
@@ -38,7 +39,7 @@ export function CloneSemesterModal({ source, onClose, onSuccess }: CloneSemester
     }
   };
 
-  return (
+  return createPortal(
     <>
       <style>{`
         .clone-overlay {
@@ -259,6 +260,7 @@ export function CloneSemesterModal({ source, onClose, onSuccess }: CloneSemester
           </div>
         </div>
       </div>
-    </>
+    </>,
+    document.body,
   );
 }

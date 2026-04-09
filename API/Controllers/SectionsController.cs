@@ -232,6 +232,67 @@ namespace NursingScheduler.API.Controllers
             return NoContent();
         }
 
+        //move a section to a new day/time (drag-to-rearrange)
+        [HttpPut("{id}/move")]
+        public async Task<ActionResult<SectionWithConflictsDto>> MoveSection(int id, MoveSectionDto dto)
+        {
+            var section = await _context.Sections
+                .Include(s => s.Course)
+                .Include(s => s.Room)
+                .Include(s => s.Instructor)
+                .FirstOrDefaultAsync(s => s.Id == id);
+
+            if (section == null) return NotFound();
+            if (await IsSemesterLocked(section.SemesterId))
+                return BadRequest("Cannot move sections in a locked semester");
+
+            if (dto.EndTime <= dto.StartTime)
+                return BadRequest("End time must be after start time");
+
+            var oldDay = section.DayOfWeek?.ToString() ?? "(none)";
+            var oldStart = section.StartTime?.ToString(@"hh\:mm\:ss") ?? "(none)";
+
+            section.DayOfWeek = dto.DayOfWeek;
+            section.StartTime = dto.StartTime;
+            section.EndTime = dto.EndTime;
+
+            await _context.SaveChangesAsync();
+
+            var username = User.GetUsername() ?? "unknown";
+            await _auditService.LogChange("Section", section.Id, "Moved",
+                username, $"{oldDay} {oldStart} → {dto.DayOfWeek} {dto.StartTime:hh\\:mm\\:ss}", section.SemesterId);
+
+            //re-run conflict detection at the new location
+            var conflicts = await _conflictService.CheckConflicts(section.Id, dto.ScheduleId, section.SemesterId);
+
+            return Ok(new SectionWithConflictsDto
+            {
+                Section = new SectionDto
+                {
+                    Id = section.Id,
+                    SectionNumber = section.SectionNumber,
+                    DayOfWeek = section.DayOfWeek,
+                    StartTime = section.StartTime,
+                    EndTime = section.EndTime,
+                    Notes = section.Notes,
+                    DateRange = section.DateRange,
+                    Term = section.Term,
+                    TermStartDate = section.TermStartDate,
+                    TermEndDate = section.TermEndDate,
+                    RoomId = section.RoomId,
+                    RoomNumber = section.Room?.RoomNumber,
+                    RoomBuilding = section.Room?.Building,
+                    InstructorId = section.InstructorId,
+                    InstructorName = section.Instructor?.Name,
+                    CourseId = section.CourseId,
+                    CourseCode = section.Course!.Code,
+                    CourseName = section.Course!.Name,
+                    CourseType = section.Course!.DefaultType
+                },
+                Conflicts = conflicts
+            });
+        }
+
         //delete a section (remove from calendar)
         //this might need logic to only delete the link, not the whole section if shared --reminder
         [HttpDelete("{sectionId}/schedule/{scheduleId}")]
