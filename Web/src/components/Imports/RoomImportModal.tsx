@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { X, Upload, FileSpreadsheet, CheckCircle, AlertCircle, Download, Loader2 } from "lucide-react";
 import { importRooms } from "../../Lib/api";
 import type { RoomImportResult, CommitRoom } from "../../Lib/api";
@@ -85,7 +86,7 @@ export function RoomImportModal({ onClose, onSuccess }: RoomImportModalProps) {
     }
   };
 
-  return (
+  return createPortal(
     <>
       <style>{`
         .rim-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; padding: 1.5rem; z-index: 9999; backdrop-filter: blur(2px); }
@@ -334,6 +335,7 @@ export function RoomImportModal({ onClose, onSuccess }: RoomImportModalProps) {
           </div>
         </div>
       </div>
-    </>
+    </>,
+    document.body,
   );
 }
