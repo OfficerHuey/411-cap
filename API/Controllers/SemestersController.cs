@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using NursingScheduler.API.Data;
 using NursingScheduler.API.DTOs.Semester;
 using NursingScheduler.API.Entities;
+using NursingScheduler.API.Extensions;
 using NursingScheduler.API.Services;
 
 namespace NursingScheduler.API.Controllers
@@ -48,7 +49,7 @@ namespace NursingScheduler.API.Controllers
             _context.Semesters.Add(semester);
             await _context.SaveChangesAsync();
 
-            var username = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "unknown";
+            var username = User.GetUsername() ?? "unknown";
             await _auditService.LogChange("Semester", semester.Id, "Created", username, null, semester.Id);
 
             return Ok(MapToDto(semester));
@@ -80,7 +81,7 @@ namespace NursingScheduler.API.Controllers
             _context.Semesters.Remove(semester);
             await _context.SaveChangesAsync();
 
-            var username = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "unknown";
+            var username = User.GetUsername() ?? "unknown";
             await _auditService.LogChange("Semester", id, "Deleted", username, null, id);
 
             return NoContent();
@@ -101,7 +102,7 @@ namespace NursingScheduler.API.Controllers
 
             await _context.SaveChangesAsync();
 
-            var username = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "unknown";
+            var username = User.GetUsername() ?? "unknown";
             await _auditService.LogChange("Semester", semester.Id, "Updated", username, null, semester.Id);
 
             return NoContent();
@@ -182,7 +183,7 @@ namespace NursingScheduler.API.Controllers
                 await _context.SaveChangesAsync();
             }
 
-            var username = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "unknown";
+            var username = User.GetUsername() ?? "unknown";
             await _auditService.LogChange("Semester", newSemester.Id, "Cloned", username, $"Cloned from semester {sourceSemesterId}", newSemester.Id);
 
             return Ok(MapToDto(newSemester));
@@ -198,7 +199,7 @@ namespace NursingScheduler.API.Controllers
             semester.IsLocked = !semester.IsLocked;
             await _context.SaveChangesAsync();
 
-            var username = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "unknown";
+            var username = User.GetUsername() ?? "unknown";
             await _auditService.LogChange("Semester", semester.Id, semester.IsLocked ? "Locked" : "Unlocked", username, null, semester.Id);
 
             return Ok(new { semester.IsLocked });
@@ -220,7 +221,7 @@ namespace NursingScheduler.API.Controllers
                 existingAnchor.IsAnchorTemplate = false;
                 existingAnchor.AnchorRotation = null;
 
-                var username = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "unknown";
+                var username = User.GetUsername() ?? "unknown";
                 await _auditService.LogChange("Semester", existingAnchor.Id, "Anchor unmarked",
                     username, $"Replaced by semester {id} as {dto.Rotation} anchor", existingAnchor.Id);
             }
@@ -229,7 +230,7 @@ namespace NursingScheduler.API.Controllers
             semester.AnchorRotation = dto.Rotation;
             await _context.SaveChangesAsync();
 
-            var user = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "unknown";
+            var user = User.GetUsername() ?? "unknown";
             await _auditService.LogChange("Semester", semester.Id, "Anchor set",
                 user, $"Marked as {dto.Rotation} anchor template", semester.Id);
 
@@ -247,7 +248,7 @@ namespace NursingScheduler.API.Controllers
             semester.AnchorRotation = null;
             await _context.SaveChangesAsync();
 
-            var username = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "unknown";
+            var username = User.GetUsername() ?? "unknown";
             await _auditService.LogChange("Semester", semester.Id, "Anchor unmarked", username, null, semester.Id);
 
             return NoContent();
@@ -346,7 +347,7 @@ namespace NursingScheduler.API.Controllers
                 await _context.SaveChangesAsync();
             }
 
-            var username = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "unknown";
+            var username = User.GetUsername() ?? "unknown";
             await _auditService.LogChange("Semester", newSemester.Id, "Cloned from anchor",
                 username, $"Cloned from {dto.Rotation} anchor (semester {anchor.Id})", newSemester.Id);
 

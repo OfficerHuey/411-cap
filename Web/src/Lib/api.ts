@@ -115,10 +115,35 @@ async function apiDownload(endpoint: string): Promise<Blob> {
   const headers: Record<string, string> = {};
   if (token) headers["Authorization"] = `Bearer ${token}`;
 
-  const response = await fetch(`${API_BASE}${endpoint}`, { headers });
+  if (activeRequests === 0) loadingBar.start();
+  activeRequests++;
 
-  if (!response.ok) throw new Error(`HTTP ${response.status}`);
-  return response.blob();
+  try {
+    const response = await fetch(`${API_BASE}${endpoint}`, { headers });
+
+    if (response.status === 401) {
+      clearToken();
+      window.location.href = "/login";
+      throw new Error("Unauthorized");
+    }
+
+    if (!response.ok) {
+      //try to read the error body as text so we surface a useful message
+      let detail = `HTTP ${response.status}`;
+      try {
+        const text = await response.text();
+        if (text) detail = text;
+      } catch {
+        //ignore — fall back to the status code
+      }
+      throw new Error(detail);
+    }
+
+    return await response.blob();
+  } finally {
+    activeRequests--;
+    if (activeRequests === 0) loadingBar.finish();
+  }
 }
 
 function downloadBlob(blob: Blob, filename: string): void {

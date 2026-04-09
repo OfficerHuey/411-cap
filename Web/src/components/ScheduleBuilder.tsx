@@ -197,7 +197,7 @@ export function ScheduleBuilder() {
                   <button
                     className={styles.exportMenuItem}
                     onClick={() => {
-                      exportsApi.roster(semester.id, semester.name).then(() => addToast("success", "Roster exported")).catch(() => addToast("error", "Export failed"));
+                      exportsApi.roster(semester.id, semester.name).then(() => addToast("success", "Roster exported")).catch((err) => addToast("error", `Export failed: ${err.message || "Unknown error"}`));
                       setShowExportMenu(false);
                     }}
                   >
@@ -206,7 +206,7 @@ export function ScheduleBuilder() {
                   <button
                     className={styles.exportMenuItem}
                     onClick={() => {
-                      exportsApi.grid(semester.id, semester.name).then(() => addToast("success", "Grid exported")).catch(() => addToast("error", "Export failed"));
+                      exportsApi.grid(semester.id, semester.name).then(() => addToast("success", "Grid exported")).catch((err) => addToast("error", `Export failed: ${err.message || "Unknown error"}`));
                       setShowExportMenu(false);
                     }}
                   >
@@ -215,7 +215,7 @@ export function ScheduleBuilder() {
                   <button
                     className={styles.exportMenuItem}
                     onClick={() => {
-                      exportsApi.registrar(semester.id, semester.name).then(() => addToast("success", "Registrar export downloaded")).catch(() => addToast("error", "Export failed"));
+                      exportsApi.registrar(semester.id, semester.name).then(() => addToast("success", "Registrar export downloaded")).catch((err) => addToast("error", `Export failed: ${err.message || "Unknown error"}`));
                       setShowExportMenu(false);
                     }}
                   >

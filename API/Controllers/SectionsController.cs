@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using NursingScheduler.API.Data;
 using NursingScheduler.API.DTOs.Section;
 using NursingScheduler.API.Entities;
+using NursingScheduler.API.Extensions;
 using NursingScheduler.API.Services;
 
 namespace NursingScheduler.API.Controllers
@@ -115,7 +116,7 @@ namespace NursingScheduler.API.Controllers
                 sectionToLink.Instructor = await _context.Instructors.FindAsync(sectionToLink.InstructorId);
 
             //log the creation/link action
-            var username = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "unknown";
+            var username = User.GetUsername() ?? "unknown";
             await _auditService.LogChange("Section", sectionToLink.Id, "Created", username, null, createDto.SemesterId);
 
             //run conflict checks after linking
@@ -225,7 +226,7 @@ namespace NursingScheduler.API.Controllers
 
             await _context.SaveChangesAsync();
 
-            var username = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "unknown";
+            var username = User.GetUsername() ?? "unknown";
             await _auditService.LogChange("Section", section.Id, "Updated", username, null, section.SemesterId);
 
             return NoContent();
@@ -263,7 +264,7 @@ namespace NursingScheduler.API.Controllers
 
             await _context.SaveChangesAsync();
 
-            var username = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "unknown";
+            var username = User.GetUsername() ?? "unknown";
             await _auditService.LogChange("Section", sectionId, "Removed from schedule", username);
 
             return NoContent();

@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using NursingScheduler.API.Data;
 using NursingScheduler.API.DTOs.Student;
 using NursingScheduler.API.Entities;
+using NursingScheduler.API.Extensions;
 using NursingScheduler.API.Services;
 
 namespace NursingScheduler.API.Controllers
@@ -90,7 +91,7 @@ namespace NursingScheduler.API.Controllers
                     }
 
                     //override acknowledged — log it
-                    var username = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "unknown";
+                    var username = User.GetUsername() ?? "unknown";
                     await _auditService.LogChange(
                         "Schedule", schedule.Id, "CapacityOverride", username,
                         $"Override to {currentCount + 1}/{cap}: {createDto.OverrideReason ?? "No reason provided"}",
@@ -109,7 +110,7 @@ namespace NursingScheduler.API.Controllers
             _context.Students.Add(student);
             await _context.SaveChangesAsync();
 
-            var auditUser = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "unknown";
+            var auditUser = User.GetUsername() ?? "unknown";
             await _auditService.LogChange("Student", student.Id, "Created", auditUser, null, schedule?.SemesterId);
 
             return Ok(new StudentDto
@@ -183,7 +184,7 @@ namespace NursingScheduler.API.Controllers
             _context.Students.Remove(student);
             await _context.SaveChangesAsync();
 
-            var username = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "unknown";
+            var username = User.GetUsername() ?? "unknown";
             await _auditService.LogChange("Student", id, "Deleted", username);
 
             return NoContent();
@@ -202,7 +203,7 @@ namespace NursingScheduler.API.Controllers
 
             await _context.SaveChangesAsync();
 
-            var username = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "unknown";
+            var username = User.GetUsername() ?? "unknown";
             await _auditService.LogChange("Student", student.Id, "Updated", username);
 
             return NoContent();

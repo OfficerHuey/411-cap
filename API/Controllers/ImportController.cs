@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using NursingScheduler.API.Data;
 using NursingScheduler.API.DTOs.Import;
 using NursingScheduler.API.Entities;
+using NursingScheduler.API.Extensions;
 using NursingScheduler.API.Services;
 
 namespace NursingScheduler.API.Controllers
@@ -185,7 +186,7 @@ namespace NursingScheduler.API.Controllers
         [HttpPost("students/commit")]
         public async Task<ActionResult> CommitImport([FromBody] List<CommitStudentDto> assignments)
         {
-            var username = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "unknown";
+            var username = User.GetUsername() ?? "unknown";
 
             //pre-load schedule capacities and current counts
             var scheduleIds = assignments.Select(a => a.ScheduleId).Distinct().ToList();
@@ -475,7 +476,7 @@ namespace NursingScheduler.API.Controllers
         [HttpPost("instructors/commit")]
         public async Task<ActionResult> CommitInstructors([FromBody] List<CommitInstructorDto> instructors)
         {
-            var username = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "unknown";
+            var username = User.GetUsername() ?? "unknown";
             var existing = await _context.Instructors.ToListAsync();
             var inserted = 0;
             var updated = 0;
@@ -704,7 +705,7 @@ namespace NursingScheduler.API.Controllers
         [HttpPost("rooms/commit")]
         public async Task<ActionResult> CommitRooms([FromBody] List<CommitRoomDto> rooms)
         {
-            var username = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "unknown";
+            var username = User.GetUsername() ?? "unknown";
             var existing = await _context.Rooms.ToListAsync();
             var inserted = 0;
             var updated = 0;

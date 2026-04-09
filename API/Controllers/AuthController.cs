@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using NursingScheduler.API.Data;
 using NursingScheduler.API.DTOs.Auth;
 using NursingScheduler.API.Entities;
+using NursingScheduler.API.Extensions;
 using NursingScheduler.API.Interfaces;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Cryptography;
@@ -92,7 +93,7 @@ namespace NursingScheduler.API.Controllers
         [HttpGet("me")]
         public async Task<ActionResult<ProfileDto>> GetProfile()
         {
-            var username = User.FindFirst(JwtRegisteredClaimNames.NameId)?.Value;
+            var username = User.GetUsername();
             if (username == null) return Unauthorized();
 
             var user = await _context.Users.SingleOrDefaultAsync(x => x.UserName == username);
@@ -114,7 +115,7 @@ namespace NursingScheduler.API.Controllers
         [HttpPut("me")]
         public async Task<ActionResult<ProfileDto>> UpdateProfile(UpdateProfileDto dto)
         {
-            var username = User.FindFirst(JwtRegisteredClaimNames.NameId)?.Value;
+            var username = User.GetUsername();
             if (username == null) return Unauthorized();
 
             var user = await _context.Users.SingleOrDefaultAsync(x => x.UserName == username);

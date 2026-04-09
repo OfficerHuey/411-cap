@@ -6,6 +6,10 @@ using Microsoft.IdentityModel.Tokens;
 using NursingScheduler.API.Interfaces;
 using NursingScheduler.API.Services;
 
+//disable default jwt claim type mapping so claims like "nameid" and "role"
+//stay as their raw names instead of being rewritten to long xml-schema urls
+System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
+
 var builder = WebApplication.CreateBuilder(args);
 
 //database connection

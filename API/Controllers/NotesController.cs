@@ -1,11 +1,10 @@
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using NursingScheduler.API.Data;
 using NursingScheduler.API.DTOs.Notes;
 using NursingScheduler.API.Entities;
+using NursingScheduler.API.Extensions;
 using NursingScheduler.API.Services;
 
 namespace NursingScheduler.API.Controllers
@@ -27,18 +26,9 @@ namespace NursingScheduler.API.Controllers
         //resolve the current user's id from jwt username claim
         private async Task<int> GetCurrentUserId()
         {
-            var username = User.FindFirst(JwtRegisteredClaimNames.NameId)?.Value
-                ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value
-                ?? "";
+            var username = User.GetUsername() ?? "";
             var user = await _context.Users.FirstOrDefaultAsync(u => u.UserName == username);
             return user?.Id ?? 0;
-        }
-
-        private string GetUsername()
-        {
-            return User.FindFirst(JwtRegisteredClaimNames.NameId)?.Value
-                ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value
-                ?? "unknown";
         }
 
         //get filtered notes list, newest first
@@ -122,7 +112,7 @@ namespace NursingScheduler.API.Controllers
             _context.Notes.Add(note);
             await _context.SaveChangesAsync();
 
-            await _auditService.LogChange("Note", note.Id, "Created", GetUsername());
+            await _auditService.LogChange("Note", note.Id, "Created", User.GetUsername() ?? "unknown");
 
             //reload with includes for the response
             var created = await _context.Notes
@@ -160,7 +150,7 @@ namespace NursingScheduler.API.Controllers
             note.UpdatedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
-            await _auditService.LogChange("Note", note.Id, "Updated", GetUsername());
+            await _auditService.LogChange("Note", note.Id, "Updated", User.GetUsername() ?? "unknown");
 
             return Ok(MapToDto(note));
         }
@@ -179,7 +169,7 @@ namespace NursingScheduler.API.Controllers
 
             _context.Notes.Remove(note);
             await _context.SaveChangesAsync();
-            await _auditService.LogChange("Note", id, "Deleted", GetUsername());
+            await _auditService.LogChange("Note", id, "Deleted", User.GetUsername() ?? "unknown");
 
             return NoContent();
         }

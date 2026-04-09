@@ -37,9 +37,19 @@ namespace NursingScheduler.API.Controllers
 
             using var workbook = new XLWorkbook();
 
+            //guard against empty workbook — closedxml requires at least one worksheet
+            if (semester.Schedules.Count == 0)
+            {
+                var placeholder = workbook.Worksheets.Add("No Schedules");
+                placeholder.Cell(1, 1).Value = "This semester has no schedule groups yet.";
+            }
+
+            var usedSheetNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
             foreach (var schedule in semester.Schedules)
             {
-                var worksheet = workbook.Worksheets.Add(ValidateSheetName(schedule.Name));
+                var sheetName = DeduplicateSheetName(ValidateSheetName(schedule.Name), usedSheetNames);
+                var worksheet = workbook.Worksheets.Add(sheetName);
 
                 //headers
                 worksheet.Cell(1, 1).Value = "W Number";
@@ -96,7 +106,6 @@ namespace NursingScheduler.API.Controllers
                .Include(s => s.Schedules)
                    .ThenInclude(sch => sch.ScheduleSections)
                        .ThenInclude(ss => ss.Section)
-                           //***fixed line 93 below (added '!') ***
                            .ThenInclude(sec => sec!.Course)
                .FirstOrDefaultAsync(s => s.Id == semesterId);
 
@@ -104,9 +113,19 @@ namespace NursingScheduler.API.Controllers
 
             using var workbook = new XLWorkbook();
 
+            //guard against empty workbook
+            if (semester.Schedules.Count == 0)
+            {
+                var placeholder = workbook.Worksheets.Add("No Schedules");
+                placeholder.Cell(1, 1).Value = "This semester has no schedule groups yet.";
+            }
+
+            var usedSheetNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
             foreach (var schedule in semester.Schedules)
             {
-                var sheet = workbook.Worksheets.Add(ValidateSheetName($"Grid - {schedule.Name}"));
+                var sheetName = DeduplicateSheetName(ValidateSheetName($"Grid - {schedule.Name}"), usedSheetNames);
+                var sheet = workbook.Worksheets.Add(sheetName);
 
                 //draw grid headers
                 string[] days = { "Time", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday" };
@@ -130,6 +149,9 @@ namespace NursingScheduler.API.Controllers
                     currentRow++;
                 }
 
+                //track occupied cells to avoid overlapping merges from conflicts
+                var occupiedCells = new HashSet<(int row, int col)>();
+
                 //draw blocks
                 var sections = schedule.ScheduleSections.Select(ss => ss.Section!).ToList();
 
@@ -143,8 +165,37 @@ namespace NursingScheduler.API.Controllers
 
                     if (durationHours < 1) durationHours = 1;
 
-                    var cell = sheet.Cell(startRow, col);
-                    cell.Value = $"{section.Course!.Code}-{section.SectionNumber}\n{section.Notes}";
+                    //check for overlapping cells from conflicts — skip if any cell is already occupied
+                    bool hasOverlap = false;
+                    for (int r = startRow; r < startRow + durationHours; r++)
+                    {
+                        if (occupiedCells.Contains((r, col)))
+                        {
+                            hasOverlap = true;
+                            break;
+                        }
+                    }
+
+                    if (hasOverlap)
+                    {
+                        //write conflict marker in the first available row without merging
+                        var cell = sheet.Cell(startRow, col);
+                        var existing = cell.GetString();
+                        if (!string.IsNullOrEmpty(existing))
+                        {
+                            cell.Value = $"{existing}\n[CONFLICT] {section.Course!.Code}-{section.SectionNumber}";
+                        }
+                        continue;
+                    }
+
+                    //mark cells as occupied
+                    for (int r = startRow; r < startRow + durationHours; r++)
+                    {
+                        occupiedCells.Add((r, col));
+                    }
+
+                    var blockCell = sheet.Cell(startRow, col);
+                    blockCell.Value = $"{section.Course!.Code}-{section.SectionNumber}\n{section.Notes}";
 
                     var range = sheet.Range(startRow, col, startRow + durationHours - 1, col);
                     range.Merge();
@@ -224,10 +275,28 @@ namespace NursingScheduler.API.Controllers
             return match.Success ? $"{match.Groups[1].Value} {match.Groups[2].Value}" : rawCode;
         }
 
-        private string ValidateSheetName(string name)
+        //sanitize sheet names for closedxml (max 31 chars, no special chars)
+        private static string ValidateSheetName(string name)
         {
-            var valid = name.Replace(":", "").Replace("/", "").Replace("?", "").Replace("*", "").Replace("[", "").Replace("]", "");
+            var valid = name.Replace(":", "").Replace("\\", "").Replace("/", "").Replace("?", "").Replace("*", "").Replace("[", "").Replace("]", "");
             return valid.Length > 30 ? valid.Substring(0, 30) : valid;
+        }
+
+        //ensure unique sheet names by appending a suffix if needed
+        private static string DeduplicateSheetName(string name, HashSet<string> used)
+        {
+            var candidate = name;
+            int suffix = 2;
+            while (used.Contains(candidate))
+            {
+                var tag = $" ({suffix})";
+                candidate = name.Length + tag.Length > 31
+                    ? name.Substring(0, 31 - tag.Length) + tag
+                    : name + tag;
+                suffix++;
+            }
+            used.Add(candidate);
+            return candidate;
         }
     }
 }

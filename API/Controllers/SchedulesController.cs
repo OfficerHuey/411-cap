@@ -6,6 +6,7 @@ using NursingScheduler.API.DTOs.Schedule;
 using NursingScheduler.API.DTOs.Student;
 using NursingScheduler.API.Entities;
 using NursingScheduler.API.DTOs.Section;
+using NursingScheduler.API.Extensions;
 using NursingScheduler.API.Services;
 
 namespace NursingScheduler.API.Controllers
@@ -50,7 +51,7 @@ namespace NursingScheduler.API.Controllers
             _context.Schedules.Add(schedule);
             await _context.SaveChangesAsync();
 
-            var username = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "unknown";
+            var username = User.GetUsername() ?? "unknown";
             await _auditService.LogChange("Schedule", schedule.Id, "Created", username, null, schedule.SemesterId);
 
             return Ok(new ScheduleDto
@@ -225,7 +226,7 @@ namespace NursingScheduler.API.Controllers
             }
             await _context.SaveChangesAsync();
 
-            var username = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "unknown";
+            var username = User.GetUsername() ?? "unknown";
             await _auditService.LogChange("Schedule", newSchedule.Id, "Cloned", username, $"Cloned from schedule {sourceScheduleId}", source.SemesterId);
 
             //return the new schedule with full includes
@@ -285,7 +286,7 @@ namespace NursingScheduler.API.Controllers
             _context.Schedules.Remove(schedule);
             await _context.SaveChangesAsync();
 
-            var username = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "unknown";
+            var username = User.GetUsername() ?? "unknown";
             await _auditService.LogChange("Schedule", id, "Deleted", username, null, semesterId);
 
             return NoContent();
@@ -306,7 +307,7 @@ namespace NursingScheduler.API.Controllers
 
             await _context.SaveChangesAsync();
 
-            var username = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "unknown";
+            var username = User.GetUsername() ?? "unknown";
             await _auditService.LogChange("Schedule", schedule.Id, "Updated", username, null, schedule.SemesterId);
 
             return NoContent();
@@ -325,7 +326,7 @@ namespace NursingScheduler.API.Controllers
             schedule.Capacity = capacity;
             await _context.SaveChangesAsync();
 
-            var username = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "unknown";
+            var username = User.GetUsername() ?? "unknown";
             await _auditService.LogChange("Schedule", schedule.Id, "Capacity updated", username, $"New capacity: {capacity}", schedule.SemesterId);
 
             return Ok(new { schedule.Id, schedule.Capacity });
