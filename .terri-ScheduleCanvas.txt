@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState, useMemo, useCallback } from "react";
+﻿import { useRef, useEffect, useState, useMemo, useCallback } from "react";
 import { Plus, Trash2, Pencil, Building2, AlertTriangle, Info } from "lucide-react";
 import { useDrop, useDrag } from "react-dnd";
 import { sections as sectionsApi } from "../Lib/api";
@@ -172,7 +172,7 @@ function Semester5DropZone({ onDrop }: { onDrop: (courseId: number) => void }) {
   );
 }
 
-//draggable course block sub-component — hooks can't be called inside map
+//draggable course block sub-component ΓÇö hooks can't be called inside map
 function DraggableCourseBlock({
   section,
   course,
@@ -593,7 +593,7 @@ export function ScheduleCanvas({
       const endM = endMinutes % 60;
       const endTimeSpan = `${String(endH).padStart(2, "0")}:${String(endM).padStart(2, "0")}:00`;
 
-      //client-side overlap check — block same-schedule overlaps
+      //client-side overlap check ΓÇö block same-schedule overlaps
       const wouldOverlap = schedule.sections.some((other) => {
         if (other.id === sectionId) return false;
         if (other.dayOfWeek == null || dayOfWeekName(other.dayOfWeek) !== day) return false;
