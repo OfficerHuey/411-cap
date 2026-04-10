@@ -1,0 +1,75 @@
+/* 404 page — editorial treatment */
+
+.root {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 64px);
+  padding: 4rem 2rem;
+  position: relative;
+  overflow: hidden;
+}
+
+/* decorative background "404" */
+.bgText {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -55%);
+  font-family: var(--font-display);
+  font-size: 16rem;
+  font-weight: 300;
+  letter-spacing: var(--tracking-tightest);
+  color: var(--cream-300);
+  user-select: none;
+  pointer-events: none;
+  line-height: 1;
+  z-index: 0;
+}
+
+/* foreground content */
+.content {
+  position: relative;
+  z-index: 1;
+  max-width: 600px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.heading {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-weight: 500;
+  color: var(--text-on-paper);
+  letter-spacing: var(--tracking-tighter);
+  line-height: var(--leading-tight);
+  margin: var(--space-5) 0 0;
+}
+
+.heading em {
+  font-family: var(--font-display);
+  font-style: italic;
+}
+
+.description {
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  color: var(--text-on-paper-muted);
+  line-height: var(--leading-normal);
+  margin: var(--space-4) 0 0;
+  max-width: 420px;
+}
+
+.actions {
+  display: flex;
+  gap: var(--space-3);
+  margin-top: var(--space-7);
+}
+
+.goldRule {
+  width: 48px;
+  margin-top: var(--space-4);
+}

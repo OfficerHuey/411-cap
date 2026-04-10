@@ -21,6 +21,13 @@ namespace NursingScheduler.API.Entities
         //color coding ui feature helper; color for the type of course it is (lecture,lab)
         public CourseType DefaultType { get; set; }
 
+        //credit hours for workload calculation (NURS × 1.0, NLAB × 2.25)
+        public int CreditHours { get; set; } = 3;
+
+        //per-course capacity overrides (hospital labs can hold 12 instead of default 8)
+        public int DefaultLabCapacity { get; set; } = 8;
+        public int DefaultLectureCapacity { get; set; } = 35;
+
         //a course can show many sections
         public ICollection<Section> Sections { get; set; } = new List<Section>();
     }

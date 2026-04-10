@@ -1,0 +1,123 @@
+/* profile page — editorial layout */
+
+.root {
+  font-family: var(--font-body);
+}
+
+/* ── hero ── */
+.hero {
+  padding: 3rem 0 0;
+}
+
+.heroTitle {
+  font-family: var(--font-display);
+  font-size: clamp(2.5rem, 5vw, 3.5rem);
+  font-weight: 500;
+  color: var(--text-on-paper);
+  letter-spacing: var(--tracking-tighter);
+  line-height: var(--leading-tight);
+  margin: 0;
+}
+
+.heroTitle em {
+  font-style: italic;
+  font-family: var(--font-display);
+  color: var(--gold-500);
+}
+
+.heroSubtitle {
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  margin: var(--space-2) 0 0;
+}
+
+/* ── grid ── */
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  padding: 2rem 0 3rem;
+}
+
+@media (max-width: 768px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── sections ── */
+.section {
+  padding: 2rem;
+}
+
+.sectionTitle {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 500;
+  color: var(--text-on-paper);
+  margin: 0 0 1.5rem;
+  letter-spacing: -0.01em;
+}
+
+/* ── avatar ── */
+.avatarRow {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.avatarInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.role {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--gold-600);
+}
+
+.email {
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+/* ── fields ── */
+.fieldGroup {
+  margin-bottom: 1.25rem;
+}
+
+.saveRow {
+  padding-top: 0.5rem;
+}
+
+/* ── danger zone ── */
+.dangerSection {
+  grid-column: 1 / -1;
+  padding: 2rem;
+  border: 1px solid rgba(153, 27, 27, 0.15);
+  background: rgba(153, 27, 27, 0.02);
+}
+
+.dangerTitle {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: #991b1b;
+  margin: 0 0 0.5rem;
+}
+
+.dangerDesc {
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin: 0 0 1rem;
+  line-height: 1.5;
+}

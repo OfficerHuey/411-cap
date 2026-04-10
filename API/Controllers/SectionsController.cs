@@ -1,27 +1,45 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using NursingScheduler.API.Data;
 using NursingScheduler.API.DTOs.Section;
 using NursingScheduler.API.Entities;
+using NursingScheduler.API.Extensions;
+using NursingScheduler.API.Services;
 
 namespace NursingScheduler.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class SectionsController : ControllerBase
     {
         private readonly DataContext _context;
+        private readonly IConflictService _conflictService;
+        private readonly IAuditService _auditService;
 
-        public SectionsController(DataContext context)
+        public SectionsController(DataContext context, IConflictService conflictService, IAuditService auditService)
         {
             _context = context;
+            _conflictService = conflictService;
+            _auditService = auditService;
         }
 
-        // handles the drop event
+        //check if semester is locked before allowing changes
+        private async Task<bool> IsSemesterLocked(int semesterId)
+        {
+            var semester = await _context.Semesters.FindAsync(semesterId);
+            return semester?.IsLocked ?? false;
+        }
+
+        //handles the drop event
         //checks if section exists to link it, or creates a new one
         [HttpPost]
-        public async Task<ActionResult<SectionDto>> CreateOrLinkSection(CreateSectionDto createDto)
+        public async Task<ActionResult<SectionWithConflictsDto>> CreateOrLinkSection(CreateSectionDto createDto)
         {
+            if (await IsSemesterLocked(createDto.SemesterId))
+                return BadRequest("This semester is locked and cannot be modified");
+
             //step 1 check if this specific class section already exists 
             //(nurs 339, section 01)
             var existingSection = await _context.Sections
@@ -49,12 +67,33 @@ namespace NursingScheduler.API.Controllers
                     EndTime = createDto.EndTime,
                     Notes = createDto.Notes,
                     DateRange = createDto.DateRange,
+                    Term = createDto.Term,
+                    TermStartDate = createDto.TermStartDate,
+                    TermEndDate = createDto.TermEndDate,
+                    RoomId = createDto.RoomId,
+                    InstructorId = createDto.InstructorId,
                     CourseId = createDto.CourseId,
                     SemesterId = createDto.SemesterId
                 };
                 _context.Sections.Add(sectionToLink);
                 //save now to get the id for the link
                 await _context.SaveChangesAsync(); 
+            }
+
+            //sync instructor to join table for workload tracking
+            if (sectionToLink.InstructorId.HasValue)
+            {
+                var existing = await _context.SectionInstructors
+                    .AnyAsync(si => si.SectionId == sectionToLink.Id && si.InstructorId == sectionToLink.InstructorId.Value);
+                if (!existing)
+                {
+                    _context.SectionInstructors.Add(new SectionInstructor
+                    {
+                        SectionId = sectionToLink.Id,
+                        InstructorId = sectionToLink.InstructorId.Value
+                    });
+                    await _context.SaveChangesAsync();
+                }
             }
 
             //step 2create the bridge link to the schedule bucket
@@ -68,25 +107,46 @@ namespace NursingScheduler.API.Controllers
             await _context.SaveChangesAsync();
 
             //return the dto for the frontend to render the block
-            //we might need to fetch course details if we just created it
-            if (sectionToLink.Course == null) 
-            {
+            //fetch course and room details if needed
+            if (sectionToLink.Course == null)
                 sectionToLink.Course = await _context.Courses.FindAsync(sectionToLink.CourseId);
-            }
+            if (sectionToLink.RoomId.HasValue && sectionToLink.Room == null)
+                sectionToLink.Room = await _context.Rooms.FindAsync(sectionToLink.RoomId);
+            if (sectionToLink.InstructorId.HasValue && sectionToLink.Instructor == null)
+                sectionToLink.Instructor = await _context.Instructors.FindAsync(sectionToLink.InstructorId);
 
-            return Ok(new SectionDto
+            //log the creation/link action
+            var username = User.GetUsername() ?? "unknown";
+            await _auditService.LogChange("Section", sectionToLink.Id, "Created", username, null, createDto.SemesterId);
+
+            //run conflict checks after linking
+            var conflicts = await _conflictService.CheckConflicts(sectionToLink.Id, createDto.ScheduleId, createDto.SemesterId);
+
+            return Ok(new SectionWithConflictsDto
             {
-                Id = sectionToLink.Id,
-                SectionNumber = sectionToLink.SectionNumber,
-                DayOfWeek = sectionToLink.DayOfWeek,
-                StartTime = sectionToLink.StartTime,
-                EndTime = sectionToLink.EndTime,
-                Notes = sectionToLink.Notes,
-                DateRange = sectionToLink.DateRange,
-                CourseId = sectionToLink.CourseId,
-                CourseCode = sectionToLink.Course!.Code,
-                CourseName = sectionToLink.Course!.Name,
-                CourseType = sectionToLink.Course!.DefaultType
+                Section = new SectionDto
+                {
+                    Id = sectionToLink.Id,
+                    SectionNumber = sectionToLink.SectionNumber,
+                    DayOfWeek = sectionToLink.DayOfWeek,
+                    StartTime = sectionToLink.StartTime,
+                    EndTime = sectionToLink.EndTime,
+                    Notes = sectionToLink.Notes,
+                    DateRange = sectionToLink.DateRange,
+                    Term = sectionToLink.Term,
+                    TermStartDate = sectionToLink.TermStartDate,
+                    TermEndDate = sectionToLink.TermEndDate,
+                    RoomId = sectionToLink.RoomId,
+                    RoomNumber = sectionToLink.Room?.RoomNumber,
+                    RoomBuilding = sectionToLink.Room?.Building,
+                    InstructorId = sectionToLink.InstructorId,
+                    InstructorName = sectionToLink.Instructor?.Name,
+                    CourseId = sectionToLink.CourseId,
+                    CourseCode = sectionToLink.Course!.Code,
+                    CourseName = sectionToLink.Course!.Name,
+                    CourseType = sectionToLink.Course!.DefaultType
+                },
+                Conflicts = conflicts
             });
         }
         // get api/Sections/semester/1
@@ -97,6 +157,8 @@ namespace NursingScheduler.API.Controllers
         {
             var sections = await _context.Sections
                 .Include(s => s.Course)
+                .Include(s => s.Room)
+                .Include(s => s.Instructor)
                 .Where(s => s.SemesterId == semesterId)
                 .Select(s => new SectionDto
                 {
@@ -107,6 +169,14 @@ namespace NursingScheduler.API.Controllers
                     EndTime = s.EndTime,
                     Notes = s.Notes,
                     DateRange = s.DateRange,
+                    Term = s.Term,
+                    TermStartDate = s.TermStartDate,
+                    TermEndDate = s.TermEndDate,
+                    RoomId = s.RoomId,
+                    RoomNumber = s.Room != null ? s.Room.RoomNumber : null,
+                    RoomBuilding = s.Room != null ? s.Room.Building : null,
+                    InstructorId = s.InstructorId,
+                    InstructorName = s.Instructor != null ? s.Instructor.Name : null,
                     CourseId = s.CourseId,
                     CourseCode = s.Course!.Code,
                     CourseName = s.Course.Name,
@@ -123,6 +193,8 @@ namespace NursingScheduler.API.Controllers
         {
             var section = await _context.Sections.FindAsync(id);
             if (section == null) return NotFound();
+            if (await IsSemesterLocked(section.SemesterId))
+                return BadRequest("This semester is locked and cannot be modified");
 
             // update fields if they are provided
             if (updateDto.SectionNumber != null) section.SectionNumber = updateDto.SectionNumber;
@@ -131,9 +203,94 @@ namespace NursingScheduler.API.Controllers
             if (updateDto.EndTime.HasValue) section.EndTime = updateDto.EndTime;
             if (updateDto.Notes != null) section.Notes = updateDto.Notes;
             if (updateDto.DateRange != null) section.DateRange = updateDto.DateRange;
+            if (updateDto.Term.HasValue) section.Term = updateDto.Term;
+            if (updateDto.TermStartDate.HasValue) section.TermStartDate = updateDto.TermStartDate;
+            if (updateDto.TermEndDate.HasValue) section.TermEndDate = updateDto.TermEndDate;
+            if (updateDto.RoomId.HasValue) section.RoomId = updateDto.RoomId;
+            if (updateDto.InstructorId.HasValue)
+            {
+                section.InstructorId = updateDto.InstructorId;
+
+                //sync to join table for workload tracking
+                var existing = await _context.SectionInstructors
+                    .AnyAsync(si => si.SectionId == id && si.InstructorId == updateDto.InstructorId.Value);
+                if (!existing)
+                {
+                    _context.SectionInstructors.Add(new SectionInstructor
+                    {
+                        SectionId = id,
+                        InstructorId = updateDto.InstructorId.Value
+                    });
+                }
+            }
 
             await _context.SaveChangesAsync();
+
+            var username = User.GetUsername() ?? "unknown";
+            await _auditService.LogChange("Section", section.Id, "Updated", username, null, section.SemesterId);
+
             return NoContent();
+        }
+
+        //move a section to a new day/time (drag-to-rearrange)
+        [HttpPut("{id}/move")]
+        public async Task<ActionResult<SectionWithConflictsDto>> MoveSection(int id, MoveSectionDto dto)
+        {
+            var section = await _context.Sections
+                .Include(s => s.Course)
+                .Include(s => s.Room)
+                .Include(s => s.Instructor)
+                .FirstOrDefaultAsync(s => s.Id == id);
+
+            if (section == null) return NotFound();
+            if (await IsSemesterLocked(section.SemesterId))
+                return BadRequest("Cannot move sections in a locked semester");
+
+            if (dto.EndTime <= dto.StartTime)
+                return BadRequest("End time must be after start time");
+
+            var oldDay = section.DayOfWeek?.ToString() ?? "(none)";
+            var oldStart = section.StartTime?.ToString(@"hh\:mm\:ss") ?? "(none)";
+
+            section.DayOfWeek = dto.DayOfWeek;
+            section.StartTime = dto.StartTime;
+            section.EndTime = dto.EndTime;
+
+            await _context.SaveChangesAsync();
+
+            var username = User.GetUsername() ?? "unknown";
+            await _auditService.LogChange("Section", section.Id, "Moved",
+                username, $"{oldDay} {oldStart} → {dto.DayOfWeek} {dto.StartTime:hh\\:mm\\:ss}", section.SemesterId);
+
+            //re-run conflict detection at the new location
+            var conflicts = await _conflictService.CheckConflicts(section.Id, dto.ScheduleId, section.SemesterId);
+
+            return Ok(new SectionWithConflictsDto
+            {
+                Section = new SectionDto
+                {
+                    Id = section.Id,
+                    SectionNumber = section.SectionNumber,
+                    DayOfWeek = section.DayOfWeek,
+                    StartTime = section.StartTime,
+                    EndTime = section.EndTime,
+                    Notes = section.Notes,
+                    DateRange = section.DateRange,
+                    Term = section.Term,
+                    TermStartDate = section.TermStartDate,
+                    TermEndDate = section.TermEndDate,
+                    RoomId = section.RoomId,
+                    RoomNumber = section.Room?.RoomNumber,
+                    RoomBuilding = section.Room?.Building,
+                    InstructorId = section.InstructorId,
+                    InstructorName = section.Instructor?.Name,
+                    CourseId = section.CourseId,
+                    CourseCode = section.Course!.Code,
+                    CourseName = section.Course!.Name,
+                    CourseType = section.Course!.DefaultType
+                },
+                Conflicts = conflicts
+            });
         }
 
         //delete a section (remove from calendar)
@@ -147,10 +304,29 @@ namespace NursingScheduler.API.Controllers
             if (link == null) return NotFound();
 
             _context.ScheduleSections.Remove(link);
+
+            //check if this was the last link — if so, clean up notes and delete the orphan section
+            var remainingLinks = await _context.ScheduleSections
+                .CountAsync(ss => ss.SectionId == sectionId && ss.Id != link.Id);
+
+            if (remainingLinks == 0)
+            {
+                //clear notes referencing this section (NoAction FK, app-layer cleanup)
+                var affectedNotes = await _context.Notes
+                    .Where(n => n.SectionId == sectionId)
+                    .ToListAsync();
+                foreach (var note in affectedNotes)
+                    note.SectionId = null;
+
+                var section = await _context.Sections.FindAsync(sectionId);
+                if (section != null)
+                    _context.Sections.Remove(section);
+            }
+
             await _context.SaveChangesAsync();
 
-            //check if section has 0 links left and delete it entirely?
-            //keeping it simple for now lol
+            var username = User.GetUsername() ?? "unknown";
+            await _auditService.LogChange("Section", sectionId, "Removed from schedule", username);
 
             return NoContent();
         }

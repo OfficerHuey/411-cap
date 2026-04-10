@@ -1,11 +1,29 @@
 import { useEffect, useState } from "react";
-import "../App.css";
-import { ArrowLeft, Plus, Trash2, Edit2 } from "lucide-react";
+import { Plus, Trash2, Lock, Copy, Download, History, Upload, ChevronRight, MapPin, Calendar, StickyNote } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
 import { authService } from "../Lib/Auth";
-import { dataStore } from "../Lib/Store";
-import type { SemesterLevel, Semester, ScheduleGroup } from "../Lib/Types";
+import { semesters as semestersApi, schedules as schedulesApi, exports as exportsApi } from "../Lib/api";
+import type { SemesterLevel, Semester, Schedule } from "../Lib/Types";
+import { levelToNumber } from "../Lib/Types";
 import { CreateScheduleModal } from "./CreateScheduleModal";
+import { CloneSemesterModal } from "./CloneSemesterModal";
+import { StudentImportModal } from "./StudentImportModal";
+import { CapacityMeter } from "./CapacityMeter";
+import { useBreadcrumbs } from "../Lib/BreadcrumbContext";
+import { useToast } from "../Lib/ToastContext";
+import { Button } from "./ui/Button";
+import { Card } from "./ui/Card";
+import { NumberBadge } from "./ui/NumberBadge";
+import { HairlineRule } from "./ui/HairlineRule";
+import { SectionHeading } from "./ui/SectionHeading";
+import { Badge } from "./ui/Badge";
+import { EmptyState } from "./ui/EmptyState";
+import { Modal } from "./ui/Modal";
+import { Skeleton } from "./ui/Skeleton";
+import { NotesPanel } from "./Notes/NotesPanel";
+import { useNotes } from "../hooks/useNotes";
+import { EditAttribution } from "./EditAttribution";
+import styles from "./SemesterHub.module.css";
 
 const LEVELS: SemesterLevel[] = [
   "Semester 1",
@@ -15,495 +33,499 @@ const LEVELS: SemesterLevel[] = [
   "Semester 5",
 ];
 
+//extract season word from semester name for italic accent
+function splitSeasonWord(name: string): string {
+  const seasons = ["Spring", "Fall", "Summer", "Winter"];
+  return seasons.find((s) => name.includes(s)) ?? "";
+}
+
+function renderTitleWithItalic(name: string | undefined) {
+  if (!name) return "Loading\u2026";
+  const season = splitSeasonWord(name);
+  if (!season) return name;
+  const idx = name.indexOf(season);
+  return (
+    <>
+      {name.slice(0, idx)}
+      <em>{season}</em>
+      {name.slice(idx + season.length)}
+    </>
+  );
+}
+
+function formatDateLong(date: string): string {
+  return new Date(date).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function weekProgress(start: string, end: string): { week: number; total: number } {
+  const now = Date.now();
+  const s = new Date(start).getTime();
+  const e = new Date(end).getTime();
+  const total = Math.max(1, Math.round((e - s) / (7 * 86400000)));
+  const elapsed = Math.max(0, Math.round((now - s) / (7 * 86400000)));
+  const week = Math.min(elapsed + 1, total);
+  return { week, total };
+}
+
 export function SemesterHub() {
   const { semesterId } = useParams<{ semesterId: string }>();
   const navigate = useNavigate();
+  const { addToast } = useToast();
+  const { setItems: setBreadcrumbs } = useBreadcrumbs();
   const [semester, setSemester] = useState<Semester | null>(null);
   const [activeLevel, setActiveLevel] = useState<SemesterLevel>("Semester 1");
-  const [scheduleGroups, setScheduleGroups] = useState<ScheduleGroup[]>([]);
+  const [scheduleList, setScheduleList] = useState<Schedule[]>([]);
+  const [levelCounts, setLevelCounts] = useState<Record<number, number>>({});
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [showImport, setShowImport] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
+  const [showCloneSemester, setShowCloneSemester] = useState(false);
+  const [cloneScheduleId, setCloneScheduleId] = useState<number | null>(null);
+  const [cloning, setCloning] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [showNotes, setShowNotes] = useState(false);
 
   const canEdit = authService.canEdit();
+  const semIdNum = parseInt(semesterId || "0");
+  const { openCount: noteCount } = useNotes({ semesterId: semIdNum || undefined });
+
+  //breadcrumbs
+  useEffect(() => {
+    setBreadcrumbs([
+      { label: "Dashboard", href: "/" },
+      { label: semester?.name ?? "Loading\u2026" },
+    ]);
+  }, [semester, setBreadcrumbs]);
 
   useEffect(() => {
     if (!semesterId) return;
-    const sem = dataStore.getSemesterById(semesterId);
-    setSemester(sem || null);
-    loadScheduleGroups();
+    loadSemester();
+  }, [semesterId]);
+
+  useEffect(() => {
+    if (!semesterId) return;
+    loadSchedules();
   }, [semesterId, activeLevel]);
 
-  const loadScheduleGroups = () => {
-    if (!semesterId) return;
-    const groups = dataStore.getScheduleGroups(semesterId, activeLevel);
-    setScheduleGroups(groups);
+  const loadSemester = async () => {
+    try {
+      const all = await semestersApi.getAll();
+      const sem = all.find((s) => s.id === semIdNum);
+      setSemester(sem || null);
+
+      //fetch counts for all levels
+      const counts: Record<number, number> = {};
+      await Promise.all(
+        [1, 2, 3, 4, 5].map(async (lvl) => {
+          try {
+            const data = await schedulesApi.getBySemester(semIdNum, lvl);
+            counts[lvl] = data.length;
+          } catch {
+            counts[lvl] = 0;
+          }
+        }),
+      );
+      setLevelCounts(counts);
+    } catch (err: any) {
+      setError(err.message || "Failed to load semester");
+    }
   };
 
-  const handleDeleteSchedule = (id: string) => {
-    dataStore.deleteScheduleGroup(id);
-    setDeleteConfirm(null);
-    loadScheduleGroups();
+  const loadSchedules = async () => {
+    try {
+      setLoading(true);
+      setError("");
+      const levelNum = levelToNumber(activeLevel);
+      const data = await schedulesApi.getBySemester(semIdNum, levelNum);
+      setScheduleList(data);
+    } catch (err: any) {
+      setError(err.message || "Failed to load schedules");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  if (!semester) {
+  const handleDeleteSchedule = async (id: number) => {
+    try {
+      await schedulesApi.delete(id);
+      setDeleteConfirm(null);
+      addToast("success", "Schedule group deleted");
+      await loadSchedules();
+      await loadSemester();
+    } catch (err: any) {
+      addToast("error", err.message || "Failed to delete schedule");
+      setDeleteConfirm(null);
+    }
+  };
+
+  const handleCloneSchedule = async (schedId: number) => {
+    const sched = scheduleList.find((s) => s.id === schedId);
+    if (!sched) return;
+    setCloning(true);
+    try {
+      await schedulesApi.clone(schedId, { newName: `${sched.name} (Copy)` });
+      setCloneScheduleId(null);
+      addToast("success", "Schedule duplicated");
+      await loadSchedules();
+      await loadSemester();
+    } catch (err: any) {
+      addToast("error", err.message || "Failed to clone schedule");
+      setCloneScheduleId(null);
+    } finally {
+      setCloning(false);
+    }
+  };
+
+  if (!semester && !loading) {
     return (
-      <div
-        style={{
-          textAlign: "center",
-          padding: "3rem",
-          color: "#6b7280",
-          fontFamily: "DM Sans, sans-serif",
-        }}
-      >
-        Semester not found
-      </div>
+      <EmptyState
+        icon={<Calendar size={32} />}
+        title="Semester not found"
+        description="This semester may have been deleted or the link is invalid."
+        action={
+          <Button variant="primary" onClick={() => navigate("/")}>
+            Return to Dashboard
+          </Button>
+        }
+      />
     );
   }
 
+  const isLocked = semester?.isLocked ?? false;
+  const isActive = semester ? !isLocked : false;
+  const progress = semester ? weekProgress(semester.startDate, semester.endDate) : null;
+  const activeLevelNum = levelToNumber(activeLevel);
+
   return (
-    <>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=DM+Sans:wght@300;400;500&display=swap');
+    <div className={styles.root}>
+      {/* ── hero ── */}
+      <div className={styles.hero}>
+        <div>
+          <NumberBadge number={semester?.id ?? "\u2014"} variant="gold" size="sm" />
+          <HairlineRule width="48px" color="gold" spacing="normal" />
 
-        .hub-root { font-family: 'DM Sans', sans-serif; }
+          <h1 className={styles.heroTitle}>
+            {renderTitleWithItalic(semester?.name)}
+            {isLocked && (
+              <Badge variant="red" size="md">
+                <Lock size={12} style={{ marginRight: "0.25rem", verticalAlign: "middle" }} />
+                Archived
+              </Badge>
+            )}
+          </h1>
 
-        .hub-header {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          margin-bottom: 2rem;
-          padding-bottom: 1.5rem;
-          border-bottom: 1px solid #e5e2db;
-          flex-wrap: wrap;
-          gap: 1rem;
-        }
-
-        .hub-header-left {
-          display: flex;
-          align-items: center;
-          gap: 1rem;
-        }
-
-        .btn-back {
-          height: 36px;
-          padding: 0 1rem;
-          gap: 0.4rem;
-          background: #ffffff;
-          border: 1.5px solid #e5e2db;
-          border-radius: 8px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          cursor: pointer;
-          color: #6b7280;
-          font-family: 'DM Sans', sans-serif;
-          font-size: 0.88rem;
-          font-weight: 500;
-          transition: background 0.15s, color 0.15s;
-          flex-shrink: 0;
-        }
-
-        .btn-back:hover {
-          background: #00563f;
-          color: #ffffff;
-          border-color: #00563f;
-        }
-
-        .hub-title h1 {
-          font-family: 'Playfair Display', serif;
-          font-size: 2rem;
-          font-weight: 600;
-          color: #0a1f14;
-          margin: 0 0 0.2rem 0;
-        }
-
-        .hub-title p {
-          font-size: 0.85rem;
-          color: #9ca3af;
-          margin: 0;
-          font-weight: 300;
-        }
-
-        .btn-add {
-          display: inline-flex;
-          align-items: center;
-          gap: 0.5rem;
-          padding: 0.65rem 1.25rem;
-          background: #00563f;
-          color: #ffffff;
-          border: none;
-          border-radius: 8px;
-          font-family: 'DM Sans', sans-serif;
-          font-size: 0.88rem;
-          font-weight: 500;
-          cursor: pointer;
-          transition: background 0.15s, transform 0.1s;
-          white-space: nowrap;
-        }
-
-        .btn-add:hover { background: #003d2a; }
-        .btn-add:active { transform: scale(0.98); }
-
-        .hub-tabs {
-          display: flex;
-          background: #ffffff;
-          border: 1px solid #e5e2db;
-          border-radius: 10px;
-          overflow: hidden;
-          margin-bottom: 2rem;
-        }
-
-        .hub-tab {
-          flex: 1;
-          padding: 0.875rem 1rem;
-          background: none;
-          border: none;
-          border-bottom: 3px solid transparent;
-          font-family: 'DM Sans', sans-serif;
-          font-size: 0.88rem;
-          font-weight: 500;
-          color: #6b7280;
-          cursor: pointer;
-          transition: color 0.15s, background 0.15s, border-color 0.15s;
-          white-space: nowrap;
-        }
-
-        .hub-tab:hover { background: #f8f7f4; color: #0a1f14; }
-
-        .hub-tab.active {
-          color: #00563f;
-          border-bottom-color: #00563f;
-          background: #f0faf5;
-        }
-
-        .hub-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-          gap: 1.5rem;
-        }
-
-        .schedule-card {
-          background: #ffffff;
-          border: 1px solid #e5e2db;
-          border-radius: 10px;
-          overflow: hidden;
-          transition: box-shadow 0.2s, transform 0.2s;
-        }
-
-        .schedule-card:hover {
-          box-shadow: 0 8px 30px rgba(0,0,0,0.09);
-          transform: translateY(-2px);
-        }
-
-        .schedule-card-accent {
-          height: 4px;
-          background: linear-gradient(90deg, #00563f, #C8952C);
-        }
-
-        .schedule-card-body { padding: 1.5rem; }
-
-        .schedule-card-top {
-          display: flex;
-          align-items: flex-start;
-          justify-content: space-between;
-          margin-bottom: 1.25rem;
-        }
-
-        .schedule-card-title {
-          font-family: 'Playfair Display', serif;
-          font-size: 1.15rem;
-          font-weight: 600;
-          color: #0a1f14;
-          margin: 0 0 0.25rem 0;
-        }
-
-        .schedule-card-location { font-size: 0.8rem; color: #9ca3af; margin: 0; }
-
-        .btn-delete-schedule {
-          background: none;
-          border: none;
-          cursor: pointer;
-          color: #d1d5db;
-          padding: 0.25rem;
-          border-radius: 4px;
-          display: flex;
-          align-items: center;
-          transition: color 0.15s, background 0.15s;
-          flex-shrink: 0;
-        }
-
-        .btn-delete-schedule:hover { color: #dc2626; background: #fef2f2; }
-
-        .btn-edit-schedule {
-          width: 100%;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          gap: 0.5rem;
-          padding: 0.65rem;
-          background: #f0faf5;
-          color: #00563f;
-          border: 1px solid #c6e8d8;
-          border-radius: 7px;
-          font-family: 'DM Sans', sans-serif;
-          font-size: 0.88rem;
-          font-weight: 500;
-          cursor: pointer;
-          transition: background 0.15s, border-color 0.15s, color 0.15s;
-          box-sizing: border-box;
-        }
-
-        .btn-edit-schedule:hover {
-          background: #00563f;
-          color: #ffffff;
-          border-color: #00563f;
-        }
-
-        .hub-empty {
-          grid-column: 1 / -1;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          padding: 4rem 2rem;
-          background: #ffffff;
-          border: 2px dashed #d1d5db;
-          border-radius: 10px;
-          text-align: center;
-        }
-
-        .hub-empty h3 {
-          font-family: 'Playfair Display', serif;
-          font-size: 1.2rem;
-          color: #0a1f14;
-          margin: 0 0 0.5rem 0;
-        }
-
-        .hub-empty p {
-          color: #9ca3af;
-          font-size: 0.88rem;
-          margin: 0 0 1.5rem 0;
-          font-weight: 300;
-        }
-
-        .delete-overlay {
-          position: fixed;
-          inset: 0;
-          background: rgba(0,0,0,0.5);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          z-index: 9999;
-          backdrop-filter: blur(2px);
-        }
-
-        .delete-box {
-          background: #ffffff;
-          border-radius: 12px;
-          padding: 1.75rem;
-          max-width: 360px;
-          width: 100%;
-          box-shadow: 0 24px 60px rgba(0,0,0,0.2);
-          font-family: 'DM Sans', sans-serif;
-          text-align: center;
-        }
-
-        .delete-box-icon {
-          width: 48px;
-          height: 48px;
-          background: #fef2f2;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          margin: 0 auto 1rem;
-        }
-
-        .delete-box h3 {
-          font-family: 'Playfair Display', serif;
-          font-size: 1.1rem;
-          color: #0a1f14;
-          margin: 0 0 0.5rem 0;
-        }
-
-        .delete-box p {
-          font-size: 0.85rem;
-          color: #6b7280;
-          margin: 0 0 1.5rem 0;
-          line-height: 1.5;
-        }
-
-        .delete-box-actions { display: flex; gap: 0.75rem; }
-
-        .delete-btn-cancel {
-          flex: 1;
-          padding: 0.65rem;
-          border: 1.5px solid #e5e7eb;
-          border-radius: 8px;
-          background: #ffffff;
-          color: #6b7280;
-          font-family: 'DM Sans', sans-serif;
-          font-size: 0.85rem;
-          font-weight: 500;
-          cursor: pointer;
-          transition: background 0.15s;
-        }
-
-        .delete-btn-cancel:hover { background: #f9fafb; }
-
-        .delete-btn-confirm {
-          flex: 1;
-          padding: 0.65rem;
-          background: #dc2626;
-          color: #ffffff;
-          border: none;
-          border-radius: 8px;
-          font-family: 'DM Sans', sans-serif;
-          font-size: 0.85rem;
-          font-weight: 500;
-          cursor: pointer;
-          transition: background 0.15s;
-        }
-
-        .delete-btn-confirm:hover { background: #b91c1c; }
-      `}</style>
-
-      <div className="hub-root">
-        <div className="hub-header">
-          <div className="hub-header-left">
-            <button className="btn-back" onClick={() => navigate("/")}>
-              <ArrowLeft size={16} />
-            </button>
-            <div className="hub-title">
-              <h1>{semester.name}</h1>
-              <p>
-                {new Date(semester.startDate).toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                  year: "numeric",
-                })}
-                {" — "}
-                {new Date(semester.endDate).toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                  year: "numeric",
-                })}
-              </p>
-            </div>
-          </div>
-          {canEdit && (
-            <button
-              className="btn-add"
-              onClick={() => setShowCreateModal(true)}
-            >
-              <Plus size={16} />
-              Add Schedule Group
-            </button>
-          )}
-        </div>
-
-        <div className="hub-tabs">
-          {LEVELS.map((level) => (
-            <button
-              key={level}
-              className={`hub-tab ${activeLevel === level ? "active" : ""}`}
-              onClick={() => setActiveLevel(level)}
-            >
-              {level}
-            </button>
-          ))}
-        </div>
-
-        <div className="hub-grid">
-          {scheduleGroups.map((group) => (
-            <div key={group.id} className="schedule-card">
-              <div className="schedule-card-accent" />
-              <div className="schedule-card-body">
-                <div className="schedule-card-top">
-                  <div>
-                    <h3 className="schedule-card-title">{group.name}</h3>
-                    <p className="schedule-card-location">
-                      {group.locationNote}
-                    </p>
-                  </div>
-                  {canEdit && (
-                    <button
-                      className="btn-delete-schedule"
-                      onClick={() => setDeleteConfirm(group.id)}
-                    >
-                      <Trash2 size={15} />
-                    </button>
-                  )}
-                </div>
-                <button
-                  className="btn-edit-schedule"
-                  onClick={() => navigate(`/schedule-builder/${group.id}`)}
-                >
-                  <Edit2 size={14} />
-                  Edit Schedule
-                </button>
-              </div>
-            </div>
-          ))}
-
-          {scheduleGroups.length === 0 && (
-            <div className="hub-empty">
-              <h3>No Schedule Groups Yet</h3>
-              <p>Create a schedule group for {activeLevel}</p>
-              {canEdit && (
-                <button
-                  className="btn-add"
-                  onClick={() => setShowCreateModal(true)}
-                >
-                  <Plus size={16} />
-                  Add Schedule Group
-                </button>
+          {semester && (
+            <div className={styles.heroMeta}>
+              <span className={styles.heroDateRange}>
+                {formatDateLong(semester.startDate)} &mdash; {formatDateLong(semester.endDate)}
+              </span>
+              <Badge variant="gold" size="md">
+                Clinical Days: {semester.clinicalDays}
+              </Badge>
+              {isActive && progress && (
+                <span className={styles.heroWeekBadge}>
+                  Week {progress.week} of {progress.total}
+                </span>
               )}
             </div>
           )}
         </div>
+
+        <div className={styles.heroActions}>
+          <Button
+            variant="ghost"
+            size="md"
+            iconLeft={<StickyNote size={14} />}
+            onClick={() => setShowNotes(true)}
+          >
+            Notes
+            {noteCount > 0 && (
+              <Badge variant="gold" size="sm">{noteCount}</Badge>
+            )}
+          </Button>
+          <Button
+            variant="ghost"
+            size="md"
+            iconLeft={<History size={14} />}
+            onClick={() => navigate(`/changelog/${semIdNum}`)}
+          >
+            History
+          </Button>
+          {semester && (
+            <Button
+              variant="secondary"
+              size="md"
+              iconLeft={<Download size={14} />}
+              onClick={() =>
+                exportsApi
+                  .roster(semIdNum, semester.name)
+                  .then(() => addToast("success", "Roster exported"))
+                  .catch((err) => addToast("error", `Export failed: ${err.message || "Unknown error"}`))
+              }
+            >
+              Export
+            </Button>
+          )}
+          {canEdit && !isLocked && (
+            <Button
+              variant="secondary"
+              size="md"
+              iconLeft={<Upload size={14} />}
+              onClick={() => setShowImport(true)}
+            >
+              Import
+            </Button>
+          )}
+          {canEdit && !isLocked && (
+            <Button
+              variant="secondary"
+              size="md"
+              iconLeft={<Copy size={14} />}
+              onClick={() => setShowCloneSemester(true)}
+            >
+              Clone Semester
+            </Button>
+          )}
+          {canEdit && (
+            <Button
+              variant="primary"
+              size="md"
+              iconLeft={<Plus size={14} />}
+              disabled={isLocked}
+              onClick={() => setShowCreateModal(true)}
+            >
+              Add Schedule Group
+            </Button>
+          )}
+        </div>
       </div>
 
-      {showCreateModal && (
+      {error && <div className={styles.errorBanner}>{error}</div>}
+
+      <HairlineRule color="muted" spacing="normal" />
+
+      {/* ── tabs ── */}
+      <div className={styles.tabs}>
+        {LEVELS.map((level, i) => {
+          const isActiveTab = activeLevel === level;
+          const count = levelCounts[i + 1] ?? 0;
+          return (
+            <button
+              key={level}
+              className={`${styles.tab} ${isActiveTab ? styles.active : ""}`}
+              onClick={() => setActiveLevel(level)}
+            >
+              {level}
+              <span className={styles.tabCount}>{count}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* ── section heading + grid ── */}
+      {loading ? (
+        <div style={{ marginTop: "1rem" }}>
+          <Skeleton variant="card" height={200} />
+        </div>
+      ) : (
+        <>
+          <SectionHeading
+            number={String(activeLevelNum)}
+            title={`${scheduleList.length} schedule group${scheduleList.length !== 1 ? "s" : ""}`}
+            level="subsection"
+            action={
+              canEdit && !isLocked ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  iconLeft={<Plus size={14} />}
+                  onClick={() => setShowCreateModal(true)}
+                >
+                  Add Schedule Group
+                </Button>
+              ) : undefined
+            }
+          />
+
+          {scheduleList.length === 0 ? (
+            <EmptyState
+              icon={<Calendar size={32} />}
+              title={`Nothing scheduled for Semester ${activeLevelNum}`}
+              description="Create your first schedule group to begin building the weekly calendar."
+              action={
+                canEdit && !isLocked ? (
+                  <Button
+                    variant="primary"
+                    size="md"
+                    iconLeft={<Plus size={14} />}
+                    onClick={() => setShowCreateModal(true)}
+                  >
+                    Add Schedule Group
+                  </Button>
+                ) : undefined
+              }
+            />
+          ) : (
+            <div className={styles.grid}>
+              {scheduleList.map((schedule, idx) => {
+                const letter = String.fromCharCode(65 + idx);
+                return (
+                  <Card
+                    key={schedule.id}
+                    variant="raised"
+                    accentColor="gold"
+                    interactive
+                    onClick={() => navigate(`/schedule-builder/${schedule.id}`)}
+                  >
+                    <div className={styles.cardBody}>
+                      <div className={styles.cardTopRow}>
+                        <NumberBadge number={letter} size="sm" variant="gold" />
+                        {canEdit && !isLocked && (
+                          <div className={styles.cardActions} onClick={(e) => e.stopPropagation()}>
+                            <button
+                              className={styles.cardActionBtn}
+                              onClick={() => setCloneScheduleId(schedule.id)}
+                              title="Clone schedule"
+                            >
+                              <Copy size={14} />
+                            </button>
+                            <button
+                              className={`${styles.cardActionBtn} ${styles.cardActionBtnDanger}`}
+                              onClick={() => setDeleteConfirm(schedule.id)}
+                              title="Delete schedule"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
+                      <h3 className={styles.cardTitle}>{schedule.name}</h3>
+                      <div className={styles.cardMeta}>
+                        <MapPin size={12} />
+                        <span>{schedule.locationDisplay}</span>
+                      </div>
+
+                      <div className={styles.cardCapacity}>
+                        <CapacityMeter
+                          currentCount={schedule.students.length}
+                          capacity={schedule.capacity}
+                        />
+                      </div>
+
+                      <HairlineRule color="muted" spacing="normal" />
+                      <div className={styles.cardCta}>
+                        <span className={styles.cardCtaText}>
+                          {schedule.sections?.length ?? 0} section{(schedule.sections?.length ?? 0) !== 1 ? "s" : ""} scheduled
+                        </span>
+                        <ChevronRight size={16} className={styles.cardCtaChevron} />
+                      </div>
+                      <EditAttribution entityType="Schedule" entityId={schedule.id} />
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* ── modals ── */}
+      {showCreateModal && semester && (
         <CreateScheduleModal
-          semesterId={semesterId!}
+          semesterId={semIdNum}
           level={activeLevel}
           onClose={() => setShowCreateModal(false)}
           onSuccess={() => {
-            loadScheduleGroups();
+            loadSchedules();
+            loadSemester();
             setShowCreateModal(false);
+            addToast("success", "Schedule group created");
           }}
         />
       )}
 
-      {deleteConfirm && (
-        <div className="delete-overlay" onClick={() => setDeleteConfirm(null)}>
-          <div className="delete-box" onClick={(e) => e.stopPropagation()}>
-            <div className="delete-box-icon">
-              <Trash2 size={20} color="#dc2626" />
-            </div>
-            <h3>Delete Schedule Group?</h3>
-            <p>
-              This will permanently delete this schedule group and all its
-              associated data.
-            </p>
-            <div className="delete-box-actions">
-              <button
-                className="delete-btn-cancel"
-                onClick={() => setDeleteConfirm(null)}
-              >
-                Cancel
-              </button>
-              <button
-                className="delete-btn-confirm"
-                onClick={() => handleDeleteSchedule(deleteConfirm)}
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
+      <Modal
+        open={deleteConfirm != null}
+        onClose={() => setDeleteConfirm(null)}
+        title="Delete schedule group?"
+        subtitle="This will permanently delete this schedule group and all its associated data."
+        size="sm"
+        number="ATTENTION"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setDeleteConfirm(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={() => deleteConfirm != null && handleDeleteSchedule(deleteConfirm)}>
+              Delete
+            </Button>
+          </>
+        }
+      >
+        <p style={{ color: "var(--text-muted)", lineHeight: 1.6, margin: 0 }}>
+          Schedule groups, section assignments, and student rosters associated
+          with this schedule will all be removed.
+        </p>
+      </Modal>
+
+      <Modal
+        open={cloneScheduleId != null}
+        onClose={() => setCloneScheduleId(null)}
+        title="Duplicate schedule?"
+        subtitle="This will create a copy of this schedule group with all its sections."
+        size="sm"
+        number="CLONE"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setCloneScheduleId(null)}>Cancel</Button>
+            <Button
+              variant="primary"
+              loading={cloning}
+              onClick={() => cloneScheduleId != null && handleCloneSchedule(cloneScheduleId)}
+            >
+              {cloning ? "Cloning\u2026" : "Duplicate"}
+            </Button>
+          </>
+        }
+      >
+        <p style={{ color: "var(--text-muted)", lineHeight: 1.6, margin: 0 }}>
+          All sections will be copied to the new schedule group.
+        </p>
+      </Modal>
+
+      {showCloneSemester && semester && (
+        <CloneSemesterModal
+          source={semester}
+          onClose={() => setShowCloneSemester(false)}
+          onSuccess={(newSem) => {
+            setShowCloneSemester(false);
+            addToast("success", "Semester cloned successfully");
+            navigate(`/semester/${newSem.id}`);
+          }}
+        />
       )}
-    </>
+
+      {showImport && (
+        <StudentImportModal
+          semesterId={semIdNum}
+          onClose={() => setShowImport(false)}
+          onSuccess={() => {
+            setShowImport(false);
+            addToast("success", "Students imported successfully");
+            loadSchedules();
+          }}
+        />
+      )}
+
+      <NotesPanel
+        isOpen={showNotes}
+        onClose={() => setShowNotes(false)}
+        semesterId={semIdNum}
+      />
+    </div>
   );
 }

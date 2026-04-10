@@ -1,0 +1,84 @@
+/* card component — editorial design system */
+
+.card {
+  background: var(--paper-raised);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  position: relative;
+  overflow: hidden;
+  transition:
+    box-shadow var(--motion-base) var(--ease-out-editorial),
+    transform var(--motion-base) var(--ease-out-editorial);
+}
+
+/* accent bar — positioned at top via ::before */
+.accentGold::before,
+.accentGreen::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+}
+
+.accentGold::before {
+  background: linear-gradient(90deg, var(--gold-400), var(--gold-500));
+}
+
+.accentGreen::before {
+  background: linear-gradient(90deg, var(--green-700), var(--green-600));
+}
+
+/* variant: flat */
+.flat {
+  box-shadow: none;
+  border: 1px solid var(--cream-300);
+}
+
+/* variant: raised */
+.raised {
+  box-shadow: var(--elevation-1);
+}
+
+/* variant: elevated */
+.elevated {
+  box-shadow: var(--elevation-2);
+}
+
+/* variant: hero */
+.hero {
+  box-shadow: var(--elevation-3);
+}
+
+/* interactive hover states */
+.interactive {
+  cursor: pointer;
+}
+
+.interactive.flat:hover {
+  box-shadow: var(--elevation-1);
+  transform: translateY(-2px);
+}
+
+.interactive.raised:hover {
+  box-shadow: var(--elevation-2);
+  transform: translateY(-3px);
+}
+
+.interactive.elevated:hover {
+  box-shadow: var(--elevation-3);
+  transform: translateY(-2px);
+}
+
+.interactive.hero:hover {
+  box-shadow:
+    0 8px 16px rgba(30, 24, 12, 0.08),
+    0 24px 56px rgba(30, 24, 12, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  transform: translateY(-2px);
+}
+
+.interactive:active {
+  transform: translateY(-1px) scale(0.995);
+}

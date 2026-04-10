@@ -12,5 +12,8 @@ namespace NursingScheduler.API.DTOs.Auth
         //password in log in form
         [Required]
         public required string Password { get; set; }
+
+        //true = 30 day token, false = 8 hour token
+        public bool RememberDevice { get; set; } = false;
     }
 }

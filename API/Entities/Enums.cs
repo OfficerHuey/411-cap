@@ -9,6 +9,39 @@ namespace NursingScheduler.API.Entities
         Clinical
     }
 
+    //semester 4 courses split into term 1 and term 2
+    public enum TermType
+    {
+        Full,
+        Term1,
+        Term2
+    }
+
+    //instructor employment classification
+    public enum InstructorType
+    {
+        FullTime,
+        Adjunct,
+        Overload
+    }
+
+    //categorizes rooms by their function
+    public enum RoomType
+    {
+        Lecture,
+        Lab,
+        SimLab,
+        Clinical,
+        Online
+    }
+
+    //two-year clinical day rotation pattern
+    public enum ClinicalDayRotation
+    {
+        TuesWed,
+        ThursFri
+    }
+
     //the days of the week for the weekly grid
     //used by the day of the week section
     public enum DayOfWeekEnum
@@ -18,5 +51,21 @@ namespace NursingScheduler.API.Entities
         Wednesday,
         Thursday,
         Friday
+    }
+
+    //default landing page after login
+    public enum LandingPage
+    {
+        Dashboard,
+        SemesterHub,
+        Notes
+    }
+
+    //ui theme preference
+    public enum ThemePreference
+    {
+        System,
+        Light,
+        Dark
     }
 }

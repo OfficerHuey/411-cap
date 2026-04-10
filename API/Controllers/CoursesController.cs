@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using NursingScheduler.API.Data;
@@ -8,6 +9,7 @@ namespace NursingScheduler.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class CoursesController : ControllerBase
     {
         private readonly DataContext _context;

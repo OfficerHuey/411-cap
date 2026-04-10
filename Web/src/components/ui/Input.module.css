@@ -1,0 +1,122 @@
+/* input component — editorial design system */
+
+.wrapper {
+  display: flex;
+  flex-direction: column;
+}
+
+.fullWidth {
+  width: 100%;
+}
+
+.label {
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: var(--text-xs);
+  color: var(--text-on-paper-muted);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-widest);
+  margin-bottom: var(--space-2);
+}
+
+.fieldWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.field {
+  width: 100%;
+  background: var(--paper-raised);
+  border: 1.5px solid var(--cream-300);
+  padding: 0.875rem 1rem;
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  font-weight: 400;
+  color: var(--text-on-paper);
+  border-radius: var(--radius-md);
+  transition: border-color 150ms ease-out, box-shadow 150ms ease-out;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.field::placeholder {
+  color: var(--cream-400);
+}
+
+.field:focus {
+  border-color: var(--green-700);
+  box-shadow: 0 0 0 3px rgba(0, 61, 42, 0.12);
+}
+
+/* with left icon */
+.hasIconLeft {
+  padding-left: 2.75rem;
+}
+
+/* with right icon */
+.hasIconRight {
+  padding-right: 2.75rem;
+}
+
+.iconLeft {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-on-paper-muted);
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+.iconRight {
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-on-paper-muted);
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+/* helper / error / success text */
+.helperText {
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  margin-top: var(--space-2);
+  color: var(--text-on-paper-muted);
+}
+
+/* error state */
+.fieldError {
+  border-color: var(--error);
+}
+
+.fieldError:focus {
+  border-color: var(--error);
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12);
+}
+
+.helperError {
+  color: var(--error);
+}
+
+/* success state */
+.fieldSuccess {
+  border-color: var(--success);
+}
+
+.fieldSuccess:focus {
+  border-color: var(--success);
+  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.12);
+}
+
+.helperSuccess {
+  color: var(--success);
+}

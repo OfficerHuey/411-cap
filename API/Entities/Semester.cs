@@ -18,6 +18,13 @@ namespace NursingScheduler.API.Entities
         //for the frontend to know which days to highlight.
         public string? ClinicalDays { get; set; } 
 
+        //prevents accidental changes to finalized semesters
+        public bool IsLocked { get; set; } = false;
+
+        //dual-anchor template support for clinical day rotation cloning
+        public bool IsAnchorTemplate { get; set; } = false;
+        public ClinicalDayRotation? AnchorRotation { get; set; }
+
         //navigation properties for the relationships
         //a semester contains many buckets (schedules) and many course sections
         public ICollection<Schedule> Schedules { get; set; } = new List<Schedule>();

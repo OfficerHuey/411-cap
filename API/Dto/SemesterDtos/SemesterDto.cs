@@ -1,4 +1,5 @@
 using System;
+using NursingScheduler.API.Entities;
 
 namespace NursingScheduler.API.DTOs.Semester
 {
@@ -10,5 +11,8 @@ namespace NursingScheduler.API.DTOs.Semester
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
         public string? ClinicalDays { get; set; }
+        public bool IsLocked { get; set; }
+        public bool IsAnchorTemplate { get; set; }
+        public ClinicalDayRotation? AnchorRotation { get; set; }
     }
 }

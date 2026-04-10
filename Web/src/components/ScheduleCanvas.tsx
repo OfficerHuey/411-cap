@@ -1,84 +1,128 @@
-import { useRef, useEffect, useState } from "react";
-import "../App.css";
-import { Plus, Trash2, Pencil } from "lucide-react";
-import { useDrop } from "react-dnd";
-import { dataStore } from "../Lib/Store";
-import type {
-  ScheduleGroup,
-  Course,
-  CourseSection,
-  ScheduleSection,
-} from "../Lib/Types";
+import { useRef, useEffect, useState, useMemo, useCallback } from "react";
+import { Plus, Trash2, Pencil, Building2, AlertTriangle, Info } from "lucide-react";
+import { useDrop, useDrag } from "react-dnd";
+import { sections as sectionsApi } from "../Lib/api";
+import type { Schedule, Course, Section } from "../Lib/Types";
+import { courseTypeColor, dayOfWeekName, timeSpanToDisplay } from "../Lib/Types";
 import { CourseDetailsModal } from "./CourseDetailsModal";
+import { ConflictBanner } from "./ConflictBanner";
+import type { ConflictEntry } from "./ConflictBanner";
+import { useToast } from "../Lib/ToastContext";
+import { NumberBadge } from "./ui/NumberBadge";
+import { Modal } from "./ui/Modal";
+import { Button } from "./ui/Button";
+import { EditAttribution } from "./EditAttribution";
+import styles from "./ScheduleCanvas.module.css";
 
 interface ScheduleCanvasProps {
-  scheduleGroup: ScheduleGroup;
+  schedule: Schedule;
+  semesterId: number;
   isSemester5: boolean;
   courses: Course[];
-  courseSections: CourseSection[];
-  scheduleSections: ScheduleSection[];
+  isLocked: boolean;
   onRefresh: () => void;
   onDrop: (
-    courseId: string,
+    courseId: number,
     dayOfWeek?: string,
     timeSlot?: string,
     dateRange?: string,
   ) => void;
+  onInstructorClick?: (instructorId: number) => void;
 }
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
-const TIME_SLOTS = [
-  "7:00 AM",
-  "8:00 AM",
-  "9:00 AM",
-  "10:00 AM",
-  "11:00 AM",
-  "12:00 PM",
-  "1:00 PM",
-  "2:00 PM",
-  "3:00 PM",
-  "4:00 PM",
-  "5:00 PM",
-];
+
+//30-min slots from 7:00am to 7:00pm
+const SLOT_START_HOUR = 7;
+const SLOT_END_HOUR = 19;
+const SLOT_HEIGHT = 32;
+const SLOTS: string[] = [];
+for (let h = SLOT_START_HOUR; h < SLOT_END_HOUR; h++) {
+  for (let m = 0; m < 60; m += 30) {
+    const period = h >= 12 ? "PM" : "AM";
+    const displayHour = h === 0 ? 12 : h > 12 ? h - 12 : h;
+    SLOTS.push(`${displayHour}:${m.toString().padStart(2, "0")} ${period}`);
+  }
+}
 
 interface DropItem {
-  courseId: string;
+  courseId: number;
   courseCode: string;
   courseType: string;
 }
 
+interface PlacedSectionDragItem {
+  type: "placed-section";
+  sectionId: number;
+  durationMinutes: number;
+  fromDay: string;
+  fromStartTime: string;
+  courseCode: string;
+}
+
 interface DeleteConfirm {
-  scheduleSectionId: string;
+  sectionId: number;
   courseCode: string;
   dayOfWeek?: string;
   timeSlot?: string;
 }
 
 interface EditModal {
-  courseSection: CourseSection;
+  section: Section;
   course: Course;
+}
+
+//parse "HH:mm:ss" timespan to total minutes from midnight
+function timeSpanToMinutes(ts: string | null): number {
+  if (!ts) return 0;
+  const parts = ts.split(":");
+  return parseInt(parts[0]) * 60 + parseInt(parts[1]);
+}
+
+//convert slot label like "8:00 AM" to "08:00:00" timespan format
+function slotLabelToTimeSpan(label: string): string | null {
+  const match = label.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  if (!match) return null;
+  let h = parseInt(match[1]);
+  const m = parseInt(match[2]);
+  const period = match[3].toUpperCase();
+  if (period === "PM" && h !== 12) h += 12;
+  if (period === "AM" && h === 12) h = 0;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:00`;
 }
 
 function DropZone({
   day,
   time,
   onDrop,
+  onPlacedMove,
 }: {
   day?: string;
   time?: string;
-  onDrop: (courseId: string, day?: string, time?: string) => void;
+  onDrop: (courseId: number, day?: string, time?: string) => void;
+  onPlacedMove: (sectionId: number, durationMinutes: number, day?: string, time?: string) => void;
 }) {
   const elementRef = useRef<HTMLDivElement>(null);
   const onDropRef = useRef(onDrop);
+  const onPlacedMoveRef = useRef(onPlacedMove);
 
   useEffect(() => {
     onDropRef.current = onDrop;
   }, [onDrop]);
 
+  useEffect(() => {
+    onPlacedMoveRef.current = onPlacedMove;
+  }, [onPlacedMove]);
+
   const [{ isOver }, drop] = useDrop(() => ({
-    accept: "course",
-    drop: (item: DropItem) => {
-      onDropRef.current(item.courseId, day, time);
+    accept: ["course", "placed-section"],
+    drop: (item: DropItem | PlacedSectionDragItem) => {
+      if ((item as PlacedSectionDragItem).type === "placed-section") {
+        const placed = item as PlacedSectionDragItem;
+        onPlacedMoveRef.current(placed.sectionId, placed.durationMinutes, day, time);
+      } else {
+        onDropRef.current((item as DropItem).courseId, day, time);
+      }
     },
     collect: (monitor) => ({ isOver: !!monitor.isOver() }),
   }));
@@ -87,22 +131,14 @@ function DropZone({
   return (
     <div
       ref={elementRef}
-      style={{
-        minHeight: "56px",
-        borderRadius: "4px",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        transition: "background 0.15s",
-        background: isOver ? "rgba(0, 86, 63, 0.06)" : "transparent",
-      }}
+      className={`${styles.dropZoneInner} ${isOver ? styles.over : ""}`}
     >
-      {isOver && <Plus size={14} color="#00563f" />}
+      {isOver && <Plus size={12} color="var(--gold-500)" />}
     </div>
   );
 }
 
-function Semester5DropZone({ onDrop }: { onDrop: (courseId: string) => void }) {
+function Semester5DropZone({ onDrop }: { onDrop: (courseId: number) => void }) {
   const elementRef = useRef<HTMLDivElement>(null);
   const onDropRef = useRef(onDrop);
 
@@ -122,46 +158,263 @@ function Semester5DropZone({ onDrop }: { onDrop: (courseId: string) => void }) {
   return (
     <div
       ref={elementRef}
-      style={{
-        border: `2px dashed ${isOver ? "#00563f" : "#d1d5db"}`,
-        borderRadius: "10px",
-        padding: "2rem",
-        textAlign: "center",
-        background: isOver ? "rgba(0, 86, 63, 0.04)" : "transparent",
-        transition: "all 0.15s",
-      }}
+      className={`${styles.sem5DropZone} ${isOver ? styles.over : ""}`}
     >
       <Plus
         size={28}
-        color={isOver ? "#00563f" : "#9ca3af"}
+        color={isOver ? "var(--gold-500)" : "var(--text-faint)"}
         style={{ margin: "0 auto 0.5rem" }}
       />
-      <p
-        style={{
-          fontSize: "0.85rem",
-          color: "#9ca3af",
-          margin: 0,
-          fontFamily: "DM Sans, sans-serif",
-        }}
-      >
+      <p className={styles.sem5DropText}>
         Drop course here to add to schedule
       </p>
     </div>
   );
 }
 
+//draggable course block sub-component — hooks can't be called inside map
+function DraggableCourseBlock({
+  section,
+  course,
+  top,
+  height,
+  color,
+  startDisplay,
+  endDisplay,
+  sectionConflicts,
+  hasHard,
+  hasSoft: _hasSoft,
+  hasInfo,
+  conflictClass,
+  isLocked,
+  day,
+  bannerVisible,
+  onEdit,
+  onDelete,
+  onTooltipEnter,
+  onTooltipLeave,
+  tooltipSection,
+  tooltipPos,
+  onInstructorClick,
+}: {
+  section: Section;
+  course: Course;
+  top: number;
+  height: number;
+  color: string;
+  startDisplay: string;
+  endDisplay: string;
+  sectionConflicts: ConflictEntry[];
+  hasHard: boolean;
+  hasSoft: boolean;
+  hasInfo: boolean;
+  conflictClass: string;
+  isLocked: boolean;
+  day: string;
+  bannerVisible: boolean;
+  onEdit: () => void;
+  onDelete: () => void;
+  onTooltipEnter: (sectionId: number, e: React.MouseEvent) => void;
+  onTooltipLeave: () => void;
+  tooltipSection: number | null;
+  tooltipPos: { x: number; y: number };
+  onInstructorClick?: (instructorId: number) => void;
+}) {
+  const elementRef = useRef<HTMLDivElement>(null);
+
+  const durationMinutes =
+    timeSpanToMinutes(section.endTime) - timeSpanToMinutes(section.startTime);
+
+  const [{ isDragging }, drag] = useDrag(
+    () => ({
+      type: "placed-section",
+      item: {
+        type: "placed-section" as const,
+        sectionId: section.id,
+        durationMinutes,
+        fromDay: section.dayOfWeek ?? "",
+        fromStartTime: section.startTime ?? "",
+        courseCode: section.courseCode,
+      },
+      canDrag: !isLocked,
+      collect: (monitor) => ({ isDragging: !!monitor.isDragging() }),
+    }),
+    [section.id, section.dayOfWeek, section.startTime, section.endTime, isLocked],
+  );
+
+  drag(elementRef);
+
+  const tooltipId = `conflict-tip-${section.id}`;
+  const tooltipSuppressed = bannerVisible;
+
+  const handleMouseEnter = (e: React.MouseEvent) => {
+    if (tooltipSuppressed) return;
+    onTooltipEnter(section.id, e);
+  };
+
+  const handleMouseLeave = () => {
+    if (tooltipSuppressed) return;
+    onTooltipLeave();
+  };
+
+  return (
+    <div
+      ref={elementRef}
+      id={`section-block-${section.id}`}
+      className={`${styles.courseBlock}${conflictClass}${isDragging ? " " + styles.dragging : ""}`}
+      tabIndex={0}
+      style={{
+        top,
+        height: Math.max(height - 2, SLOT_HEIGHT - 2),
+        background: `linear-gradient(135deg, ${color}d9, ${color})`,
+        borderLeft: `3px solid ${color}`,
+        cursor: isLocked ? "default" : "grab",
+      }}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      onFocus={(e) => {
+        if (!tooltipSuppressed) onTooltipEnter(section.id, e as unknown as React.MouseEvent);
+      }}
+      onBlur={() => {
+        if (!tooltipSuppressed) onTooltipLeave();
+      }}
+      aria-describedby={sectionConflicts.length > 0 ? tooltipId : undefined}
+    >
+      {sectionConflicts.length > 0 && (
+        <span
+          className={styles.conflictIcon}
+          tabIndex={0}
+          role="img"
+          aria-label={sectionConflicts.map((c) => `${c.type}: ${c.message}`).join("; ")}
+          onFocus={(e) => {
+            e.stopPropagation();
+            if (!tooltipSuppressed) onTooltipEnter(section.id, e as unknown as React.MouseEvent);
+          }}
+          onBlur={onTooltipLeave}
+        >
+          {hasHard ? (
+            <AlertTriangle size={10} color="#fca5a5" />
+          ) : hasInfo ? (
+            <Info size={10} color="#93c5fd" />
+          ) : (
+            <AlertTriangle size={10} color="#fcd34d" />
+          )}
+        </span>
+      )}
+      <div className={`${styles.courseBlockInner}${sectionConflicts.length > 0 ? " " + styles.hasConflict : ""}`}>
+        {!isLocked && (
+          <div className={styles.courseBlockActions}>
+            <button
+              className={`${styles.courseBlockBtn} ${styles.edit}`}
+              onClick={(e) => { e.stopPropagation(); onEdit(); }}
+              aria-label="Edit section"
+            >
+              <Pencil size={12} />
+            </button>
+            <button
+              className={`${styles.courseBlockBtn} ${styles.delete}`}
+              onClick={(e) => { e.stopPropagation(); onDelete(); }}
+              aria-label="Delete section"
+            >
+              <Trash2 size={12} />
+            </button>
+          </div>
+        )}
+        <div className={styles.blockTime}>
+          {startDisplay} &ndash; {endDisplay}
+        </div>
+        <div className={styles.blockCode}>
+          {section.courseCode}
+        </div>
+        <div className={styles.blockSec}>
+          Sec {section.sectionNumber}
+        </div>
+        {height > SLOT_HEIGHT * 2 && (
+          <>
+            {section.roomNumber && (
+              <div className={styles.blockRoom}>
+                <Building2 size={9} style={{ display: "inline", verticalAlign: "middle", marginRight: "2px", opacity: 0.85 }} />
+                {section.roomBuilding} {section.roomNumber}
+              </div>
+            )}
+            {section.instructorName && (
+              <div
+                className={styles.blockInstructor}
+                onClick={(e) => {
+                  if (onInstructorClick && section.instructorId) {
+                    e.stopPropagation();
+                    onInstructorClick(section.instructorId);
+                  }
+                }}
+                style={onInstructorClick && section.instructorId ? { cursor: "pointer" } : undefined}
+              >
+                {section.instructorName}
+              </div>
+            )}
+            {section.term && section.term !== "Full" && (
+              <span className={styles.blockTerm}>
+                {section.term === "Term1" ? "T1" : "T2"}
+              </span>
+            )}
+            {course.defaultType === "Clinical" && (
+              <div className={styles.blockPreclinical}>
+                Pre-clinical: typically the day before
+              </div>
+            )}
+          </>
+        )}
+        {height > SLOT_HEIGHT * 3 && (
+          <div className={styles.blockAttribution}>
+            <EditAttribution entityType="Section" entityId={section.id} />
+          </div>
+        )}
+      </div>
+
+      {!tooltipSuppressed && tooltipSection === section.id && (
+        <div
+          id={tooltipId}
+          role="tooltip"
+          className={styles.blockTooltip}
+          style={{ left: tooltipPos.x, top: tooltipPos.y }}
+        >
+          <div style={{ fontWeight: 600, marginBottom: "0.3rem" }}>
+            {section.courseCode} &mdash; {section.courseName}
+          </div>
+          <div className={styles.tooltipRow}><span className={styles.tooltipLabel}>Section:</span> <span className={styles.tooltipValue}>{section.sectionNumber}</span></div>
+          <div className={styles.tooltipRow}><span className={styles.tooltipLabel}>Time:</span> <span className={styles.tooltipValue}>{startDisplay} &ndash; {endDisplay}</span></div>
+          <div className={styles.tooltipRow}><span className={styles.tooltipLabel}>Day:</span> <span className={styles.tooltipValue}>{day}</span></div>
+          {section.roomNumber && (
+            <div className={styles.tooltipRow}><span className={styles.tooltipLabel}>Room:</span> <span className={styles.tooltipValue}>{section.roomBuilding} {section.roomNumber}</span></div>
+          )}
+          {section.instructorName && (
+            <div className={styles.tooltipRow}><span className={styles.tooltipLabel}>Instructor:</span> <span className={styles.tooltipValue}>{section.instructorName}</span></div>
+          )}
+          {section.term && section.term !== "Full" && (
+            <div className={styles.tooltipRow}><span className={styles.tooltipLabel}>Term:</span> <span className={styles.tooltipValue}>{section.term === "Term1" ? "Term 1" : "Term 2"}</span></div>
+          )}
+          {sectionConflicts.map((c, ci) => (
+            <div key={ci} className={styles.tooltipConflict} style={{ color: c.severity === "Error" ? "#fca5a5" : c.severity === "Warning" ? "#fcd34d" : "#93c5fd" }}>
+              {c.severity === "Error" ? "\u26a0" : c.severity === "Warning" ? "\u26a0" : "\u2139"} {c.type}: {c.message}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function ScheduleCanvas({
-  scheduleGroup,
+  schedule,
+  semesterId,
   isSemester5,
   courses,
-  courseSections,
-  scheduleSections,
+  isLocked,
   onRefresh,
   onDrop,
+  onInstructorClick,
 }: ScheduleCanvasProps) {
-  const [deleteConfirm, setDeleteConfirm] = useState<DeleteConfirm | null>(
-    null,
-  );
+  const { addToast } = useToast();
+  const [deleteConfirm, setDeleteConfirm] = useState<DeleteConfirm | null>(null);
   const [editModal, setEditModal] = useState<EditModal | null>(null);
 
   const getCourseSectionsForSchedule = () => {
@@ -229,14 +482,7 @@ export function ScheduleCanvas({
 
         .canvas-body { padding: 1rem; overflow-x: auto; }
 
-        .canvas-table {
-          width: 100%;
-          border-collapse: collapse;
-          font-size: 0.82rem;
-          border: 1px solid #e5e2db;
-          border-radius: 10px;
-          overflow: hidden;
-        }
+        .canvas-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
 
         .canvas-table th {
           padding: 0.6rem 0.75rem;
@@ -250,11 +496,6 @@ export function ScheduleCanvas({
           background: #00563f;
           border: 1px solid #004d38;
         }
-
-        .canvas-table th:first-child { border-top-left-radius: 10px; }
-        .canvas-table th:last-child { border-top-right-radius: 10px; }
-        .canvas-table tr:last-child td:first-child { border-bottom-left-radius: 10px; }
-        .canvas-table tr:last-child td:last-child { border-bottom-right-radius: 10px; }
 
         .canvas-table th.time-col { background: #003d2a; width: 80px; }
         .canvas-table td { border: 1px solid #e5e2db; vertical-align: top; padding: 0; }
@@ -414,192 +655,248 @@ export function ScheduleCanvas({
           <h3>{isSemester5 ? "Rotation Schedule" : "Weekly Calendar"}</h3>
         </div>
 
-        <div className="canvas-body">
+        <div className={styles.body}>
+          {!isSemester5 && (
+            <ConflictBanner conflicts={allConflicts} onJumpTo={handleJumpTo} />
+          )}
           {isSemester5 ? (
-            <div>
-              {scheduledSections.map(
-                ({ scheduleSection, courseSection, course }) => (
-                  <div
-                    key={courseSection.id}
-                    className="sem5-card"
-                    style={{ borderLeftColor: course.color }}
-                  >
-                    <div>
-                      <p className="sem5-card-title">{course.code}</p>
-                      <p className="sem5-card-name">{course.name}</p>
-                      {courseSection.dateRange && (
-                        <p className="sem5-card-date">
-                          {courseSection.dateRange}
-                        </p>
-                      )}
-                      {courseSection.classroom && (
-                        <p className="sem5-card-room">
-                          📍 {courseSection.classroom}
-                        </p>
-                      )}
-                      {courseSection.notes && (
-                        <p
-                          style={{
-                            fontSize: "0.75rem",
-                            color: "#9ca3af",
-                            margin: "0.2rem 0 0",
-                          }}
-                        >
-                          {courseSection.notes}
-                        </p>
-                      )}
-                    </div>
-                    <div className="sem5-card-right">
-                      <span className="sem5-section-badge">
-                        Section {courseSection.sectionNumber}
-                      </span>
-                      <button
-                        className="sem5-action-btn edit"
-                        onClick={() => setEditModal({ courseSection, course })}
+            <div style={{ padding: "1.5rem", display: "flex", flexDirection: "column", gap: "1rem" }}>
+              {scheduledSections.map(({ section, course }) => (
+                <div
+                  key={section.id}
+                  className={styles.sem5Card}
+                  style={{ borderLeftColor: getColor(course) }}
+                >
+                  <div>
+                    <p className={styles.sem5CardCode}>{section.courseCode}</p>
+                    <p className={styles.sem5CardName}>{section.courseName}</p>
+                    {section.dateRange && (
+                      <p className={styles.sem5CardDate}>{section.dateRange}</p>
+                    )}
+                    {section.roomNumber && (
+                      <p className={styles.sem5CardRoom}>
+                        {section.roomBuilding} {section.roomNumber}
+                      </p>
+                    )}
+                    {section.instructorName && (
+                      <p
+                        style={{
+                          fontSize: "0.78rem",
+                          color: "var(--text-muted)",
+                          margin: "0.2rem 0 0",
+                          cursor: onInstructorClick && section.instructorId ? "pointer" : undefined,
+                        }}
+                        onClick={() => {
+                          if (onInstructorClick && section.instructorId) onInstructorClick(section.instructorId);
+                        }}
                       >
-                        <Pencil size={14} />
-                      </button>
-                      <button
-                        className="sem5-action-btn delete"
-                        onClick={() =>
-                          setDeleteConfirm({
-                            scheduleSectionId: scheduleSection.id,
-                            courseCode: course.code,
-                          })
-                        }
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
+                        {section.instructorName}
+                      </p>
+                    )}
+                    {section.notes && (
+                      <p style={{ fontSize: "0.75rem", color: "var(--text-faint)", margin: "0.2rem 0 0" }}>
+                        {section.notes}
+                      </p>
+                    )}
+                    {course.defaultType === "Clinical" && (
+                      <p className={styles.sem5Preclinical}>
+                        Pre-clinical: typically the day before
+                      </p>
+                    )}
+                    <EditAttribution entityType="Section" entityId={section.id} />
                   </div>
-                ),
+                  <div className={styles.sem5CardRight}>
+                    <span className={styles.sem5SectionBadge}>
+                      Section {section.sectionNumber}
+                    </span>
+                    {!isLocked && (
+                      <>
+                        <button
+                          className={`${styles.sem5ActionBtn} ${styles.edit}`}
+                          onClick={() => setEditModal({ section, course })}
+                        >
+                          <Pencil size={14} />
+                        </button>
+                        <button
+                          className={`${styles.sem5ActionBtn} ${styles.delete}`}
+                          onClick={() =>
+                            setDeleteConfirm({
+                              sectionId: section.id,
+                              courseCode: section.courseCode,
+                            })
+                          }
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              ))}
+              {!isLocked && (
+                <Semester5DropZone
+                  onDrop={(courseId) => onDrop(courseId, undefined, undefined, "")}
+                />
               )}
-              <Semester5DropZone
-                onDrop={(courseId) =>
-                  onDrop(courseId, undefined, undefined, "")
-                }
-              />
             </div>
           ) : (
-            <table className="canvas-table">
-              <thead>
-                <tr>
-                  <th className="time-col">Time</th>
-                  {DAYS.map((day) => (
-                    <th key={day}>{day}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {TIME_SLOTS.map((time) => (
-                  <tr key={time}>
-                    <td className="time-cell">{time}</td>
-                    {DAYS.map((day) => {
-                      const section = getSectionForSlot(day, time);
+            <div className={styles.calGrid}>
+              {/* header row */}
+              <div className={styles.calCorner} />
+              {DAYS.map((day) => (
+                <div key={day} className={styles.calDayHeader}>{day}</div>
+              ))}
+
+              {/* time column */}
+              <div className={styles.calTimeCol}>
+                {SLOTS.map((slot, i) => (
+                  <div
+                    key={slot}
+                    className={`${styles.calTimeLabel} ${i % 2 === 0 ? styles.hourMark : ""}`}
+                    style={{ height: SLOT_HEIGHT }}
+                  >
+                    {i % 2 === 0 ? slot : ""}
+                  </div>
+                ))}
+              </div>
+
+              {/* day columns with positioned blocks */}
+              {DAYS.map((day) => {
+                const daySections = scheduledSections.filter(({ section }) => {
+                  return section.dayOfWeek != null && dayOfWeekName(section.dayOfWeek) === day;
+                });
+
+                const originMins = SLOT_START_HOUR * 60;
+
+                return (
+                  <div
+                    key={day}
+                    className={styles.calDayCol}
+                    style={{ height: totalHeight }}
+                  >
+                    {/* slot grid lines */}
+                    {SLOTS.map((_, i) => (
+                      <div
+                        key={i}
+                        className={`${styles.calSlotLine} ${i % 2 === 0 ? styles.hourMark : ""}`}
+                        style={{ top: (i + 1) * SLOT_HEIGHT }}
+                      />
+                    ))}
+
+                    {/* drop zones for empty slots */}
+                    {!isLocked && SLOTS.map((slot, i) => {
+                      const slotMins = originMins + i * 30;
+                      const key = `${day}-${slotMins}`;
+                      if (occupiedSlots.has(key)) return null;
+
                       return (
-                        <td key={`${day}-${time}`}>
-                          {section ? (
-                            <div
-                              className="course-block"
-                              style={{ backgroundColor: section.course.color }}
-                            >
-                              <div className="course-block-actions">
-                                <button
-                                  className="course-block-btn edit"
-                                  onClick={() =>
-                                    setEditModal({
-                                      courseSection: section.courseSection,
-                                      course: section.course,
-                                    })
-                                  }
-                                >
-                                  <Pencil size={10} />
-                                </button>
-                                <button
-                                  className="course-block-btn delete"
-                                  onClick={() =>
-                                    setDeleteConfirm({
-                                      scheduleSectionId:
-                                        section.scheduleSection.id,
-                                      courseCode: section.course.code,
-                                      dayOfWeek:
-                                        section.courseSection.dayOfWeek,
-                                      timeSlot: section.courseSection.timeSlot,
-                                    })
-                                  }
-                                >
-                                  <Trash2 size={10} />
-                                </button>
-                              </div>
-                              <div className="course-block-code">
-                                {section.course.code}
-                              </div>
-                              <div className="course-block-sec">
-                                Sec {section.courseSection.sectionNumber}
-                              </div>
-                              {section.courseSection.classroom && (
-                                <div className="course-block-room">
-                                  📍 {section.courseSection.classroom}
-                                </div>
-                              )}
-                              {section.courseSection.notes && (
-                                <div className="course-block-notes">
-                                  {section.courseSection.notes}
-                                </div>
-                              )}
-                            </div>
-                          ) : (
-                            <DropZone day={day} time={time} onDrop={onDrop} />
-                          )}
-                        </td>
+                        <div
+                          key={i}
+                          className={styles.calDropZone}
+                          style={{
+                            top: i * SLOT_HEIGHT,
+                            height: SLOT_HEIGHT,
+                          }}
+                        >
+                          <DropZone
+                            day={day}
+                            time={slot}
+                            onDrop={onDrop}
+                            onPlacedMove={handlePlacedMove}
+                          />
+                        </div>
                       );
                     })}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+
+                    {/* course blocks */}
+                    {daySections.map(({ section, course }) => {
+                      const startMins = timeSpanToMinutes(section.startTime);
+                      const endMins = timeSpanToMinutes(section.endTime);
+                      const top = ((startMins - originMins) / 30) * SLOT_HEIGHT;
+                      const height = ((endMins - startMins) / 30) * SLOT_HEIGHT;
+                      const color = getColor(course);
+                      const startDisplay = timeSpanToDisplay(section.startTime);
+                      const endDisplay = timeSpanToDisplay(section.endTime);
+                      const sectionConflicts = sectionConflictMap.get(section.id) || [];
+                      const hasHard = sectionConflicts.some((c) => c.severity === "Error");
+                      const hasSoft = sectionConflicts.some((c) => c.severity === "Warning");
+                      const hasInfo = sectionConflicts.some((c) => c.severity === "Info");
+                      const conflictClass = hasHard ? ` ${styles.conflictHard}` : hasSoft ? ` ${styles.conflictSoft}` : "";
+
+                      return (
+                        <DraggableCourseBlock
+                          key={section.id}
+                          section={section}
+                          course={course}
+                          top={top}
+                          height={height}
+                          color={color}
+                          startDisplay={startDisplay}
+                          endDisplay={endDisplay}
+                          sectionConflicts={sectionConflicts}
+                          hasHard={hasHard}
+                          hasSoft={hasSoft}
+                          hasInfo={hasInfo}
+                          conflictClass={conflictClass}
+                          isLocked={isLocked}
+                          day={day}
+                          bannerVisible={bannerVisible}
+                          onEdit={() => setEditModal({ section, course })}
+                          onDelete={() =>
+                            setDeleteConfirm({
+                              sectionId: section.id,
+                              courseCode: section.courseCode,
+                              dayOfWeek: day,
+                              timeSlot: startDisplay,
+                            })
+                          }
+                          onTooltipEnter={handleTooltipEnter}
+                          onTooltipLeave={() => setTooltipSection(null)}
+                          tooltipSection={tooltipSection}
+                          tooltipPos={tooltipPos}
+                          onInstructorClick={onInstructorClick}
+                        />
+                      );
+                    })}
+                  </div>
+                );
+              })}
+            </div>
           )}
         </div>
       </div>
 
-      {deleteConfirm && (
-        <div className="delete-overlay" onClick={() => setDeleteConfirm(null)}>
-          <div className="delete-box" onClick={(e) => e.stopPropagation()}>
-            <div className="delete-box-icon">
-              <Trash2 size={20} color="#dc2626" />
-            </div>
-            <h3>Remove from Schedule?</h3>
-            <p>
-              This will remove <strong>{deleteConfirm.courseCode}</strong>
-              {deleteConfirm.dayOfWeek && ` on ${deleteConfirm.dayOfWeek}`}
-              {deleteConfirm.timeSlot && ` at ${deleteConfirm.timeSlot}`} from
-              the schedule.
-            </p>
-            <div className="delete-box-actions">
-              <button
-                className="delete-btn-cancel"
-                onClick={() => setDeleteConfirm(null)}
-              >
-                Cancel
-              </button>
-              <button
-                className="delete-btn-confirm"
-                onClick={() => handleDelete(deleteConfirm.scheduleSectionId)}
-              >
-                Remove
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <Modal
+        open={deleteConfirm != null}
+        onClose={() => setDeleteConfirm(null)}
+        title="Remove from schedule?"
+        subtitle={deleteConfirm ? `${deleteConfirm.courseCode}${deleteConfirm.dayOfWeek ? ` on ${deleteConfirm.dayOfWeek}` : ""}${deleteConfirm.timeSlot ? ` at ${deleteConfirm.timeSlot}` : ""}` : ""}
+        size="sm"
+        number="ATTENTION"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setDeleteConfirm(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={() => deleteConfirm && handleDelete(deleteConfirm.sectionId)}>
+              Remove
+            </Button>
+          </>
+        }
+      >
+        <p style={{ color: "var(--text-muted)", lineHeight: 1.6, margin: 0 }}>
+          This will remove the section from this schedule group.
+        </p>
+      </Modal>
 
-      {editModal && (
+      {editModal && !isLocked && (
         <CourseDetailsModal
-          scheduleGroupId={scheduleGroup.id}
+          scheduleId={schedule.id}
+          semesterId={schedule.semesterId}
           courseId={editModal.course.id}
           isSemester5={isSemester5}
+          semesterLevel={schedule.semesterLevel}
           courses={courses}
-          editSection={editModal.courseSection}
+          locationDisplay={schedule.locationDisplay}
+          editSection={editModal.section}
           onClose={() => setEditModal(null)}
           onSuccess={() => {
             onRefresh();

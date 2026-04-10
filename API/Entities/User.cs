@@ -7,7 +7,7 @@ namespace NursingScheduler.API.Entities
         //pk
         public int Id { get; set; }
 
-    
+
         public required string UserName { get; set; } //admin login ID
 
         //never store the actual password
@@ -16,5 +16,10 @@ namespace NursingScheduler.API.Entities
         public required byte[] PasswordSalt { get; set; }
 
         public string Role { get; set; } = "Admin"; //default role
+
+        //profile preferences
+        public string? DisplayName { get; set; }
+        public LandingPage DefaultLandingPage { get; set; } = LandingPage.Dashboard;
+        public ThemePreference ThemePreference { get; set; } = ThemePreference.System;
     }
 }

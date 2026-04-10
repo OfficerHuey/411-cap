@@ -30,6 +30,12 @@ namespace API.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<int>("DefaultLandingPage")
+                        .HasColumnType("int");
+
+                    b.Property<string>("DisplayName")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<byte[]>("PasswordHash")
                         .IsRequired()
                         .HasColumnType("varbinary(max)");
@@ -42,6 +48,9 @@ namespace API.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int>("ThemePreference")
+                        .HasColumnType("int");
+
                     b.Property<string>("UserName")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -49,6 +58,43 @@ namespace API.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Users");
+                });
+
+            modelBuilder.Entity("NursingScheduler.API.Entities.ChangeLog", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Changes")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("EntityId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("EntityType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PerformedBy")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("SemesterId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("Timestamp")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ChangeLogs");
                 });
 
             modelBuilder.Entity("NursingScheduler.API.Entities.Course", b =>
@@ -62,6 +108,15 @@ namespace API.Migrations
                     b.Property<string>("Code")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("CreditHours")
+                        .HasColumnType("int");
+
+                    b.Property<int>("DefaultLabCapacity")
+                        .HasColumnType("int");
+
+                    b.Property<int>("DefaultLectureCapacity")
+                        .HasColumnType("int");
 
                     b.Property<int>("DefaultType")
                         .HasColumnType("int");
@@ -78,6 +133,146 @@ namespace API.Migrations
                     b.ToTable("Courses");
                 });
 
+            modelBuilder.Entity("NursingScheduler.API.Entities.Instructor", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Email")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Phone")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Instructors");
+                });
+
+            modelBuilder.Entity("NursingScheduler.API.Entities.Note", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AuthorId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDone")
+                        .HasColumnType("bit");
+
+                    b.Property<int?>("ScheduleId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("SectionId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("SemesterId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AuthorId");
+
+                    b.HasIndex("ScheduleId");
+
+                    b.HasIndex("SectionId");
+
+                    b.HasIndex("SemesterId");
+
+                    b.ToTable("Notes");
+                });
+
+            modelBuilder.Entity("NursingScheduler.API.Entities.PasswordResetToken", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<byte[]>("TokenHash")
+                        .IsRequired()
+                        .HasColumnType("varbinary(max)");
+
+                    b.Property<DateTime?>("UsedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("PasswordResetTokens");
+                });
+
+            modelBuilder.Entity("NursingScheduler.API.Entities.Room", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Building")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Campus")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Capacity")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsRequestOnly")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("RoomNumber")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Rooms");
+                });
+
             modelBuilder.Entity("NursingScheduler.API.Entities.Schedule", b =>
                 {
                     b.Property<int>("Id")
@@ -85,6 +280,11 @@ namespace API.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("Capacity")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(8);
 
                     b.Property<string>("LocationDisplay")
                         .HasColumnType("nvarchar(max)");
@@ -97,6 +297,9 @@ namespace API.Migrations
                         .HasColumnType("int");
 
                     b.Property<int>("SemesterLevel")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SortOrder")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
@@ -149,8 +352,14 @@ namespace API.Migrations
                     b.Property<TimeSpan?>("EndTime")
                         .HasColumnType("time");
 
+                    b.Property<int?>("InstructorId")
+                        .HasColumnType("int");
+
                     b.Property<string>("Notes")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("RoomId")
+                        .HasColumnType("int");
 
                     b.Property<string>("SectionNumber")
                         .IsRequired()
@@ -162,13 +371,56 @@ namespace API.Migrations
                     b.Property<TimeSpan?>("StartTime")
                         .HasColumnType("time");
 
+                    b.Property<int?>("Term")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("TermEndDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("TermStartDate")
+                        .HasColumnType("datetime2");
+
                     b.HasKey("Id");
 
                     b.HasIndex("CourseId");
 
+                    b.HasIndex("InstructorId");
+
+                    b.HasIndex("RoomId");
+
                     b.HasIndex("SemesterId");
 
                     b.ToTable("Sections");
+                });
+
+            modelBuilder.Entity("NursingScheduler.API.Entities.SectionInstructor", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("InstructorId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SectionId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal?>("WorkloadOverride")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<string>("WorkloadOverrideReason")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InstructorId");
+
+                    b.HasIndex("SectionId");
+
+                    b.ToTable("SectionInstructors");
                 });
 
             modelBuilder.Entity("NursingScheduler.API.Entities.Semester", b =>
@@ -179,11 +431,20 @@ namespace API.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<int?>("AnchorRotation")
+                        .HasColumnType("int");
+
                     b.Property<string>("ClinicalDays")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("EndDate")
                         .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsAnchorTemplate")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsLocked")
+                        .HasColumnType("bit");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -227,6 +488,49 @@ namespace API.Migrations
                     b.ToTable("Students");
                 });
 
+            modelBuilder.Entity("NursingScheduler.API.Entities.Note", b =>
+                {
+                    b.HasOne("NursingScheduler.API.Entities.AppUser", "Author")
+                        .WithMany()
+                        .HasForeignKey("AuthorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("NursingScheduler.API.Entities.Schedule", "Schedule")
+                        .WithMany()
+                        .HasForeignKey("ScheduleId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("NursingScheduler.API.Entities.Section", "Section")
+                        .WithMany()
+                        .HasForeignKey("SectionId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("NursingScheduler.API.Entities.Semester", "Semester")
+                        .WithMany()
+                        .HasForeignKey("SemesterId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.Navigation("Author");
+
+                    b.Navigation("Schedule");
+
+                    b.Navigation("Section");
+
+                    b.Navigation("Semester");
+                });
+
+            modelBuilder.Entity("NursingScheduler.API.Entities.PasswordResetToken", b =>
+                {
+                    b.HasOne("NursingScheduler.API.Entities.AppUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("NursingScheduler.API.Entities.Schedule", b =>
                 {
                     b.HasOne("NursingScheduler.API.Entities.Semester", "Semester")
@@ -265,6 +569,14 @@ namespace API.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("NursingScheduler.API.Entities.Instructor", "Instructor")
+                        .WithMany("Sections")
+                        .HasForeignKey("InstructorId");
+
+                    b.HasOne("NursingScheduler.API.Entities.Room", "Room")
+                        .WithMany("Sections")
+                        .HasForeignKey("RoomId");
+
                     b.HasOne("NursingScheduler.API.Entities.Semester", "Semester")
                         .WithMany("Sections")
                         .HasForeignKey("SemesterId")
@@ -273,7 +585,30 @@ namespace API.Migrations
 
                     b.Navigation("Course");
 
+                    b.Navigation("Instructor");
+
+                    b.Navigation("Room");
+
                     b.Navigation("Semester");
+                });
+
+            modelBuilder.Entity("NursingScheduler.API.Entities.SectionInstructor", b =>
+                {
+                    b.HasOne("NursingScheduler.API.Entities.Instructor", "Instructor")
+                        .WithMany("SectionInstructors")
+                        .HasForeignKey("InstructorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("NursingScheduler.API.Entities.Section", "Section")
+                        .WithMany("SectionInstructors")
+                        .HasForeignKey("SectionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Instructor");
+
+                    b.Navigation("Section");
                 });
 
             modelBuilder.Entity("NursingScheduler.API.Entities.Student", b =>
@@ -292,6 +627,18 @@ namespace API.Migrations
                     b.Navigation("Sections");
                 });
 
+            modelBuilder.Entity("NursingScheduler.API.Entities.Instructor", b =>
+                {
+                    b.Navigation("SectionInstructors");
+
+                    b.Navigation("Sections");
+                });
+
+            modelBuilder.Entity("NursingScheduler.API.Entities.Room", b =>
+                {
+                    b.Navigation("Sections");
+                });
+
             modelBuilder.Entity("NursingScheduler.API.Entities.Schedule", b =>
                 {
                     b.Navigation("ScheduleSections");
@@ -302,6 +649,8 @@ namespace API.Migrations
             modelBuilder.Entity("NursingScheduler.API.Entities.Section", b =>
                 {
                     b.Navigation("ScheduleSections");
+
+                    b.Navigation("SectionInstructors");
                 });
 
             modelBuilder.Entity("NursingScheduler.API.Entities.Semester", b =>

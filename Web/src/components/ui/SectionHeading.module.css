@@ -1,0 +1,78 @@
+/* section heading — editorial signature */
+
+.wrapper {
+  width: 100%;
+}
+
+.top {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-6);
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+}
+
+.action {
+  flex-shrink: 0;
+}
+
+/* title base */
+.title {
+  font-family: var(--font-display);
+  font-weight: 500;
+  color: var(--text-on-paper);
+  margin: 0;
+}
+
+/* title by level */
+.page {
+  font-size: var(--display-lg);
+  letter-spacing: var(--tracking-tightest);
+  line-height: var(--leading-tight);
+}
+
+.section {
+  font-size: var(--display-sm);
+  letter-spacing: var(--tracking-tighter);
+  line-height: var(--leading-tight);
+}
+
+.subsection {
+  font-size: var(--display-xs);
+  letter-spacing: var(--tracking-tight);
+  line-height: var(--leading-snug);
+}
+
+/* italic accent word */
+.italic {
+  font-style: italic;
+  font-family: var(--font-display);
+}
+
+/* subtitle base */
+.subtitle {
+  font-family: var(--font-body);
+  font-weight: 400;
+  color: var(--text-on-paper-muted);
+  margin: 0;
+}
+
+.sub-page {
+  font-size: var(--text-lg);
+  margin-top: var(--space-3);
+  max-width: 560px;
+}
+
+.sub-section {
+  font-size: var(--text-base);
+  margin-top: var(--space-2);
+}
+
+.sub-subsection {
+  font-size: var(--text-sm);
+  margin-top: var(--space-1);
+}
