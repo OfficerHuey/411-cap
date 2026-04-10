@@ -229,7 +229,14 @@ export function ScheduleCanvas({
 
         .canvas-body { padding: 1rem; overflow-x: auto; }
 
-        .canvas-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+        .canvas-table {
+          width: 100%;
+          border-collapse: collapse;
+          font-size: 0.82rem;
+          border: 1px solid #e5e2db;
+          border-radius: 10px;
+          overflow: hidden;
+        }
 
         .canvas-table th {
           padding: 0.6rem 0.75rem;
@@ -243,6 +250,11 @@ export function ScheduleCanvas({
           background: #00563f;
           border: 1px solid #004d38;
         }
+
+        .canvas-table th:first-child { border-top-left-radius: 10px; }
+        .canvas-table th:last-child { border-top-right-radius: 10px; }
+        .canvas-table tr:last-child td:first-child { border-bottom-left-radius: 10px; }
+        .canvas-table tr:last-child td:last-child { border-bottom-right-radius: 10px; }
 
         .canvas-table th.time-col { background: #003d2a; width: 80px; }
         .canvas-table td { border: 1px solid #e5e2db; vertical-align: top; padding: 0; }
