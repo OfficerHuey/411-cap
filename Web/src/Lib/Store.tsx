@@ -166,6 +166,38 @@ class DataStore {
     save(STORAGE_KEYS.scheduleGroups, this.scheduleGroups);
   }
 
+  cloneScheduleGroup(id: string): ScheduleGroup | undefined {
+    const original = this.getScheduleGroupById(id);
+    if (!original) return undefined;
+
+    const newId = `sg_${Date.now()}`;
+
+    const clonedGroup: ScheduleGroup = {
+      ...original,
+      id: newId,
+      name: `${original.name} (Copy)`,
+    };
+
+    this.scheduleGroups.push(clonedGroup);
+
+    const originalSections = this.scheduleSections.filter(
+      (section) => section.scheduleGroupId === id,
+    );
+
+    const clonedSections: ScheduleSection[] = originalSections.map((section) => ({
+      ...section,
+      id: `ss_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+      scheduleGroupId: newId,
+    }));
+
+    this.scheduleSections.push(...clonedSections);
+
+    save(STORAGE_KEYS.scheduleGroups, this.scheduleGroups);
+    save(STORAGE_KEYS.scheduleSections, this.scheduleSections);
+
+    return clonedGroup;
+  }
+
   // Courses — global, not tied to any semester
   getCourses(): Course[] {
     return [...this.courses];

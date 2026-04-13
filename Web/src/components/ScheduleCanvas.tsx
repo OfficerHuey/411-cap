@@ -17,6 +17,8 @@ interface ScheduleCanvasProps {
   courses: Course[];
   courseSections: CourseSection[];
   scheduleSections: ScheduleSection[];
+  selectedTerm: "Both" | "Term 1" | "Term 2";
+semesterLocked: boolean;
   onRefresh: () => void;
   onDrop: (
     courseId: string,

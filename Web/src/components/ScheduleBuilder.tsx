@@ -28,33 +28,64 @@ interface CourseDetailsData {
 export function ScheduleBuilder() {
   const { scheduleGroupId } = useParams<{ scheduleGroupId: string }>();
   const navigate = useNavigate();
-  const [scheduleGroup, setScheduleGroup] = useState<ScheduleGroup | null>(
-    null,
-  );
+
+  const [scheduleGroup, setScheduleGroup] = useState<ScheduleGroup | null>(null);
   const [courses, setCourses] = useState<Course[]>([]);
   const [courseSections, setCourseSections] = useState<CourseSection[]>([]);
-  const [scheduleSections, setScheduleSections] = useState<ScheduleSection[]>(
-    [],
-  );
+  const [scheduleSections, setScheduleSections] = useState<ScheduleSection[]>([]);
   const [view, setView] = useState<"calendar" | "students">("calendar");
-  const [detailsModal, setDetailsModal] = useState<CourseDetailsData | null>(
-    null,
-  );
+  const [detailsModal, setDetailsModal] = useState<CourseDetailsData | null>(null);
+
+  const [selectedTerm, setSelectedTerm] = useState<"Both" | "Term 1" | "Term 2">("Both");
+  const [semesterLocked, setSemesterLocked] = useState(false);
+  const [history, setHistory] = useState<ScheduleSection[][]>([]);
+  const [saveStatus, setSaveStatus] = useState<"saved" | "saving" | "unsaved">("saved");
+  const [warnings, setWarnings] = useState<string[]>([]);
 
   useEffect(() => {
     if (!scheduleGroupId) return;
+
     const group = dataStore.getScheduleGroupById(scheduleGroupId);
     setScheduleGroup(group || null);
+
     if (group) {
       const semester = dataStore.getSemesterById(group.semesterId);
-      if (semester) setCourses(dataStore.getCourses(semester.id));
+      if (semester) {
+        setCourses(dataStore.getCourses());
+      }
       setScheduleSections(dataStore.getScheduleSections(scheduleGroupId));
     }
+
     setCourseSections(dataStore.getCourseSections());
   }, [scheduleGroupId]);
 
+  useEffect(() => {
+    setSaveStatus("saving");
+
+    const timer = setTimeout(() => {
+      setSaveStatus("saved");
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [scheduleSections, selectedTerm, semesterLocked]);
+
+  useEffect(() => {
+    const nextWarnings: string[] = [];
+
+    if (semesterLocked) {
+      nextWarnings.push("Semester is locked. Dragging and editing disabled.");
+    }
+
+    if (scheduleSections.length === 0) {
+      nextWarnings.push("No schedule items placed yet.");
+    }
+
+    setWarnings(nextWarnings);
+  }, [semesterLocked, scheduleSections]);
+
   const handleExport = () => {
     if (!scheduleGroup || !semester) return;
+
     exportScheduleData({
       scheduleGroup,
       semester,
@@ -65,10 +96,33 @@ export function ScheduleBuilder() {
     });
   };
 
+  const handleCloneSchedule = () => {
+    if (!scheduleGroup) return;
+
+    const cloned = dataStore.cloneScheduleGroup(scheduleGroup.id);
+    if (cloned?.id) {
+      navigate(`/schedule-builder/${cloned.id}`);
+    }
+  };
+
   const refreshSections = () => {
     if (!scheduleGroupId) return;
     setCourseSections(dataStore.getCourseSections());
     setScheduleSections(dataStore.getScheduleSections(scheduleGroupId));
+  };
+
+  const pushHistory = () => {
+    setHistory((prev) => [...prev, [...scheduleSections]]);
+    setSaveStatus("unsaved");
+  };
+
+  const handleUndo = () => {
+    if (history.length === 0) return;
+
+    const previous = history[history.length - 1];
+    setScheduleSections(previous);
+    setHistory((prev) => prev.slice(0, -1));
+    setSaveStatus("unsaved");
   };
 
   if (!scheduleGroup) {
@@ -183,6 +237,68 @@ export function ScheduleBuilder() {
 
         .sb-btn-export:hover { background: #003d2a; }
 
+        .sb-toolbar {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 1rem;
+          margin-bottom: 1rem;
+          flex-wrap: wrap;
+        }
+
+        .sb-toolbar-left {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+          flex-wrap: wrap;
+        }
+
+        .sb-field {
+          display: flex;
+          flex-direction: column;
+          gap: 0.25rem;
+        }
+
+        .sb-field span {
+          font-size: 0.75rem;
+          color: #6b7280;
+        }
+
+        .sb-field select {
+          padding: 0.45rem 0.7rem;
+          border: 1px solid #e5e2db;
+          border-radius: 8px;
+          font-family: 'DM Sans', sans-serif;
+          background: #ffffff;
+        }
+
+        .sb-toggle {
+          display: flex;
+          align-items: center;
+          gap: 0.45rem;
+          font-size: 0.85rem;
+          color: #374151;
+        }
+
+        .sb-save-status {
+          font-size: 0.85rem;
+          color: #6b7280;
+        }
+
+        .sb-warning-bar {
+          background: #fff7ed;
+          border: 1px solid #fdba74;
+          color: #9a3412;
+          padding: 0.85rem 1rem;
+          border-radius: 10px;
+          margin-bottom: 1rem;
+        }
+
+        .sb-warning-bar ul {
+          margin: 0.5rem 0 0 1.25rem;
+          padding: 0;
+        }
+
         .sb-view-toggle {
           display: inline-flex;
           background: #ffffff;
@@ -236,6 +352,7 @@ export function ScheduleBuilder() {
               <ArrowLeft size={15} />
               Back
             </button>
+
             <div className="sb-title">
               <h1>
                 {scheduleGroup.name} — {scheduleGroup.level}
@@ -247,12 +364,68 @@ export function ScheduleBuilder() {
           </div>
 
           <div className="sb-actions">
+            <button className="sb-btn" onClick={handleCloneSchedule}>
+              Clone Schedule
+            </button>
+
             <button className="sb-btn sb-btn-export" onClick={handleExport}>
               <Download size={14} />
               Export Schedule
             </button>
           </div>
         </div>
+
+        <div className="sb-toolbar">
+          <div className="sb-toolbar-left">
+            <label className="sb-field">
+              <span>Term</span>
+              <select
+                value={selectedTerm}
+                onChange={(e) =>
+                  setSelectedTerm(e.target.value as "Both" | "Term 1" | "Term 2")
+                }
+              >
+                <option value="Both">Both Terms</option>
+                <option value="Term 1">Term 1</option>
+                <option value="Term 2">Term 2</option>
+              </select>
+            </label>
+
+            <label className="sb-toggle">
+              <input
+                type="checkbox"
+                checked={semesterLocked}
+                onChange={() => setSemesterLocked((prev) => !prev)}
+              />
+              <span>Lock Semester</span>
+            </label>
+
+            <button
+              className="sb-btn"
+              onClick={handleUndo}
+              disabled={history.length === 0}
+            >
+              Undo
+            </button>
+          </div>
+
+          <div className="sb-save-status">
+            {saveStatus === "saving" && "Saving..."}
+            {saveStatus === "saved" && "All changes saved"}
+            {saveStatus === "unsaved" && "Unsaved changes"}
+          </div>
+        </div>
+
+        {warnings.length > 0 && (
+          <div className="sb-warning-bar">
+            <strong>Scheduling Warnings:</strong>
+            <ul>
+              {warnings.map((warning, index) => (
+                <li key={index}>{warning}</li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         <div className="sb-view-toggle">
           <button
@@ -276,6 +449,7 @@ export function ScheduleBuilder() {
             <div>
               <CoursePalette courses={courses} />
             </div>
+
             <div>
               <ScheduleCanvas
                 scheduleGroup={scheduleGroup}
@@ -283,12 +457,16 @@ export function ScheduleBuilder() {
                 courses={courses}
                 courseSections={courseSections}
                 scheduleSections={scheduleSections}
+                selectedTerm={selectedTerm}
+                semesterLocked={semesterLocked}
                 onRefresh={refreshSections}
-                onDrop={(courseId, dayOfWeek, timeSlot, dateRange) =>
-                  setDetailsModal({ courseId, dayOfWeek, timeSlot, dateRange })
-                }
+                onDrop={(courseId, dayOfWeek, timeSlot, dateRange) => {
+                  pushHistory();
+                  setDetailsModal({ courseId, dayOfWeek, timeSlot, dateRange });
+                }}
               />
             </div>
+
             <ScheduleViewer
               semesterId={scheduleGroup.semesterId}
               currentScheduleGroupId={scheduleGroupId!}
