@@ -21,6 +21,9 @@ namespace NursingScheduler.API.Entities
         //what the room is used for
         public RoomType Type { get; set; }
 
+        //stac rooms are requested from the st tammany center, not owned
+        public bool IsRequestOnly { get; set; } = false;
+
         //sections assigned to this room
         public ICollection<Section> Sections { get; set; } = new List<Section>();
     }

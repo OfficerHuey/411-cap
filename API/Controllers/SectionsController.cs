@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using NursingScheduler.API.Data;
 using NursingScheduler.API.DTOs.Section;
 using NursingScheduler.API.Entities;
+using NursingScheduler.API.Extensions;
 using NursingScheduler.API.Services;
 
 namespace NursingScheduler.API.Controllers
@@ -79,6 +80,22 @@ namespace NursingScheduler.API.Controllers
                 await _context.SaveChangesAsync(); 
             }
 
+            //sync instructor to join table for workload tracking
+            if (sectionToLink.InstructorId.HasValue)
+            {
+                var existing = await _context.SectionInstructors
+                    .AnyAsync(si => si.SectionId == sectionToLink.Id && si.InstructorId == sectionToLink.InstructorId.Value);
+                if (!existing)
+                {
+                    _context.SectionInstructors.Add(new SectionInstructor
+                    {
+                        SectionId = sectionToLink.Id,
+                        InstructorId = sectionToLink.InstructorId.Value
+                    });
+                    await _context.SaveChangesAsync();
+                }
+            }
+
             //step 2create the bridge link to the schedule bucket
             var link = new ScheduleSection
             {
@@ -99,7 +116,7 @@ namespace NursingScheduler.API.Controllers
                 sectionToLink.Instructor = await _context.Instructors.FindAsync(sectionToLink.InstructorId);
 
             //log the creation/link action
-            var username = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "unknown";
+            var username = User.GetUsername() ?? "unknown";
             await _auditService.LogChange("Section", sectionToLink.Id, "Created", username, null, createDto.SemesterId);
 
             //run conflict checks after linking
@@ -190,14 +207,90 @@ namespace NursingScheduler.API.Controllers
             if (updateDto.TermStartDate.HasValue) section.TermStartDate = updateDto.TermStartDate;
             if (updateDto.TermEndDate.HasValue) section.TermEndDate = updateDto.TermEndDate;
             if (updateDto.RoomId.HasValue) section.RoomId = updateDto.RoomId;
-            if (updateDto.InstructorId.HasValue) section.InstructorId = updateDto.InstructorId;
+            if (updateDto.InstructorId.HasValue)
+            {
+                section.InstructorId = updateDto.InstructorId;
+
+                //sync to join table for workload tracking
+                var existing = await _context.SectionInstructors
+                    .AnyAsync(si => si.SectionId == id && si.InstructorId == updateDto.InstructorId.Value);
+                if (!existing)
+                {
+                    _context.SectionInstructors.Add(new SectionInstructor
+                    {
+                        SectionId = id,
+                        InstructorId = updateDto.InstructorId.Value
+                    });
+                }
+            }
 
             await _context.SaveChangesAsync();
 
-            var username = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "unknown";
+            var username = User.GetUsername() ?? "unknown";
             await _auditService.LogChange("Section", section.Id, "Updated", username, null, section.SemesterId);
 
             return NoContent();
+        }
+
+        //move a section to a new day/time (drag-to-rearrange)
+        [HttpPut("{id}/move")]
+        public async Task<ActionResult<SectionWithConflictsDto>> MoveSection(int id, MoveSectionDto dto)
+        {
+            var section = await _context.Sections
+                .Include(s => s.Course)
+                .Include(s => s.Room)
+                .Include(s => s.Instructor)
+                .FirstOrDefaultAsync(s => s.Id == id);
+
+            if (section == null) return NotFound();
+            if (await IsSemesterLocked(section.SemesterId))
+                return BadRequest("Cannot move sections in a locked semester");
+
+            if (dto.EndTime <= dto.StartTime)
+                return BadRequest("End time must be after start time");
+
+            var oldDay = section.DayOfWeek?.ToString() ?? "(none)";
+            var oldStart = section.StartTime?.ToString(@"hh\:mm\:ss") ?? "(none)";
+
+            section.DayOfWeek = dto.DayOfWeek;
+            section.StartTime = dto.StartTime;
+            section.EndTime = dto.EndTime;
+
+            await _context.SaveChangesAsync();
+
+            var username = User.GetUsername() ?? "unknown";
+            await _auditService.LogChange("Section", section.Id, "Moved",
+                username, $"{oldDay} {oldStart} → {dto.DayOfWeek} {dto.StartTime:hh\\:mm\\:ss}", section.SemesterId);
+
+            //re-run conflict detection at the new location
+            var conflicts = await _conflictService.CheckConflicts(section.Id, dto.ScheduleId, section.SemesterId);
+
+            return Ok(new SectionWithConflictsDto
+            {
+                Section = new SectionDto
+                {
+                    Id = section.Id,
+                    SectionNumber = section.SectionNumber,
+                    DayOfWeek = section.DayOfWeek,
+                    StartTime = section.StartTime,
+                    EndTime = section.EndTime,
+                    Notes = section.Notes,
+                    DateRange = section.DateRange,
+                    Term = section.Term,
+                    TermStartDate = section.TermStartDate,
+                    TermEndDate = section.TermEndDate,
+                    RoomId = section.RoomId,
+                    RoomNumber = section.Room?.RoomNumber,
+                    RoomBuilding = section.Room?.Building,
+                    InstructorId = section.InstructorId,
+                    InstructorName = section.Instructor?.Name,
+                    CourseId = section.CourseId,
+                    CourseCode = section.Course!.Code,
+                    CourseName = section.Course!.Name,
+                    CourseType = section.Course!.DefaultType
+                },
+                Conflicts = conflicts
+            });
         }
 
         //delete a section (remove from calendar)
@@ -211,9 +304,28 @@ namespace NursingScheduler.API.Controllers
             if (link == null) return NotFound();
 
             _context.ScheduleSections.Remove(link);
+
+            //check if this was the last link — if so, clean up notes and delete the orphan section
+            var remainingLinks = await _context.ScheduleSections
+                .CountAsync(ss => ss.SectionId == sectionId && ss.Id != link.Id);
+
+            if (remainingLinks == 0)
+            {
+                //clear notes referencing this section (NoAction FK, app-layer cleanup)
+                var affectedNotes = await _context.Notes
+                    .Where(n => n.SectionId == sectionId)
+                    .ToListAsync();
+                foreach (var note in affectedNotes)
+                    note.SectionId = null;
+
+                var section = await _context.Sections.FindAsync(sectionId);
+                if (section != null)
+                    _context.Sections.Remove(section);
+            }
+
             await _context.SaveChangesAsync();
 
-            var username = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "unknown";
+            var username = User.GetUsername() ?? "unknown";
             await _auditService.LogChange("Section", sectionId, "Removed from schedule", username);
 
             return NoContent();

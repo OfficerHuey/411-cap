@@ -1,18 +1,39 @@
-import '../App.css'
-import { Link, Home } from 'lucide-react';
+import { useNavigate } from "react-router-dom";
+import { Home, ArrowLeft } from "lucide-react";
+import { NumberBadge } from "./ui/NumberBadge";
+import { HairlineRule } from "./ui/HairlineRule";
+import { Button } from "./ui/Button";
+import styles from "./NotFound.module.css";
 
 export function NotFound() {
+  const navigate = useNavigate();
+
   return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh]">
-      <h1 className="text-6xl font-semibold text-gray-900 mb-4">404</h1>
-      <p className="text-xl text-gray-600 mb-8">Page not found</p>
-      <Link
-        to="/"
-        className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-      >
-        <Home className="h-4 w-4 mr-2" />
-        Back to Dashboard
-      </Link>
+    <div className={styles.root}>
+      <span className={styles.bgText}>404</span>
+
+      <div className={styles.content}>
+        <NumberBadge number="404" variant="gold" size="lg" />
+        <HairlineRule width="48px" color="gold" spacing="tight" />
+
+        <h1 className={styles.heading}>
+          This page <em>isn&apos;t on the schedule</em>.
+        </h1>
+
+        <p className={styles.description}>
+          We couldn&apos;t find what you were looking for. It may have been
+          moved, renamed, or taken off the roster.
+        </p>
+
+        <div className={styles.actions}>
+          <Button iconLeft={<Home size={16} />} onClick={() => navigate("/")}>
+            Return to Dashboard
+          </Button>
+          <Button variant="ghost" iconLeft={<ArrowLeft size={16} />} onClick={() => navigate(-1)}>
+            Go Back
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

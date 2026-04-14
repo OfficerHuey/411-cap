@@ -1,0 +1,20 @@
+/* number badge — editorial section marker */
+
+.badge {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-widest);
+  display: inline-flex;
+  white-space: nowrap;
+}
+
+/* variants */
+.default { color: var(--green-700); }
+.light { color: var(--text-on-dark-muted); }
+.gold { color: var(--gold-600); }
+
+/* sizes */
+.sm { font-size: var(--text-xs); }
+.md { font-size: var(--text-sm); }
+.lg { font-size: var(--text-base); }

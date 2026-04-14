@@ -1,68 +1,334 @@
+/* ===== design system tokens ===== */
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
+  /* selu brand green scale */
+  --green-50: #f0faf5;
+  --green-100: #c6e8d8;
+  --green-200: #8fd4b5;
+  --green-300: #4dbd8a;
+  --green-400: #1a9e64;
+  --green-500: #00804a;
+  --green-600: #00563f;
+  --green-700: #003d2a;
+  --green-800: #002a1d;
+  --green-900: #001a12;
+  --green-950: #001a12;
+  --green-975: #000c08;
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  /* selu gold accent */
+  --gold-200: #f5dfa4;
+  --gold-300: #e0b44c;
+  --gold-400: #C8952C;
+  --gold-500: #a67b1e;
+  --gold-600: #875f13;
+  --gold-700: #5e410a;
 
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
+  /* warm cream neutrals */
+  --cream-50: #fefdfb;
+  --cream-100: #faf8f3;
+  --cream-200: #f5f2ea;
+  --cream-300: #e8e4d9;
+  --cream-400: #d4cfc2;
+  --cream-500: #b8b2a2;
+
+  /* neutrals */
+  --gray-50: #fafaf9;
+  --gray-100: #f5f5f4;
+  --gray-200: #e7e5e4;
+  --gray-300: #d6d3d1;
+  --gray-400: #a8a29e;
+  --gray-500: #78716c;
+  --gray-600: #57534e;
+  --gray-700: #44403c;
+  --gray-800: #292524;
+  --gray-900: #1c1917;
+
+  /* text */
+  --text-primary: #111827;
+  --text-secondary: #374151;
+  --text-muted: #6b7280;
+  --text-faint: #9ca3af;
+
+  /* text on paper and dark surfaces */
+  --text-on-paper: #2a2620;
+  --text-on-paper-muted: #6b6558;
+  --text-on-dark: #faf8f3;
+  --text-on-dark-muted: rgba(250, 248, 243, 0.72);
+  --text-on-dark-faint: rgba(250, 248, 243, 0.48);
+
+  /* semantic */
+  --success: #059669;
+  --warning: #d97706;
+  --error: #991b1b;
+  --info: var(--green-700);
+
+  /* course type colors */
+  --course-lecture: #3b82f6;
+  --course-lab: #10b981;
+  --course-clinical: #8b5cf6;
+  --course-simlab: #f59e0b;
+
+  /* surfaces */
+  --surface: #ffffff;
+  --surface-raised: #fafaf9;
+  --bg: #fafaf9;
+  --border: #e5e7eb;
+  --border-light: #f3f4f6;
+
+  /* paper surfaces */
+  --paper-base: #faf8f3;
+  --paper-raised: #fefdfa;
+  --paper-sunk: #f3f0e8;
+  --paper-ink: #2a2620;
+
+  /* radii */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 12px;
+
+  /* shadows — layered for depth */
+  --shadow-xs: 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -2px rgba(0,0,0,0.05);
+  --shadow-lg: 0 1px 3px rgba(0,0,0,0.04), 0 6px 24px rgba(0,0,0,0.06);
+  --shadow-xl: 0 20px 50px -12px rgba(0,0,0,0.15);
+  --shadow-hover: 0 1px 3px rgba(0,0,0,0.04), 0 12px 36px rgba(0,0,0,0.1);
+
+  /* elevation system — layered shadows with inner highlights */
+  --elevation-1:
+    0 1px 2px rgba(30, 24, 12, 0.04),
+    0 2px 6px rgba(30, 24, 12, 0.04);
+  --elevation-2:
+    0 2px 4px rgba(30, 24, 12, 0.05),
+    0 8px 20px rgba(30, 24, 12, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  --elevation-3:
+    0 4px 8px rgba(30, 24, 12, 0.06),
+    0 16px 40px rgba(30, 24, 12, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  --elevation-modal:
+    0 8px 20px rgba(30, 24, 12, 0.10),
+    0 32px 80px rgba(30, 24, 12, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+
+  /* typography — families */
+  --font-display: 'Playfair Display', serif;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace;
+
+  /* typography — body scale */
+  --text-xs: 0.75rem;
+  --text-sm: 0.8125rem;
+  --text-base: 0.875rem;
+  --text-lg: 1rem;
+  --text-xl: 1.125rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: 2rem;
+
+  /* typography — display scale */
+  --display-xs: 2rem;
+  --display-sm: 2.75rem;
+  --display-md: 3.75rem;
+  --display-lg: 5rem;
+  --display-xl: 6.5rem;
+  --display-2xl: 8rem;
+
+  /* typography — tracking */
+  --tracking-tightest: -0.04em;
+  --tracking-tighter: -0.02em;
+  --tracking-tight: -0.01em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.02em;
+  --tracking-wider: 0.08em;
+  --tracking-widest: 0.14em;
+
+  /* typography — leading */
+  --leading-none: 1;
+  --leading-tight: 1.15;
+  --leading-snug: 1.3;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.7;
+
+  /* spacing scale */
+  --space-0: 0;
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-7: 2rem;
+  --space-8: 2.5rem;
+  --space-9: 3rem;
+  --space-10: 4rem;
+  --space-11: 5rem;
+  --space-12: 6rem;
+  --space-13: 8rem;
+
+  /* motion */
+  --motion-fast: 150ms;
+  --motion-base: 250ms;
+  --motion-slow: 400ms;
+  --motion-editorial: 600ms;
+  --ease-out-editorial: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out-editorial: cubic-bezier(0.65, 0, 0.35, 1);
+
+  /* transitions (legacy — kept for existing components) */
+  --transition-fast: 150ms ease;
+  --transition-base: 200ms ease;
+  --transition-slow: 300ms ease;
+}
+
+/* ===== reset ===== */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-}
-
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
+  text-rendering: optimizeLegibility;
 }
 
 body {
   margin: 0;
-  display: flex;
-  place-items: center;
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  line-height: 1.6;
+  color: var(--text-primary);
+  background-color: var(--paper-base);
   min-width: 320px;
-  min-height: 100vh;
 }
 
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url('/paper-grain.svg');
+  background-size: 400px 400px;
+  opacity: 0.035;
+  pointer-events: none;
+  z-index: 0;
+  mix-blend-mode: multiply;
+}
+
+body > * {
+  position: relative;
+  z-index: 1;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  line-height: 1.3;
+  letter-spacing: -0.01em;
 }
 
 button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
   font-family: inherit;
-  background-color: #1a1a1a;
   cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
+input, select, textarea {
+  font-family: inherit;
+}
+
+a {
+  color: var(--green-600);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* ===== focus rings for accessibility ===== */
+:focus-visible {
+  outline: 2px solid var(--green-600);
+  outline-offset: 2px;
+}
+
+button:focus:not(:focus-visible),
+input:focus:not(:focus-visible),
+select:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* ===== scrollbar styling ===== */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--gray-300);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--gray-500);
+}
+
+/* ===== loading spinner ===== */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-spinner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 2rem;
+  gap: 1rem;
+}
+
+.loading-spinner::before {
+  content: '';
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--gray-200);
+  border-top-color: var(--green-600);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+.loading-spinner span {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+/* ===== shared entrance animation ===== */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
   }
-  a:hover {
-    color: #747bff;
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
-  button {
-    background-color: #f9f9f9;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
   }
 }

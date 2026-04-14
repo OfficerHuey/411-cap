@@ -6,6 +6,7 @@ using NursingScheduler.API.DTOs.Schedule;
 using NursingScheduler.API.DTOs.Student;
 using NursingScheduler.API.Entities;
 using NursingScheduler.API.DTOs.Section;
+using NursingScheduler.API.Extensions;
 using NursingScheduler.API.Services;
 
 namespace NursingScheduler.API.Controllers
@@ -43,13 +44,14 @@ namespace NursingScheduler.API.Controllers
                 Name = createDto.Name,
                 SemesterLevel = createDto.SemesterLevel,
                 LocationDisplay = createDto.LocationDisplay,
+                Capacity = createDto.Capacity,
                 SemesterId = createDto.SemesterId
             };
 
             _context.Schedules.Add(schedule);
             await _context.SaveChangesAsync();
 
-            var username = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "unknown";
+            var username = User.GetUsername() ?? "unknown";
             await _auditService.LogChange("Schedule", schedule.Id, "Created", username, null, schedule.SemesterId);
 
             return Ok(new ScheduleDto
@@ -58,6 +60,8 @@ namespace NursingScheduler.API.Controllers
                 Name = schedule.Name,
                 SemesterLevel = schedule.SemesterLevel,
                 LocationDisplay = schedule.LocationDisplay,
+                Capacity = schedule.Capacity,
+                SortOrder = schedule.SortOrder,
                 SemesterId = schedule.SemesterId
             });
         }
@@ -87,6 +91,8 @@ namespace NursingScheduler.API.Controllers
                 Name = schedule.Name,
                 SemesterLevel = schedule.SemesterLevel,
                 LocationDisplay = schedule.LocationDisplay,
+                Capacity = schedule.Capacity,
+                SortOrder = schedule.SortOrder,
                 SemesterId = schedule.SemesterId,
                 Students = schedule.Students.Select(stu => new StudentDto
                 {
@@ -143,12 +149,14 @@ namespace NursingScheduler.API.Controllers
             if (level.HasValue)
                 query = query.Where(s => s.SemesterLevel == level.Value);
 
-            var schedules = await query.Select(s => new ScheduleDto
+            var schedules = await query.OrderBy(s => s.SortOrder).Select(s => new ScheduleDto
             {
                 Id = s.Id,
                 Name = s.Name,
                 SemesterLevel = s.SemesterLevel,
                 LocationDisplay = s.LocationDisplay,
+                Capacity = s.Capacity,
+                SortOrder = s.SortOrder,
                 SemesterId = s.SemesterId,
                 Students = s.Students.Select(stu => new StudentDto
                 {
@@ -218,11 +226,47 @@ namespace NursingScheduler.API.Controllers
             }
             await _context.SaveChangesAsync();
 
-            var username = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "unknown";
+            var username = User.GetUsername() ?? "unknown";
             await _auditService.LogChange("Schedule", newSchedule.Id, "Cloned", username, $"Cloned from schedule {sourceScheduleId}", source.SemesterId);
 
             //return the new schedule with full includes
             return await GetSchedule(newSchedule.Id);
+        }
+
+        //reorder schedules within a semester level
+        [HttpPut("reorder")]
+        public async Task<ActionResult> ReorderSchedules([FromBody] List<ReorderDto> items)
+        {
+            foreach (var item in items)
+            {
+                var schedule = await _context.Schedules.FindAsync(item.Id);
+                if (schedule != null) schedule.SortOrder = item.SortOrder;
+            }
+            await _context.SaveChangesAsync();
+            return NoContent();
+        }
+
+        //get capacity status for all schedules in a semester
+        [HttpGet("semester/{semesterId}/capacity")]
+        public async Task<ActionResult> GetCapacityOverview(int semesterId)
+        {
+            var schedules = await _context.Schedules
+                .Where(s => s.SemesterId == semesterId)
+                .Select(s => new
+                {
+                    s.Id,
+                    s.Name,
+                    s.SemesterLevel,
+                    s.LocationDisplay,
+                    StudentCount = s.Students.Count,
+                    s.Capacity,
+                    Status = s.Students.Count < s.Capacity ? "OK" :
+                             s.Students.Count == s.Capacity ? "Full" :
+                             s.Students.Count == s.Capacity + 1 ? "Override" : "Critical"
+                })
+                .ToListAsync();
+
+            return Ok(schedules);
         }
 
         //delete a schedule and its links and students
@@ -242,7 +286,7 @@ namespace NursingScheduler.API.Controllers
             _context.Schedules.Remove(schedule);
             await _context.SaveChangesAsync();
 
-            var username = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "unknown";
+            var username = User.GetUsername() ?? "unknown";
             await _auditService.LogChange("Schedule", id, "Deleted", username, null, semesterId);
 
             return NoContent();
@@ -259,13 +303,33 @@ namespace NursingScheduler.API.Controllers
 
             schedule.Name = updateDto.Name;
             schedule.LocationDisplay = updateDto.LocationDisplay;
+            schedule.Capacity = updateDto.Capacity;
 
             await _context.SaveChangesAsync();
 
-            var username = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "unknown";
+            var username = User.GetUsername() ?? "unknown";
             await _auditService.LogChange("Schedule", schedule.Id, "Updated", username, null, schedule.SemesterId);
 
             return NoContent();
+        }
+
+        //update only the capacity of a lab group
+        [HttpPut("{id}/capacity")]
+        public async Task<ActionResult> UpdateCapacity(int id, [FromBody] int capacity)
+        {
+            var schedule = await _context.Schedules.FindAsync(id);
+            if (schedule == null) return NotFound();
+            if (await IsSemesterLocked(schedule.SemesterId))
+                return BadRequest("This semester is locked and cannot be modified");
+            if (capacity < 1) return BadRequest("Capacity must be at least 1");
+
+            schedule.Capacity = capacity;
+            await _context.SaveChangesAsync();
+
+            var username = User.GetUsername() ?? "unknown";
+            await _auditService.LogChange("Schedule", schedule.Id, "Capacity updated", username, $"New capacity: {capacity}", schedule.SemesterId);
+
+            return Ok(new { schedule.Id, schedule.Capacity });
         }
     }
 }

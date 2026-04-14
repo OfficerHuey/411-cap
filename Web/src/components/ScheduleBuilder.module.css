@@ -1,0 +1,183 @@
+/* schedule builder — editorial redesign */
+
+.root {
+  font-family: var(--font-body);
+}
+
+/* ── hero ── */
+.hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 2rem;
+  padding: 1.5rem 0 1rem;
+  flex-wrap: wrap;
+}
+
+.heroLeft {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.heroBackRow {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.25rem;
+}
+
+.backBtn {
+  margin-left: -0.5rem;
+}
+
+.heroTitleGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.heroTitle {
+  font-family: var(--font-display);
+  font-size: 2.25rem;
+  font-weight: 500;
+  color: var(--text-on-paper);
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  margin: 0.35rem 0 0;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.heroSubtitle {
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin: 0.15rem 0 0;
+}
+
+.heroRight {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+/* ── view toggle ── */
+.viewToggle {
+  display: inline-flex;
+  background: var(--paper-raised);
+  border: 1px solid var(--cream-300);
+  border-radius: 10px;
+  padding: 0.25rem;
+  margin-bottom: 1.75rem;
+}
+
+.viewBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.55rem 1.25rem;
+  border-radius: 7px;
+  border: none;
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 200ms;
+  color: var(--text-muted);
+  background: transparent;
+}
+
+.viewBtn:hover {
+  background: var(--paper-sunk);
+  color: var(--text-on-paper);
+}
+
+.viewBtn.active {
+  background: var(--green-700);
+  color: var(--paper-raised);
+  box-shadow: var(--elevation-1);
+}
+
+/* ── grid layout ── */
+.calendarGrid {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+/* ── export dropdown ── */
+.exportDropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.exportMenu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 0.35rem;
+  background: var(--paper-raised);
+  border: 1px solid var(--cream-300);
+  border-radius: 10px;
+  box-shadow: var(--elevation-3);
+  z-index: 100;
+  min-width: 220px;
+  overflow: hidden;
+}
+
+.exportMenuItem {
+  width: 100%;
+  padding: 0.65rem 1rem;
+  background: none;
+  border: none;
+  text-align: left;
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 150ms;
+}
+
+.exportMenuItem:hover {
+  background: rgba(0, 86, 63, 0.06);
+  color: var(--green-700);
+}
+
+.exportMenuItem + .exportMenuItem {
+  border-top: 1px solid var(--cream-200);
+}
+
+/* ── error ── */
+.errorBanner {
+  background: rgba(153, 27, 27, 0.06);
+  border: 1px solid rgba(153, 27, 27, 0.2);
+  border-left: 3px solid var(--error);
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1.5rem;
+  font-size: 0.85rem;
+  color: #991b1b;
+}
+
+/* ── lock badge ── */
+.lockBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+/* ── responsive ── */
+@media (max-width: 900px) {
+  .hero {
+    padding-top: 1.5rem;
+  }
+  .calendarGrid {
+    grid-template-columns: 1fr;
+  }
+}

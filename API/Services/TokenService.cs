@@ -18,7 +18,9 @@ namespace NursingScheduler.API.Services
             _key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(config["TokenKey"]!));
         }
 
-        public string CreateToken(AppUser user)
+        public string CreateToken(AppUser user) => CreateToken(user, 8); //default 8h session
+
+        public string CreateToken(AppUser user, int expiryHours)
         {
             //(what info is inside the token)
             //we store the username so the server knows who is calling
@@ -37,7 +39,7 @@ namespace NursingScheduler.API.Services
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(claims),
-                Expires = DateTime.Now.AddDays(7), //token valid for 1 week
+                Expires = DateTime.Now.AddHours(expiryHours),
                 SigningCredentials = creds
             };
 

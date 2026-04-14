@@ -10,7 +10,7 @@ namespace NursingScheduler.API.DTOs.Student
         public required string Name { get; set; }
 
         [Required]
-        [RegularExpression(@"^\d{7}$", ErrorMessage = "W# must be exactly 7 digits")]
+        [RegularExpression(@"^W\d{7}$", ErrorMessage = "W# must start with 'W' followed by exactly 7 digits (e.g. W0715502)")]
         public required string WNumber { get; set; }
 
         [Required]
@@ -21,5 +21,9 @@ namespace NursingScheduler.API.DTOs.Student
         //links student directly to the schedule bucket
         [Required]
         public int ScheduleId { get; set; }
+
+        //capacity override fields for the 9-student soft cap
+        public bool AcknowledgeOverride { get; set; }
+        public string? OverrideReason { get; set; }
     }
 }

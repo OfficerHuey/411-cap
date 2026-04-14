@@ -17,6 +17,9 @@ namespace NursingScheduler.API.DTOs.Schedule
         //optional custom label like "hammond - room 302"
         public string? LocationDisplay { get; set; }
 
+        //max students for this lab group, defaults to 8 if not specified
+        public int Capacity { get; set; } = 8;
+
         [Required]
         //links this bucket to the main semester folder
         public int SemesterId { get; set; }

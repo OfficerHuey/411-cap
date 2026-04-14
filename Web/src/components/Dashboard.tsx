@@ -1,424 +1,409 @@
 import { useEffect, useState } from "react";
-import "../App.css";
 import { CreateSemesterModal } from "./CreateSemesterModal";
-import { Plus, Calendar, Trash2 } from "lucide-react";
+import { CloneSemesterModal } from "./CloneSemesterModal";
+import { Plus, Calendar, Trash2, Unlock, Copy, ChevronRight } from "lucide-react";
 import { authService } from "../Lib/Auth";
-import { dataStore } from "../Lib/Store";
+import { semesters as semestersApi, schedules as schedulesApi } from "../Lib/api";
 import type { Semester } from "../Lib/Types";
 import { useNavigate } from "react-router-dom";
+import { useBreadcrumbs } from "../Lib/BreadcrumbContext";
+import { useToast } from "../Lib/ToastContext";
+import { Button } from "./ui/Button";
+import { Card } from "./ui/Card";
+import { NumberBadge } from "./ui/NumberBadge";
+import { HairlineRule } from "./ui/HairlineRule";
+import { StatTile } from "./ui/StatTile";
+import { SectionHeading } from "./ui/SectionHeading";
+import { Badge } from "./ui/Badge";
+import { EmptyState } from "./ui/EmptyState";
+import { Modal } from "./ui/Modal";
+import { Skeleton } from "./ui/Skeleton";
+import styles from "./Dashboard.module.css";
+
+function getGreeting(): { text: string; accent: string } {
+  const h = new Date().getHours();
+  if (h < 12) return { text: "Good morning", accent: "morning" };
+  if (h < 17) return { text: "Good afternoon", accent: "afternoon" };
+  return { text: "Good evening", accent: "evening" };
+}
+
+function getFirstName(name?: string | null): string {
+  if (!name) return "there";
+  return name.split(" ")[0];
+}
+
+function formatDateRange(start: string, end: string): string {
+  const s = new Date(start).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  const e = new Date(end).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  return `${s} \u2013 ${e}`;
+}
+
+function weekProgress(start: string, end: string): { week: number; total: number; pct: number } {
+  const now = Date.now();
+  const s = new Date(start).getTime();
+  const e = new Date(end).getTime();
+  const total = Math.max(1, Math.round((e - s) / (7 * 86400000)));
+  const elapsed = Math.max(0, Math.round((now - s) / (7 * 86400000)));
+  const week = Math.min(elapsed + 1, total);
+  const pct = Math.min(100, Math.round((week / total) * 100));
+  return { week, total, pct };
+}
+
+//extract season word from semester name for italic accent
+function splitSeasonWord(name: string): { before: string; season: string; after: string } | null {
+  const seasons = ["Spring", "Fall", "Summer", "Winter"];
+  for (const s of seasons) {
+    const idx = name.indexOf(s);
+    if (idx !== -1) {
+      return { before: name.slice(0, idx), season: s, after: name.slice(idx + s.length) };
+    }
+  }
+  return null;
+}
 
 export function Dashboard() {
   const navigate = useNavigate();
-  const [semesters, setSemesters] = useState<Semester[]>([]);
+  const { addToast } = useToast();
+  const { setItems: setBreadcrumbs } = useBreadcrumbs();
+  const [semesterList, setSemesterList] = useState<Semester[]>([]);
+  const [scheduleCountMap, setScheduleCountMap] = useState<Record<number, number>>({});
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<Semester | null>(null);
+  const [cloneSource, setCloneSource] = useState<Semester | null>(null);
+  const [totalStudents, setTotalStudents] = useState<number | null>(null);
+  const [attentionCount, setAttentionCount] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   const canEdit = authService.canEdit();
+  const greeting = getGreeting();
+  const firstName = getFirstName(authService.getCurrentUser()?.name);
 
-  useEffect(() => {
-    loadSemesters();
-  }, []);
+  //clear breadcrumbs on dashboard
+  useEffect(() => { setBreadcrumbs([]); }, [setBreadcrumbs]);
 
-  const loadSemesters = () => {
-    setSemesters(dataStore.getSemesters());
+  useEffect(() => { loadSemesters(); }, []);
+
+  const loadSemesters = async () => {
+    try {
+      setLoading(true);
+      setError("");
+      const data = await semestersApi.getAll();
+      setSemesterList(data);
+
+      //fetch schedule counts, student totals, and attention flags per active semester
+      const counts: Record<number, number> = {};
+      const active = data.filter((s) => !s.isLocked);
+      let studentSum = 0;
+      let attention = 0;
+      await Promise.all(
+        active.map(async (sem) => {
+          try {
+            const schedules = await schedulesApi.getBySemester(sem.id);
+            counts[sem.id] = schedules.length;
+            studentSum += schedules.reduce((acc, s) => acc + (s.students?.length || 0), 0);
+            attention += schedules.filter(
+              (s) => s.students && s.capacity && s.students.length >= s.capacity
+            ).length;
+          } catch {
+            counts[sem.id] = 0;
+          }
+        }),
+      );
+      setScheduleCountMap(counts);
+      setTotalStudents(studentSum);
+      setAttentionCount(attention);
+    } catch (err: any) {
+      setError(err.message || "Failed to load semesters");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleDeleteSemester = (id: string) => {
-    dataStore.deleteSemester(id);
-    setDeleteConfirm(null);
-    loadSemesters();
+  const handleDeleteSemester = async () => {
+    if (!deleteConfirm) return;
+    try {
+      await semestersApi.delete(deleteConfirm.id);
+      setDeleteConfirm(null);
+      addToast("success", "Semester deleted successfully");
+      await loadSemesters();
+    } catch (err: any) {
+      addToast("error", err.message || "Failed to delete semester");
+      setDeleteConfirm(null);
+    }
   };
 
-  const formatDateRange = (startDate: string, endDate: string) => {
-    const start = new Date(startDate).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-    });
-    const end = new Date(endDate).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
-    return `${start} - ${end}`;
+  const handleToggleLock = async (id: number) => {
+    try {
+      const result = await semestersApi.toggleLock(id);
+      addToast("success", result.isLocked ? "Semester locked" : "Semester unlocked");
+      await loadSemesters();
+    } catch (err: any) {
+      addToast("error", err.message || "Failed to toggle lock");
+    }
   };
+
+  const activeSemesters = semesterList.filter((s) => !s.isLocked);
+  const lockedCount = semesterList.filter((s) => s.isLocked).length;
+  const totalSchedules = Object.values(scheduleCountMap).reduce((a, b) => a + b, 0);
+
+  //featured = most recent active semester (latest startDate)
+  const featured = activeSemesters.length > 0
+    ? [...activeSemesters].sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime())[0]
+    : null;
+
+  const featuredProgress = featured ? weekProgress(featured.startDate, featured.endDate) : null;
+
+  //subtitle text
+  const subtitleText = featured
+    ? `You're building schedules for ${featured.name}. ${totalSchedules} schedule group${totalSchedules !== 1 ? "s" : ""} across ${activeSemesters.length} active semester${activeSemesters.length !== 1 ? "s" : ""}.`
+    : "You have no active semesters. Create one to begin building schedules.";
 
   return (
-    <>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=DM+Sans:wght@300;400;500&display=swap');
-
-        .dash-root { font-family: 'DM Sans', sans-serif; }
-
-        .dash-header {
-          display: flex;
-          align-items: flex-end;
-          justify-content: space-between;
-          margin-bottom: 2.5rem;
-          padding-bottom: 1.5rem;
-          border-bottom: 1px solid #e5e2db;
-        }
-
-        .dash-header-text h1 {
-          font-family: 'Playfair Display', serif;
-          font-size: 2rem;
-          font-weight: 600;
-          color: #0a1f14;
-          margin: 0 0 0.35rem 0;
-        }
-
-        .dash-header-divider {
-          width: 40px;
-          height: 3px;
-          background: #00563f;
-          border-radius: 2px;
-          margin-bottom: 0.6rem;
-        }
-
-        .dash-header-text p { color: #6b7280; font-size: 0.9rem; margin: 0; font-weight: 300; }
-
-        .btn-create {
-          display: inline-flex;
-          align-items: center;
-          gap: 0.5rem;
-          padding: 0.65rem 1.25rem;
-          background: #00563f;
-          color: #ffffff;
-          border: none;
-          border-radius: 8px;
-          font-family: 'DM Sans', sans-serif;
-          font-size: 0.88rem;
-          font-weight: 500;
-          cursor: pointer;
-          letter-spacing: 0.02em;
-          transition: background 0.15s, transform 0.1s;
-          white-space: nowrap;
-        }
-
-        .btn-create:hover { background: #003d2a; }
-        .btn-create:active { transform: scale(0.98); }
-
-        .dash-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-          gap: 1.5rem;
-        }
-
-        .semester-card {
-          background: #ffffff;
-          border: 1px solid #e5e2db;
-          border-radius: 10px;
-          overflow: hidden;
-          transition: box-shadow 0.2s, transform 0.2s;
-        }
-
-        .semester-card:hover {
-          box-shadow: 0 8px 30px rgba(0,0,0,0.09);
-          transform: translateY(-2px);
-        }
-
-        .card-accent { height: 4px; background: linear-gradient(90deg, #00563f, #C8952C); }
-        .card-body { padding: 1.5rem; }
-
-        .card-top {
-          display: flex;
-          align-items: flex-start;
-          justify-content: space-between;
-          margin-bottom: 1rem;
-        }
-
-        .card-title-group { display: flex; align-items: center; gap: 0.75rem; }
-
-        .card-icon {
-          width: 38px;
-          height: 38px;
-          background: #f0faf5;
-          border: 1px solid #c6e8d8;
-          border-radius: 8px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          flex-shrink: 0;
-        }
-
-        .card-title { font-family: 'Playfair Display', serif; font-size: 1.1rem; font-weight: 600; color: #0a1f14; margin: 0 0 0.2rem 0; }
-        .card-dates { font-size: 0.78rem; color: #9ca3af; margin: 0; }
-
-        .btn-delete {
-          background: none;
-          border: none;
-          cursor: pointer;
-          color: #d1d5db;
-          padding: 0.25rem;
-          border-radius: 4px;
-          display: flex;
-          align-items: center;
-          transition: color 0.15s, background 0.15s;
-          flex-shrink: 0;
-        }
-
-        .btn-delete:hover { color: #dc2626; background: #fef2f2; }
-
-        .card-clinical-badge {
-          display: inline-flex;
-          align-items: center;
-          padding: 0.25rem 0.75rem;
-          background: rgba(200, 149, 44, 0.1);
-          color: #926a10;
-          border: 1px solid rgba(200, 149, 44, 0.3);
-          border-radius: 20px;
-          font-size: 0.78rem;
-          font-weight: 500;
-          margin-bottom: 1.25rem;
-        }
-
-        .btn-open {
-          width: 100%;
-          padding: 0.65rem;
-          background: #f0faf5;
-          color: #00563f;
-          border: 1px solid #c6e8d8;
-          border-radius: 7px;
-          font-family: 'DM Sans', sans-serif;
-          font-size: 0.88rem;
-          font-weight: 500;
-          cursor: pointer;
-          transition: background 0.15s, border-color 0.15s;
-          box-sizing: border-box;
-        }
-
-        .btn-open:hover { background: #00563f; color: #ffffff; border-color: #00563f; }
-
-        .dash-empty {
-          grid-column: 1 / -1;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          padding: 4rem 2rem;
-          background: #ffffff;
-          border: 2px dashed #d1d5db;
-          border-radius: 10px;
-          text-align: center;
-        }
-
-        .dash-empty-icon {
-          width: 56px;
-          height: 56px;
-          background: #f0faf5;
-          border-radius: 12px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          margin-bottom: 1rem;
-        }
-
-        .dash-empty h3 { font-family: 'Playfair Display', serif; font-size: 1.2rem; color: #0a1f14; margin: 0 0 0.5rem 0; }
-        .dash-empty p { color: #9ca3af; font-size: 0.88rem; margin: 0 0 1.5rem 0; font-weight: 300; }
-
-        .dash-footer {
-          text-align: center;
-          padding: 2rem;
-          font-size: 0.75rem;
-          color: #c4c0b8;
-          letter-spacing: 0.04em;
-          text-transform: uppercase;
-        }
-
-        .delete-overlay {
-          position: fixed;
-          inset: 0;
-          background: rgba(0,0,0,0.5);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          z-index: 9999;
-          backdrop-filter: blur(2px);
-        }
-
-        .delete-box {
-          background: #ffffff;
-          border-radius: 12px;
-          padding: 1.75rem;
-          max-width: 360px;
-          width: 100%;
-          box-shadow: 0 24px 60px rgba(0,0,0,0.2);
-          font-family: 'DM Sans', sans-serif;
-          text-align: center;
-        }
-
-        .delete-box-icon {
-          width: 48px;
-          height: 48px;
-          background: #fef2f2;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          margin: 0 auto 1rem;
-        }
-
-        .delete-box h3 { font-family: 'Playfair Display', serif; font-size: 1.1rem; color: #0a1f14; margin: 0 0 0.5rem 0; }
-        .delete-box p { font-size: 0.85rem; color: #6b7280; margin: 0 0 1.5rem 0; line-height: 1.5; }
-        .delete-box-actions { display: flex; gap: 0.75rem; }
-
-        .delete-btn-cancel {
-          flex: 1;
-          padding: 0.65rem;
-          border: 1.5px solid #e5e7eb;
-          border-radius: 8px;
-          background: #ffffff;
-          color: #6b7280;
-          font-family: 'DM Sans', sans-serif;
-          font-size: 0.85rem;
-          font-weight: 500;
-          cursor: pointer;
-          transition: background 0.15s;
-        }
-
-        .delete-btn-cancel:hover { background: #f9fafb; }
-
-        .delete-btn-confirm {
-          flex: 1;
-          padding: 0.65rem;
-          background: #dc2626;
-          color: #ffffff;
-          border: none;
-          border-radius: 8px;
-          font-family: 'DM Sans', sans-serif;
-          font-size: 0.85rem;
-          font-weight: 500;
-          cursor: pointer;
-          transition: background 0.15s;
-        }
-
-        .delete-btn-confirm:hover { background: #b91c1c; }
-      `}</style>
-
-      <div className="dash-root">
-        <div className="dash-header">
-          <div className="dash-header-text">
-            <h1>Dashboard</h1>
-            <div className="dash-header-divider" />
-            <p>Manage semesters and course schedules</p>
-          </div>
-          {canEdit && (
-            <button
-              className="btn-create"
-              onClick={() => setShowCreateModal(true)}
-            >
-              <Plus size={16} />
-              Create New Semester
-            </button>
-          )}
+    <div className={styles.root}>
+      {/* ── hero ── */}
+      <div className={styles.hero}>
+        <div className={styles.heroText}>
+          <NumberBadge number="01" variant="gold" size="sm" />
+          <HairlineRule width="48px" color="gold" spacing="normal" />
+          <h1>
+            {greeting.text.replace(greeting.accent, "").trim()}{" "}
+            <em>{greeting.accent}</em>, {firstName}.
+          </h1>
+          <p className={styles.heroSubtitle}>{subtitleText}</p>
         </div>
-
-        <div className="dash-grid">
-          {semesters.map((semester) => (
-            <div key={semester.id} className="semester-card">
-              <div className="card-accent" />
-              <div className="card-body">
-                <div className="card-top">
-                  <div className="card-title-group">
-                    <div className="card-icon">
-                      <Calendar size={18} color="#00563f" />
-                    </div>
-                    <div>
-                      <h3 className="card-title">{semester.name}</h3>
-                      <p className="card-dates">
-                        {formatDateRange(semester.startDate, semester.endDate)}
-                      </p>
-                    </div>
-                  </div>
-                  {canEdit && (
-                    <button
-                      className="btn-delete"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setDeleteConfirm(semester.id);
-                      }}
-                    >
-                      <Trash2 size={15} />
-                    </button>
-                  )}
-                </div>
-
-                <div className="card-clinical-badge">
-                  Clinical Days: {semester.clinicalDays}
-                </div>
-
-                <button
-                  className="btn-open"
-                  onClick={() => navigate(`/semester/${semester.id}`)}
-                >
-                  Open Semester
-                </button>
-              </div>
-            </div>
-          ))}
-
-          {semesters.length === 0 && (
-            <div className="dash-empty">
-              <div className="dash-empty-icon">
-                <Calendar size={26} color="#00563f" />
-              </div>
-              <h3>No Semesters Yet</h3>
-              <p>Get started by creating your first semester</p>
-              {canEdit && (
-                <button
-                  className="btn-create"
-                  onClick={() => setShowCreateModal(true)}
-                >
-                  <Plus size={16} />
-                  Create Semester
-                </button>
-              )}
-            </div>
-          )}
-        </div>
-
-        <div className="dash-footer">
-          Southeastern Louisiana University · School of Nursing
-        </div>
+        {canEdit && (
+          <Button
+            variant="primary"
+            size="lg"
+            iconLeft={<Plus size={16} />}
+            onClick={() => setShowCreateModal(true)}
+          >
+            Create New Semester
+          </Button>
+        )}
       </div>
 
+      {error && <div className={styles.errorBanner}>{error}</div>}
+
+      {/* ── stat strip ── */}
+      {loading ? (
+        <div style={{ marginTop: "2rem" }}>
+          <Skeleton variant="card" height={140} />
+        </div>
+      ) : (
+        <Card variant="raised" className={styles.statStrip}>
+          <div className={styles.statGrid}>
+            <StatTile
+              label="Active Semesters"
+              value={activeSemesters.length}
+              accent="gold"
+              size="sm"
+              trend={lockedCount > 0 ? { direction: "neutral", text: `${lockedCount} archived` } : undefined}
+            />
+            <StatTile
+              label="Schedule Groups"
+              value={totalSchedules}
+              accent="green"
+              size="sm"
+              trend={activeSemesters.length > 0 ? { direction: "neutral", text: `across ${activeSemesters.length} semester${activeSemesters.length !== 1 ? "s" : ""}` } : undefined}
+            />
+            <StatTile
+              label="Students Placed"
+              value={totalStudents ?? 0}
+              accent="green"
+              size="sm"
+              trend={totalStudents !== null && totalStudents > 0 ? { direction: "neutral", text: `across ${activeSemesters.length} semester${activeSemesters.length !== 1 ? "s" : ""}` } : undefined}
+            />
+            <StatTile
+              label="Attention Needed"
+              value={attentionCount ?? 0}
+              accent={attentionCount && attentionCount > 0 ? "gold" : "none"}
+              size="sm"
+              trend={
+                attentionCount !== null
+                  ? {
+                      direction: attentionCount === 0 ? "neutral" : "down",
+                      text: attentionCount === 0 ? "All clear" : "Review details",
+                    }
+                  : undefined
+              }
+            />
+          </div>
+        </Card>
+      )}
+
+      {/* ── featured semester ── */}
+      {featured && !loading && (
+        <Card variant="hero" interactive className={styles.featured} onClick={() => navigate(`/semester/${featured.id}`)}>
+          <div className={styles.featuredInner}>
+            <div className={styles.featuredLeft}>
+              <NumberBadge number="NOW" variant="gold" size="md" />
+              <h2 className={styles.featuredTitle}>
+                {(() => {
+                  const parts = splitSeasonWord(featured.name);
+                  if (!parts) return featured.name;
+                  return <>{parts.before}<em>{parts.season}</em>{parts.after}</>;
+                })()}
+              </h2>
+              {featuredProgress && (
+                <>
+                  <span className={styles.featuredMeta}>
+                    Week {featuredProgress.week} of {featuredProgress.total} &middot; Ends{" "}
+                    {new Date(featured.endDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                  </span>
+                  <div className={styles.progressTrack}>
+                    <div className={styles.progressFill} style={{ width: `${featuredProgress.pct}%` }} />
+                  </div>
+                </>
+              )}
+            </div>
+            <Button variant="secondary" size="lg" onClick={(e) => { e.stopPropagation(); navigate(`/semester/${featured.id}`); }}>
+              Open Semester
+            </Button>
+          </div>
+        </Card>
+      )}
+
+      {/* ── semester grid ── */}
+      {!loading && (
+        <>
+          <SectionHeading number="02" title="All semesters" level="section" />
+
+          {semesterList.length === 0 ? (
+            <EmptyState
+              icon={<Calendar size={32} />}
+              title="No semesters yet"
+              description="Create your first semester to begin building schedules for your nursing students."
+              action={
+                canEdit ? (
+                  <Button variant="primary" size="lg" iconLeft={<Plus size={16} />} onClick={() => setShowCreateModal(true)}>
+                    Create Your First Semester
+                  </Button>
+                ) : undefined
+              }
+            />
+          ) : activeSemesters.length === 0 ? (
+            <EmptyState
+              icon={<Calendar size={32} />}
+              title="No active semesters"
+              description="All semesters are archived. Visit the Archive to see finalized semesters, or create a new one."
+              action={
+                canEdit ? (
+                  <Button variant="primary" iconLeft={<Plus size={16} />} onClick={() => setShowCreateModal(true)}>
+                    New Semester
+                  </Button>
+                ) : undefined
+              }
+            />
+          ) : (
+            <div className={styles.grid}>
+              {activeSemesters.map((semester) => (
+                <Card
+                  key={semester.id}
+                  variant="raised"
+                  accentColor="gold"
+                  interactive
+                  onClick={() => navigate(`/semester/${semester.id}`)}
+                >
+                  <div className={styles.cardBody}>
+                    <div className={styles.cardTopRow}>
+                      <NumberBadge number={semester.id} size="sm" variant="gold" />
+                      {canEdit && (
+                        <div className={styles.cardActions}>
+                          <button
+                            className={styles.cardActionBtn}
+                            onClick={(e) => { e.stopPropagation(); handleToggleLock(semester.id); }}
+                            title="Lock semester"
+                          >
+                            <Unlock size={15} />
+                          </button>
+                          <button
+                            className={styles.cardActionBtn}
+                            onClick={(e) => { e.stopPropagation(); setCloneSource(semester); }}
+                            title="Clone semester"
+                          >
+                            <Copy size={15} />
+                          </button>
+                          <button
+                            className={`${styles.cardActionBtn} ${styles.cardActionBtnDanger}`}
+                            onClick={(e) => { e.stopPropagation(); setDeleteConfirm(semester); }}
+                            title="Delete semester"
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    <h3 className={styles.cardTitle}>{semester.name}</h3>
+                    <div className={styles.cardMeta}>
+                      <span className={styles.cardDate}>
+                        {formatDateRange(semester.startDate, semester.endDate)}
+                      </span>
+                      {semester.clinicalDays && (
+                        <Badge variant="gold" size="sm">{semester.clinicalDays}</Badge>
+                      )}
+                    </div>
+
+                    <HairlineRule color="muted" spacing="tight" />
+                    <div className={styles.cardCta}>
+                      <span className={styles.cardCtaText}>
+                        {scheduleCountMap[semester.id] ?? 0} schedule group{(scheduleCountMap[semester.id] ?? 0) !== 1 ? "s" : ""}
+                      </span>
+                      <ChevronRight size={16} className={styles.cardCtaChevron} />
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* ── modals ── */}
       {showCreateModal && (
         <CreateSemesterModal
           onClose={() => setShowCreateModal(false)}
           onSuccess={() => {
             loadSemesters();
             setShowCreateModal(false);
+            addToast("success", "Semester created successfully");
           }}
         />
       )}
 
-      {deleteConfirm && (
-        <div className="delete-overlay" onClick={() => setDeleteConfirm(null)}>
-          <div className="delete-box" onClick={(e) => e.stopPropagation()}>
-            <div className="delete-box-icon">
-              <Trash2 size={20} color="#dc2626" />
-            </div>
-            <h3>Delete Semester?</h3>
-            <p>
-              This will permanently delete this semester and all associated
-              schedules and data.
-            </p>
-            <div className="delete-box-actions">
-              <button
-                className="delete-btn-cancel"
-                onClick={() => setDeleteConfirm(null)}
-              >
-                Cancel
-              </button>
-              <button
-                className="delete-btn-confirm"
-                onClick={() => handleDeleteSemester(deleteConfirm)}
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
+      <Modal
+        open={!!deleteConfirm}
+        onClose={() => setDeleteConfirm(null)}
+        title="Delete semester?"
+        subtitle={deleteConfirm ? `This will permanently remove ${deleteConfirm.name} and all its schedules.` : ""}
+        size="sm"
+        number="ATTENTION"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setDeleteConfirm(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleDeleteSemester}>Delete Semester</Button>
+          </>
+        }
+      >
+        <p style={{ color: "var(--text-muted)", lineHeight: 1.6, margin: 0 }}>
+          This action cannot be undone. Schedule groups, section assignments, and
+          student rosters associated with this semester will all be removed.
+        </p>
+      </Modal>
+
+      {cloneSource && (
+        <CloneSemesterModal
+          source={cloneSource}
+          onClose={() => setCloneSource(null)}
+          onSuccess={() => {
+            setCloneSource(null);
+            addToast("success", "Semester cloned successfully");
+            loadSemesters();
+          }}
+        />
       )}
-    </>
+    </div>
   );
 }

@@ -1,143 +1,160 @@
-import "../App.css";
-import { Calendar, Shield, LogOut } from "lucide-react";
-import { useNavigate, Outlet } from "react-router-dom";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { Calendar, LogOut, DoorOpen, GraduationCap, Archive, Search, StickyNote } from "lucide-react";
+import { useNavigate, useLocation, Outlet } from "react-router-dom";
 import { authService } from "../Lib/Auth";
+import { useBreadcrumbs } from "../Lib/BreadcrumbContext";
+import { Avatar } from "./ui/Avatar";
+import { Tooltip } from "./ui/Tooltip";
+import { Breadcrumbs } from "./ui/Breadcrumbs";
+import { loadingBar } from "./ui/LoadingBar";
+import { PageTransition } from "./ui/PageTransition";
+import { CommandPalette } from "./CommandPalette";
+import { KeyboardShortcutsModal } from "./KeyboardShortcutsModal";
+import styles from "./Layout.module.css";
 
 export function Layout() {
   const navigate = useNavigate();
+  const location = useLocation();
   const currentUser = authService.getCurrentUser();
+  const { items: breadcrumbItems } = useBreadcrumbs();
+
+  const [showPalette, setShowPalette] = useState(false);
+  const [showShortcuts, setShowShortcuts] = useState(false);
 
   const handleLogout = () => {
     authService.logout();
-    navigate("/login");
   };
 
+  const openPalette = useCallback(() => setShowPalette(true), []);
+  const closePalette = useCallback(() => setShowPalette(false), []);
+  const openShortcuts = useCallback(() => setShowShortcuts(true), []);
+  const closeShortcuts = useCallback(() => setShowShortcuts(false), []);
+
+  //global keyboard shortcuts
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      const inInput = target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable;
+
+      //cmd/ctrl+k — open command palette
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setShowPalette((prev) => !prev);
+        return;
+      }
+
+      //skip remaining shortcuts when typing in inputs
+      if (inInput) return;
+
+      //? — open keyboard shortcuts
+      if (e.key === "?" && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        setShowShortcuts(true);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
+
+  const isActive = (path: string) => {
+    if (path === "/") return location.pathname === "/";
+    return location.pathname.startsWith(path);
+  };
+
+  //loading bar on route changes
+  const prevPath = useRef(location.pathname);
+  useEffect(() => {
+    if (prevPath.current !== location.pathname) {
+      loadingBar.start();
+      setTimeout(() => loadingBar.finish(), 400);
+      prevPath.current = location.pathname;
+    }
+  }, [location.pathname]);
+
+  const navLinks = [
+    { path: "/", label: "Dashboard", icon: null },
+    { path: "/rooms", label: "Rooms", icon: DoorOpen },
+    { path: "/instructors", label: "Instructors", icon: GraduationCap },
+    { path: "/notes", label: "Notes", icon: StickyNote },
+    { path: "/archive", label: "Archive", icon: Archive },
+  ];
+
   return (
-    <>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=DM+Sans:wght@300;400;500&display=swap');
-
-        .layout-root {
-          min-height: 100vh;
-          background: #f8f7f4;
-          font-family: 'DM Sans', sans-serif;
-        }
-
-        .layout-nav {
-          background: #00563f;
-          height: 64px;
-          padding: 0 2.5rem;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          box-shadow: 0 2px 12px rgba(0,0,0,0.15);
-        }
-
-        .layout-nav-left {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-          text-decoration: none;
-          cursor: pointer;
-        }
-
-        .layout-nav-icon {
-          width: 36px;
-          height: 36px;
-          background: rgba(255,255,255,0.12);
-          border: 1px solid rgba(255,255,255,0.2);
-          border-radius: 8px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        .layout-nav-title {
-          font-family: 'Playfair Display', serif;
-          font-size: 1.1rem;
-          color: #ffffff;
-          letter-spacing: 0.01em;
-        }
-
-        .layout-nav-right {
-          display: flex;
-          align-items: center;
-          gap: 1rem;
-        }
-
-        .layout-user-info {
-          display: flex;
-          align-items: center;
-          gap: 0.6rem;
-        }
-
-        .layout-user-name {
-          font-size: 0.88rem;
-          font-weight: 500;
-          color: #ffffff;
-        }
-
-        .layout-role-badge {
-          display: inline-flex;
-          align-items: center;
-          gap: 0.3rem;
-          font-size: 0.68rem;
-          font-weight: 500;
-          padding: 0.2rem 0.6rem;
-          border-radius: 4px;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-          background: rgba(200, 149, 44, 0.25);
-          color: #C8952C;
-          border: 1px solid rgba(200, 149, 44, 0.4);
-        }
-
-        .layout-logout-btn {
-          display: inline-flex;
-          align-items: center;
-          gap: 0.4rem;
-          padding: 0.45rem 1rem;
-          background: rgba(255,255,255,0.1);
-          border: 1px solid rgba(255,255,255,0.2);
-          border-radius: 7px;
-          color: #ffffff;
-          font-family: 'DM Sans', sans-serif;
-          font-size: 0.85rem;
-          cursor: pointer;
-          transition: background 0.15s;
-        }
-
-        .layout-logout-btn:hover {
-          background: rgba(255,255,255,0.2);
-        }
-
-        .layout-main {
-          padding: 2.5rem 2rem;
-        }
-      `}</style>
-
-      <div className="layout-root">
-        <nav className="layout-nav">
-          <div className="layout-nav-left" onClick={() => navigate("/")}>
-            <div className="layout-nav-icon">
-              <Calendar size={18} color="white" />
+    <div className={styles.root}>
+      <nav className={styles.nav}>
+        <div className={styles.navInner}>
+          {/* brand */}
+          <div className={styles.brand} onClick={() => navigate("/")}>
+            <div className={styles.brandMark}>
+              <Calendar size={18} />
             </div>
-            <span className="layout-nav-title">Nursing Scheduler</span>
+            <div className={styles.brandType}>
+              <span className={styles.brandName}>Nursing Scheduler</span>
+              <span className={styles.brandSubtitle}>SELU &middot; School of Nursing</span>
+            </div>
           </div>
 
-          <div className="layout-nav-right">
-            <div className="layout-user-info"></div>
-            <button className="layout-logout-btn" onClick={handleLogout}>
-              <LogOut size={14} />
-              Logout
+          {/* center nav */}
+          <div className={styles.navCenter}>
+            {navLinks.map((link) => (
+              <button
+                key={link.path}
+                className={`${styles.navLink} ${isActive(link.path) ? styles.navLinkActive : ""}`}
+                onClick={() => navigate(link.path)}
+              >
+                {link.icon && <link.icon size={14} />}
+                {link.label}
+              </button>
+            ))}
+          </div>
+
+          {/* right section */}
+          <div className={styles.navRight}>
+            <button className={styles.cmdTrigger} type="button" onClick={openPalette}>
+              <Search size={14} className={styles.cmdIcon} />
+              <span className={styles.cmdText}>Search&hellip;</span>
+              <kbd className={styles.cmdKbd}>&thinsp;&#8984;K&thinsp;</kbd>
             </button>
-          </div>
-        </nav>
 
-        <main className="layout-main">
+            {currentUser && (
+              <button
+                className={styles.avatarBtn}
+                onClick={() => navigate("/profile")}
+                aria-label="Go to profile"
+              >
+                <Avatar name={currentUser.name || "User"} size="sm" />
+              </button>
+            )}
+
+            <Tooltip content="Sign out" position="bottom">
+              <button
+                className={styles.logoutBtn}
+                onClick={handleLogout}
+                aria-label="Sign out"
+              >
+                <LogOut size={16} />
+              </button>
+            </Tooltip>
+          </div>
+        </div>
+      </nav>
+
+      {breadcrumbItems.length > 0 && <Breadcrumbs items={breadcrumbItems} />}
+
+      <main className={styles.main}>
+        <PageTransition>
           <Outlet />
-        </main>
-      </div>
-    </>
+        </PageTransition>
+      </main>
+      <CommandPalette
+        isOpen={showPalette}
+        onClose={closePalette}
+        onOpenShortcuts={openShortcuts}
+      />
+      <KeyboardShortcutsModal
+        isOpen={showShortcuts}
+        onClose={closeShortcuts}
+      />
+    </div>
   );
 }

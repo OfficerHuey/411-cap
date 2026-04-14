@@ -1,0 +1,29 @@
+/* notes panel — styles specific to notes content (shell is DetailPanel) */
+
+.count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--paper-raised);
+  background: var(--gold-500);
+  border-radius: 10px;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.loading {
+  text-align: center;
+  padding: 2rem;
+  font-size: var(--text-sm);
+  color: var(--text-faint);
+}

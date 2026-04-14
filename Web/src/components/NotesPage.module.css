@@ -1,0 +1,113 @@
+/* notes page — editorial global view */
+
+.root {
+  font-family: var(--font-body);
+}
+
+/* ── hero ── */
+.hero {
+  padding: 3rem 0 0;
+}
+
+.heroTitle {
+  font-family: var(--font-display);
+  font-size: clamp(2.5rem, 5vw, 3.5rem);
+  font-weight: 500;
+  color: var(--text-on-paper);
+  letter-spacing: var(--tracking-tighter);
+  line-height: var(--leading-tight);
+  margin: 0;
+}
+
+.heroTitle em {
+  font-style: italic;
+  font-family: var(--font-display);
+  color: var(--gold-500);
+}
+
+.heroSubtitle {
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  margin: var(--space-2) 0 0;
+}
+
+/* ── filters ── */
+.filters {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 0;
+  flex-wrap: wrap;
+}
+
+.filterIcon {
+  color: var(--text-faint);
+  flex-shrink: 0;
+}
+
+.filterSelect {
+  padding: 0.45rem 0.75rem;
+  border: 1px solid var(--cream-300);
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  background: var(--paper-raised);
+  outline: none;
+  cursor: pointer;
+  transition: border-color var(--motion-fast);
+}
+
+.filterSelect:focus {
+  border-color: var(--green-600);
+  box-shadow: 0 0 0 3px rgba(0, 86, 63, 0.08);
+}
+
+/* ── day groups ── */
+.dayGroups {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  margin-top: 1rem;
+}
+
+.dayGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.dayLabel {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: var(--text-on-paper);
+  margin: 0;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--cream-200);
+}
+
+/* ── card grid ── */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+/* ── responsive ── */
+@media (max-width: 1024px) {
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .hero {
+    padding-top: 2rem;
+  }
+}

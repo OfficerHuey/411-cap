@@ -1,0 +1,41 @@
+/* inline note form */
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1rem;
+  background: var(--paper-base);
+  border: 1px solid var(--cream-300);
+  border-radius: var(--radius-lg);
+}
+
+.textarea {
+  width: 100%;
+  min-height: 72px;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--cream-300);
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: var(--text-on-paper);
+  background: var(--paper-raised);
+  resize: vertical;
+  outline: none;
+  transition: border-color var(--motion-fast);
+}
+
+.textarea:focus {
+  border-color: var(--green-600);
+  box-shadow: 0 0 0 3px rgba(0, 86, 63, 0.08);
+}
+
+.textarea::placeholder {
+  color: var(--text-faint);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}

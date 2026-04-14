@@ -11,6 +11,8 @@ namespace NursingScheduler.API.DTOs.Schedule
         public required string Name { get; set; }
         public int SemesterLevel { get; set; }
         public string? LocationDisplay { get; set; }
+        public int Capacity { get; set; }
+        public int SortOrder { get; set; }
         public int SemesterId { get; set; }
 
         //list of students inside specific bucket

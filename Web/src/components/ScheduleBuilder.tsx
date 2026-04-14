@@ -1,25 +1,35 @@
-import { useEffect, useState } from "react";
-import "../App.css";
-import { ArrowLeft, Download, CalendarIcon, Users } from "lucide-react";
+import { useEffect, useState, useRef } from "react";
+import { ArrowLeft, Download, CalendarIcon, Users, Lock, StickyNote } from "lucide-react";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { useParams, useNavigate } from "react-router-dom";
-import { exportScheduleData } from "../Lib/Exportimport";
-import { dataStore } from "../Lib/Store";
-import type {
-  ScheduleGroup,
-  Course,
-  CourseSection,
-  ScheduleSection,
-} from "../Lib/Types";
+import {
+  schedules as schedulesApi,
+  courses as coursesApi,
+  semesters as semestersApi,
+  exports as exportsApi,
+} from "../Lib/api";
+import type { Schedule, Course, Semester } from "../Lib/Types";
+import { numberToLevel } from "../Lib/Types";
 import { CoursePalette } from "./CoursePalette";
 import { ScheduleCanvas } from "./ScheduleCanvas";
 import { ScheduleViewer } from "./ScheduleViewer";
 import { StudentRosterView } from "./StudentRosterView";
 import { CourseDetailsModal } from "./CourseDetailsModal";
+import { useBreadcrumbs } from "../Lib/BreadcrumbContext";
+import { useToast } from "../Lib/ToastContext";
+import { Button } from "./ui/Button";
+import { NumberBadge } from "./ui/NumberBadge";
+import { HairlineRule } from "./ui/HairlineRule";
+import { Badge } from "./ui/Badge";
+import { Skeleton } from "./ui/Skeleton";
+import { NotesPanel } from "./Notes/NotesPanel";
+import { InstructorDetailPanel } from "./InstructorDetailPanel";
+import { useNotes } from "../hooks/useNotes";
+import styles from "./ScheduleBuilder.module.css";
 
 interface CourseDetailsData {
-  courseId: string;
+  courseId: number;
   dayOfWeek?: string;
   timeSlot?: string;
   dateRange?: string;
@@ -28,415 +38,211 @@ interface CourseDetailsData {
 export function ScheduleBuilder() {
   const { scheduleGroupId } = useParams<{ scheduleGroupId: string }>();
   const navigate = useNavigate();
-
-  const [scheduleGroup, setScheduleGroup] = useState<ScheduleGroup | null>(null);
-  const [courses, setCourses] = useState<Course[]>([]);
-  const [courseSections, setCourseSections] = useState<CourseSection[]>([]);
-  const [scheduleSections, setScheduleSections] = useState<ScheduleSection[]>([]);
+  const { addToast } = useToast();
+  const { setItems: setBreadcrumbs } = useBreadcrumbs();
+  const [schedule, setSchedule] = useState<Schedule | null>(null);
+  const [semester, setSemester] = useState<Semester | null>(null);
+  const [courseList, setCourseList] = useState<Course[]>([]);
   const [view, setView] = useState<"calendar" | "students">("calendar");
   const [detailsModal, setDetailsModal] = useState<CourseDetailsData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [showExportMenu, setShowExportMenu] = useState(false);
+  const [showNotes, setShowNotes] = useState(false);
+  const [detailInstructorId, setDetailInstructorId] = useState<number | null>(null);
+  const exportRef = useRef<HTMLDivElement>(null);
 
-  const [selectedTerm, setSelectedTerm] = useState<"Both" | "Term 1" | "Term 2">("Both");
-  const [semesterLocked, setSemesterLocked] = useState(false);
-  const [history, setHistory] = useState<ScheduleSection[][]>([]);
-  const [saveStatus, setSaveStatus] = useState<"saved" | "saving" | "unsaved">("saved");
-  const [warnings, setWarnings] = useState<string[]>([]);
+  const scheduleId = parseInt(scheduleGroupId || "0");
+  const { openCount: noteCount } = useNotes({ scheduleId: scheduleId || undefined });
+
+  //breadcrumbs
+  useEffect(() => {
+    setBreadcrumbs([
+      { label: "Dashboard", href: "/" },
+      { label: semester?.name ?? "Loading", href: `/semester/${semester?.id}` },
+      { label: `Semester ${schedule?.semesterLevel}`, href: `/semester/${semester?.id}` },
+      { label: schedule?.name ?? "Loading" },
+    ]);
+  }, [schedule, semester, setBreadcrumbs]);
 
   useEffect(() => {
-    if (!scheduleGroupId) return;
-
-    const group = dataStore.getScheduleGroupById(scheduleGroupId);
-    setScheduleGroup(group || null);
-
-    if (group) {
-      const semester = dataStore.getSemesterById(group.semesterId);
-      if (semester) {
-        setCourses(dataStore.getCourses());
-      }
-      setScheduleSections(dataStore.getScheduleSections(scheduleGroupId));
-    }
-
-    setCourseSections(dataStore.getCourseSections());
+    loadData();
   }, [scheduleGroupId]);
 
+  //close export menu on outside click
   useEffect(() => {
-    setSaveStatus("saving");
+    if (!showExportMenu) return;
+    const handleClick = (e: MouseEvent) => {
+      if (exportRef.current && !exportRef.current.contains(e.target as Node)) {
+        setShowExportMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [showExportMenu]);
 
-    const timer = setTimeout(() => {
-      setSaveStatus("saved");
-    }, 400);
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      setError("");
+      const sched = await schedulesApi.getById(scheduleId);
+      setSchedule(sched);
 
-    return () => clearTimeout(timer);
-  }, [scheduleSections, selectedTerm, semesterLocked]);
-
-  useEffect(() => {
-    const nextWarnings: string[] = [];
-
-    if (semesterLocked) {
-      nextWarnings.push("Semester is locked. Dragging and editing disabled.");
-    }
-
-    if (scheduleSections.length === 0) {
-      nextWarnings.push("No schedule items placed yet.");
-    }
-
-    setWarnings(nextWarnings);
-  }, [semesterLocked, scheduleSections]);
-
-  const handleExport = () => {
-    if (!scheduleGroup || !semester) return;
-
-    exportScheduleData({
-      scheduleGroup,
-      semester,
-      courses,
-      courseSections,
-      scheduleSections,
-      students: dataStore.getStudentRoster(scheduleGroupId!),
-    });
-  };
-
-  const handleCloneSchedule = () => {
-    if (!scheduleGroup) return;
-
-    const cloned = dataStore.cloneScheduleGroup(scheduleGroup.id);
-    if (cloned?.id) {
-      navigate(`/schedule-builder/${cloned.id}`);
+      const [palette, allSems] = await Promise.all([
+        coursesApi.getPalette(sched.semesterLevel),
+        semestersApi.getAll(),
+      ]);
+      setCourseList(palette);
+      const sem = allSems.find((s) => s.id === sched.semesterId);
+      setSemester(sem || null);
+    } catch (err: any) {
+      setError(err.message || "Failed to load schedule");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const refreshSections = () => {
-    if (!scheduleGroupId) return;
-    setCourseSections(dataStore.getCourseSections());
-    setScheduleSections(dataStore.getScheduleSections(scheduleGroupId));
+  const refreshSchedule = async () => {
+    try {
+      const sched = await schedulesApi.getById(scheduleId);
+      setSchedule(sched);
+    } catch (err: any) {
+      setError(err.message || "Failed to refresh");
+    }
   };
 
-  const pushHistory = () => {
-    setHistory((prev) => [...prev, [...scheduleSections]]);
-    setSaveStatus("unsaved");
-  };
-
-  const handleUndo = () => {
-    if (history.length === 0) return;
-
-    const previous = history[history.length - 1];
-    setScheduleSections(previous);
-    setHistory((prev) => prev.slice(0, -1));
-    setSaveStatus("unsaved");
-  };
-
-  if (!scheduleGroup) {
+  if (loading) {
     return (
-      <div
-        style={{
-          textAlign: "center",
-          padding: "3rem",
-          color: "#6b7280",
-          fontFamily: "DM Sans, sans-serif",
-        }}
-      >
-        Schedule group not found
+      <div style={{ padding: "2rem" }}>
+        <Skeleton variant="text" count={2} />
+        <div style={{ marginTop: "1rem" }}>
+          <Skeleton variant="card" height={400} />
+        </div>
       </div>
     );
   }
 
-  const semester = dataStore.getSemesterById(scheduleGroup.semesterId);
-  const isSemester5 = scheduleGroup.level === "Semester 5";
+  if (!schedule) {
+    return (
+      <div style={{ textAlign: "center", padding: "3rem", color: "var(--text-muted)", fontFamily: "var(--font-body)" }}>
+        Schedule not found
+      </div>
+    );
+  }
+
+  const isSemester5 = schedule.semesterLevel === 5;
+  const isLocked = semester?.isLocked ?? false;
+  const levelLabel = numberToLevel(schedule.semesterLevel);
+
+  //schedule letter from position
+  const scheduleLetter = "A";
 
   return (
     <DndProvider backend={HTML5Backend}>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=DM+Sans:wght@300;400;500&display=swap');
+      <div className={styles.root}>
+        {error && <div className={styles.errorBanner}>{error}</div>}
 
-        .sb-root { font-family: 'DM Sans', sans-serif; }
-
-        .sb-header {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          margin-bottom: 1.75rem;
-          padding-bottom: 1.5rem;
-          border-bottom: 1px solid #e5e2db;
-          flex-wrap: wrap;
-          gap: 1rem;
-        }
-
-        .sb-header-left {
-          display: flex;
-          align-items: center;
-          gap: 1rem;
-        }
-
-        .sb-btn-back {
-          height: 36px;
-          padding: 0 1rem;
-          gap: 0.4rem;
-          background: #ffffff;
-          border: 1.5px solid #e5e2db;
-          border-radius: 8px;
-          display: flex;
-          align-items: center;
-          cursor: pointer;
-          color: #6b7280;
-          font-family: 'DM Sans', sans-serif;
-          font-size: 0.88rem;
-          font-weight: 500;
-          transition: background 0.15s, color 0.15s, border-color 0.15s;
-          flex-shrink: 0;
-        }
-
-        .sb-btn-back:hover {
-          background: #00563f;
-          color: #ffffff;
-          border-color: #00563f;
-        }
-
-        .sb-title h1 {
-          font-family: 'Playfair Display', serif;
-          font-size: 1.75rem;
-          font-weight: 600;
-          color: #0a1f14;
-          margin: 0 0 0.2rem 0;
-        }
-
-        .sb-title p {
-          font-size: 0.85rem;
-          color: #9ca3af;
-          margin: 0;
-          font-weight: 300;
-        }
-
-        .sb-actions {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-        }
-
-        .sb-btn {
-          display: inline-flex;
-          align-items: center;
-          gap: 0.4rem;
-          padding: 0.6rem 1rem;
-          border-radius: 8px;
-          font-family: 'DM Sans', sans-serif;
-          font-size: 0.85rem;
-          font-weight: 500;
-          cursor: pointer;
-          transition: background 0.15s, transform 0.1s;
-          border: none;
-          white-space: nowrap;
-        }
-
-        .sb-btn:active { transform: scale(0.98); }
-
-        .sb-btn-export {
-          background: #00563f;
-          color: #ffffff;
-          border: 1px solid #00563f;
-        }
-
-        .sb-btn-export:hover { background: #003d2a; }
-
-        .sb-toolbar {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          gap: 1rem;
-          margin-bottom: 1rem;
-          flex-wrap: wrap;
-        }
-
-        .sb-toolbar-left {
-          display: flex;
-          align-items: center;
-          gap: 1rem;
-          flex-wrap: wrap;
-        }
-
-        .sb-field {
-          display: flex;
-          flex-direction: column;
-          gap: 0.25rem;
-        }
-
-        .sb-field span {
-          font-size: 0.75rem;
-          color: #6b7280;
-        }
-
-        .sb-field select {
-          padding: 0.45rem 0.7rem;
-          border: 1px solid #e5e2db;
-          border-radius: 8px;
-          font-family: 'DM Sans', sans-serif;
-          background: #ffffff;
-        }
-
-        .sb-toggle {
-          display: flex;
-          align-items: center;
-          gap: 0.45rem;
-          font-size: 0.85rem;
-          color: #374151;
-        }
-
-        .sb-save-status {
-          font-size: 0.85rem;
-          color: #6b7280;
-        }
-
-        .sb-warning-bar {
-          background: #fff7ed;
-          border: 1px solid #fdba74;
-          color: #9a3412;
-          padding: 0.85rem 1rem;
-          border-radius: 10px;
-          margin-bottom: 1rem;
-        }
-
-        .sb-warning-bar ul {
-          margin: 0.5rem 0 0 1.25rem;
-          padding: 0;
-        }
-
-        .sb-view-toggle {
-          display: inline-flex;
-          background: #ffffff;
-          border: 1px solid #e5e2db;
-          border-radius: 10px;
-          padding: 0.3rem;
-          margin-bottom: 1.75rem;
-          gap: 0.25rem;
-        }
-
-        .sb-view-btn {
-          display: inline-flex;
-          align-items: center;
-          gap: 0.4rem;
-          padding: 0.55rem 1.1rem;
-          border-radius: 7px;
-          border: none;
-          font-family: 'DM Sans', sans-serif;
-          font-size: 0.85rem;
-          font-weight: 500;
-          cursor: pointer;
-          transition: background 0.15s, color 0.15s;
-          color: #6b7280;
-          background: none;
-        }
-
-        .sb-view-btn:hover {
-          background: #f8f7f4;
-          color: #0a1f14;
-        }
-
-        .sb-view-btn.active {
-          background: #00563f;
-          color: #ffffff;
-        }
-
-        .sb-grid {
-          display: grid;
-          grid-template-columns: 2fr 10fr;
-          gap: 1.5rem;
-        }
-      `}</style>
-
-      <div className="sb-root">
-        <div className="sb-header">
-          <div className="sb-header-left">
-            <button
-              className="sb-btn-back"
-              onClick={() => navigate(`/semester/${scheduleGroup.semesterId}`)}
-            >
-              <ArrowLeft size={15} />
-              Back
-            </button>
-
-            <div className="sb-title">
-              <h1>
-                {scheduleGroup.name} — {scheduleGroup.level}
+        {/* ── hero ── */}
+        <div className={styles.hero}>
+          <div className={styles.heroLeft}>
+            <div className={styles.heroBackRow}>
+              <Button
+                variant="ghost"
+                size="sm"
+                iconLeft={<ArrowLeft size={14} />}
+                onClick={() => navigate(`/semester/${schedule.semesterId}`)}
+                className={styles.backBtn}
+              >
+                Back
+              </Button>
+            </div>
+            <div className={styles.heroTitleGroup}>
+              <NumberBadge number={scheduleLetter} variant="gold" size="sm" />
+              <HairlineRule width="48px" color="gold" spacing="tight" />
+              <h1 className={styles.heroTitle}>
+                {schedule.name}
+                {isLocked && (
+                  <Badge variant="red" size="md">
+                    <span className={styles.lockBadge}>
+                      <Lock size={12} />
+                      Locked
+                    </span>
+                  </Badge>
+                )}
               </h1>
-              <p>
-                {semester?.name} • {scheduleGroup.locationNote}
+              <p className={styles.heroSubtitle}>
+                {semester?.name} &middot; {schedule.locationDisplay} &middot; {levelLabel}
               </p>
             </div>
           </div>
 
-          <div className="sb-actions">
-            <button className="sb-btn" onClick={handleCloneSchedule}>
-              Clone Schedule
-            </button>
-
-            <button className="sb-btn sb-btn-export" onClick={handleExport}>
-              <Download size={14} />
-              Export Schedule
-            </button>
-          </div>
-        </div>
-
-        <div className="sb-toolbar">
-          <div className="sb-toolbar-left">
-            <label className="sb-field">
-              <span>Term</span>
-              <select
-                value={selectedTerm}
-                onChange={(e) =>
-                  setSelectedTerm(e.target.value as "Both" | "Term 1" | "Term 2")
-                }
-              >
-                <option value="Both">Both Terms</option>
-                <option value="Term 1">Term 1</option>
-                <option value="Term 2">Term 2</option>
-              </select>
-            </label>
-
-            <label className="sb-toggle">
-              <input
-                type="checkbox"
-                checked={semesterLocked}
-                onChange={() => setSemesterLocked((prev) => !prev)}
-              />
-              <span>Lock Semester</span>
-            </label>
-
-            <button
-              className="sb-btn"
-              onClick={handleUndo}
-              disabled={history.length === 0}
+          <div className={styles.heroRight}>
+            <Button
+              variant="ghost"
+              size="md"
+              iconLeft={<StickyNote size={14} />}
+              onClick={() => setShowNotes(true)}
             >
-              Undo
-            </button>
-          </div>
-
-          <div className="sb-save-status">
-            {saveStatus === "saving" && "Saving..."}
-            {saveStatus === "saved" && "All changes saved"}
-            {saveStatus === "unsaved" && "Unsaved changes"}
+              Notes
+              {noteCount > 0 && (
+                <Badge variant="gold" size="sm">{noteCount}</Badge>
+              )}
+            </Button>
+            <div className={styles.exportDropdown} ref={exportRef}>
+              <Button
+                variant="secondary"
+                size="md"
+                iconLeft={<Download size={14} />}
+                onClick={() => setShowExportMenu(!showExportMenu)}
+              >
+                Export &darr;
+              </Button>
+              {showExportMenu && semester && (
+                <div className={styles.exportMenu}>
+                  <button
+                    className={styles.exportMenuItem}
+                    onClick={() => {
+                      exportsApi.roster(semester.id, semester.name).then(() => addToast("success", "Roster exported")).catch((err) => addToast("error", `Export failed: ${err.message || "Unknown error"}`));
+                      setShowExportMenu(false);
+                    }}
+                  >
+                    Student Rosters (.xlsx)
+                  </button>
+                  <button
+                    className={styles.exportMenuItem}
+                    onClick={() => {
+                      exportsApi.grid(semester.id, semester.name).then(() => addToast("success", "Grid exported")).catch((err) => addToast("error", `Export failed: ${err.message || "Unknown error"}`));
+                      setShowExportMenu(false);
+                    }}
+                  >
+                    Visual Grid (.xlsx)
+                  </button>
+                  <button
+                    className={styles.exportMenuItem}
+                    onClick={() => {
+                      exportsApi.registrar(semester.id, semester.name).then(() => addToast("success", "Registrar export downloaded")).catch((err) => addToast("error", `Export failed: ${err.message || "Unknown error"}`));
+                      setShowExportMenu(false);
+                    }}
+                  >
+                    Registrar Export (.xlsx)
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
-        {warnings.length > 0 && (
-          <div className="sb-warning-bar">
-            <strong>Scheduling Warnings:</strong>
-            <ul>
-              {warnings.map((warning, index) => (
-                <li key={index}>{warning}</li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        <div className="sb-view-toggle">
+        {/* ── view toggle ── */}
+        <div className={styles.viewToggle}>
           <button
-            className={`sb-view-btn ${view === "calendar" ? "active" : ""}`}
+            className={`${styles.viewBtn} ${view === "calendar" ? styles.active : ""}`}
             onClick={() => setView("calendar")}
           >
             <CalendarIcon size={14} />
             Calendar View
           </button>
           <button
-            className={`sb-view-btn ${view === "students" ? "active" : ""}`}
+            className={`${styles.viewBtn} ${view === "students" ? styles.active : ""}`}
             onClick={() => setView("students")}
           >
             <Users size={14} />
@@ -444,57 +250,75 @@ export function ScheduleBuilder() {
           </button>
         </div>
 
+        {/* ── content ── */}
         {view === "calendar" ? (
-          <div className="sb-grid">
+          <div className={styles.calendarGrid}>
             <div>
-              <CoursePalette courses={courses} />
+              <CoursePalette courses={courseList} />
             </div>
 
             <div>
               <ScheduleCanvas
-                scheduleGroup={scheduleGroup}
+                schedule={schedule}
+                semesterId={schedule.semesterId}
                 isSemester5={isSemester5}
-                courses={courses}
-                courseSections={courseSections}
-                scheduleSections={scheduleSections}
-                selectedTerm={selectedTerm}
-                semesterLocked={semesterLocked}
-                onRefresh={refreshSections}
-                onDrop={(courseId, dayOfWeek, timeSlot, dateRange) => {
-                  pushHistory();
-                  setDetailsModal({ courseId, dayOfWeek, timeSlot, dateRange });
-                }}
+                courses={courseList}
+                isLocked={isLocked}
+                onRefresh={refreshSchedule}
+                onDrop={(courseId, dayOfWeek, timeSlot, dateRange) =>
+                  setDetailsModal({ courseId, dayOfWeek, timeSlot, dateRange })
+                }
+                onInstructorClick={(id) => setDetailInstructorId(id)}
               />
             </div>
 
             <ScheduleViewer
-              semesterId={scheduleGroup.semesterId}
-              currentScheduleGroupId={scheduleGroupId!}
-              courses={courses}
-              courseSections={courseSections}
+              semesterId={schedule.semesterId}
+              currentScheduleId={schedule.id}
             />
           </div>
         ) : (
-          <StudentRosterView scheduleGroupId={scheduleGroupId!} />
+          <StudentRosterView
+            scheduleId={schedule.id}
+            semesterId={schedule.semesterId}
+            isLocked={isLocked}
+            capacity={schedule.capacity}
+          />
         )}
       </div>
 
-      {detailsModal && scheduleGroup && (
+      {detailsModal && schedule && semester && !isLocked && (
         <CourseDetailsModal
-          scheduleGroupId={scheduleGroup.id}
+          scheduleId={schedule.id}
+          semesterId={schedule.semesterId}
           courseId={detailsModal.courseId}
           dayOfWeek={detailsModal.dayOfWeek}
           timeSlot={detailsModal.timeSlot}
           dateRange={detailsModal.dateRange}
           isSemester5={isSemester5}
-          courses={courses}
+          semesterLevel={schedule.semesterLevel}
+          courses={courseList}
+          locationDisplay={schedule.locationDisplay}
           onClose={() => setDetailsModal(null)}
           onSuccess={() => {
-            refreshSections();
+            refreshSchedule();
             setDetailsModal(null);
           }}
         />
       )}
+
+      <NotesPanel
+        isOpen={showNotes}
+        onClose={() => setShowNotes(false)}
+        scheduleId={schedule.id}
+      />
+
+      <InstructorDetailPanel
+        isOpen={detailInstructorId != null}
+        onClose={() => setDetailInstructorId(null)}
+        instructorId={detailInstructorId}
+        semesterId={schedule.semesterId}
+      />
     </DndProvider>
   );
 }

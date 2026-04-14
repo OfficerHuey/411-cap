@@ -11,5 +11,8 @@ namespace NursingScheduler.API.DTOs.Auth
 
         //user role returned after login
         public required string Role { get; set; }
+
+        //optional display name from profile
+        public string? DisplayName { get; set; }
     }
 }

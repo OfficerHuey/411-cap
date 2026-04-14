@@ -1,0 +1,189 @@
+/* course palette — editorial redesign */
+
+.root {
+  background: var(--paper-raised);
+  border: 1px solid var(--cream-300);
+  border-radius: 12px;
+  box-shadow: var(--elevation-1);
+  overflow: hidden;
+  position: sticky;
+  top: 1rem;
+  font-family: var(--font-body);
+}
+
+/* ── header ── */
+.header {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--cream-300);
+  background: var(--paper-base);
+}
+
+.headerTitle {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-on-paper);
+  margin: 0.25rem 0 0;
+}
+
+.headerSubtitle {
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin: 0.2rem 0 0;
+  font-weight: 400;
+}
+
+/* ── search ── */
+.search {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--cream-300);
+}
+
+.searchWrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 0.6rem;
+  color: var(--text-faint);
+  pointer-events: none;
+}
+
+.searchInput {
+  width: 100%;
+  padding: 0.5rem 0.6rem 0.5rem 2rem;
+  border: 1.5px solid var(--cream-300);
+  border-radius: 7px;
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  color: var(--text-on-paper);
+  outline: none;
+  background: var(--paper-base);
+  transition: border-color 150ms, box-shadow 150ms;
+}
+
+.searchInput:focus {
+  border-color: var(--green-700);
+  box-shadow: 0 0 0 3px rgba(0, 86, 63, 0.1);
+  background: var(--paper-raised);
+}
+
+.searchInput::placeholder {
+  color: var(--cream-400);
+}
+
+/* ── body ── */
+.body {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+/* ── section header ── */
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.sectionLabel {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.sectionCount {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 500;
+  padding: 0.1rem 0.4rem;
+  background: var(--paper-sunk);
+  border-radius: 3px;
+  color: var(--text-muted);
+}
+
+.sectionList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+/* ── course pill ── */
+.pill {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.7rem 0.8rem;
+  background: var(--paper-raised);
+  border: 1px solid var(--cream-300);
+  border-radius: 8px;
+  cursor: grab;
+  transition: all 200ms var(--ease-out-quart, cubic-bezier(0.16, 1, 0.3, 1));
+  user-select: none;
+}
+
+.pill:hover {
+  transform: translateX(2px);
+  box-shadow: var(--elevation-2);
+  background: var(--paper-base);
+}
+
+.pill.dragging {
+  opacity: 0.3;
+  transform: scale(0.95) rotate(-2deg);
+  box-shadow: var(--elevation-3);
+  cursor: grabbing;
+}
+
+.pillDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.pillCode {
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-on-paper);
+  line-height: 1.2;
+}
+
+.pillType {
+  font-family: var(--font-body);
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  letter-spacing: 0.02em;
+  text-transform: capitalize;
+}
+
+.pillGrip {
+  margin-left: auto;
+  opacity: 0.3;
+  transition: opacity 150ms;
+  color: var(--text-faint);
+}
+
+.pill:hover .pillGrip {
+  opacity: 0.8;
+}
+
+/* ── empty ── */
+.empty {
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  text-align: center;
+  padding: 1rem 0;
+  font-weight: 400;
+}

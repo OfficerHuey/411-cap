@@ -7,6 +7,7 @@ namespace NursingScheduler.API.Entities
         public int Id { get; set; }
 
         //fields for the export
+        [RegularExpression(@"^W\d{7}$", ErrorMessage = "W# must start with 'W' followed by exactly 7 digits")]
         public required string WNumber { get; set; } //w number
         public required string Name { get; set; }
         public required string Email { get; set; }

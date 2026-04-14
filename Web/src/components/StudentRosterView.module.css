@@ -1,0 +1,210 @@
+/* student roster view — editorial redesign */
+
+.root {
+  font-family: var(--font-body);
+}
+
+/* ── header strip ── */
+.header {
+  padding: 1.5rem 1.75rem;
+  border-bottom: 1px solid var(--cream-300);
+  background: var(--paper-base);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.headerLeft {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.headerTitle {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 500;
+  color: var(--text-on-paper);
+  margin: 0.25rem 0 0;
+}
+
+.headerSubtitle {
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* ── capacity bar ── */
+.capacityBar {
+  padding: 0.875rem 1.75rem;
+  border-bottom: 1px solid var(--cream-300);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.capacityLabel {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  white-space: nowrap;
+}
+
+.capacityTrack {
+  flex: 1;
+  height: 6px;
+  background: var(--cream-200);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.capacityFill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 300ms ease, background-color 300ms ease;
+}
+
+.capacityText {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ── table header row ── */
+.tableHeader {
+  display: grid;
+  grid-template-columns: 48px 120px 1fr 1fr 48px;
+  gap: 1rem;
+  align-items: center;
+  padding: 0.75rem 1.5rem;
+  background: var(--paper-sunk);
+  border-bottom: 1px solid var(--cream-300);
+}
+
+.tableHeaderLabel {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+/* ── student row ── */
+.studentRow {
+  display: grid;
+  grid-template-columns: 48px 120px 1fr 1fr 48px;
+  gap: 1rem;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--cream-200);
+  transition: background 150ms ease;
+}
+
+.studentRow:last-child {
+  border-bottom: none;
+}
+
+.studentRow:hover {
+  background: var(--paper-sunk);
+}
+
+.studentRow:hover .rowAction {
+  opacity: 1;
+}
+
+.rowIndex {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-faint);
+}
+
+.rowWNumber {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+.rowName {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  color: var(--text-on-paper);
+  font-weight: 500;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  transition: color 150ms ease-out;
+}
+
+.rowName:hover {
+  color: var(--green-700);
+}
+
+.rowEmail {
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.rowAction {
+  opacity: 0;
+  transition: opacity 150ms;
+}
+
+.rowDeleteBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--cream-400);
+  padding: 0.3rem;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  transition: color 150ms, background 150ms;
+}
+
+.rowDeleteBtn:hover {
+  color: var(--error);
+  background: rgba(220, 38, 38, 0.06);
+}
+
+/* ── add student form ── */
+.addForm {
+  display: grid;
+  grid-template-columns: 48px 120px 1fr 1fr auto;
+  gap: 1rem;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  background: var(--paper-base);
+  border-top: 1px solid var(--cream-300);
+}
+
+/* ── error ── */
+.errorBanner {
+  background: rgba(153, 27, 27, 0.06);
+  border: 1px solid rgba(153, 27, 27, 0.2);
+  border-left: 3px solid var(--error);
+  border-radius: 6px;
+  padding: 0.6rem 0.875rem;
+  margin: 0.75rem 1.5rem;
+  font-size: 0.82rem;
+  color: #991b1b;
+}

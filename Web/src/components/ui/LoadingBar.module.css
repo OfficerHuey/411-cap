@@ -1,0 +1,16 @@
+/* loading bar — gold nprogress-style */
+
+.bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  z-index: 10003;
+  background: var(--gold-400);
+  box-shadow:
+    0 0 8px rgba(200, 149, 44, 0.4),
+    0 0 4px rgba(200, 149, 44, 0.6);
+  transition: transform 200ms ease-out;
+  pointer-events: none;
+}
