@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
 import { Plus, Trash2, Lock, Copy, Download, History, Upload, ChevronRight, MapPin, Calendar, StickyNote } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
 import { authService } from "../Lib/Auth";
@@ -11,6 +12,8 @@ import { StudentImportModal } from "./StudentImportModal";
 import { CapacityMeter } from "./CapacityMeter";
 import { useBreadcrumbs } from "../Lib/BreadcrumbContext";
 import { useToast } from "../Lib/ToastContext";
+import { useReducedMotion } from "../hooks/useReducedMotion";
+import { heroStagger, heroChild, staggerContainer, cardVariants } from "../Lib/motion";
 import { Button } from "./ui/Button";
 import { Card } from "./ui/Card";
 import { NumberBadge } from "./ui/NumberBadge";
@@ -201,15 +204,22 @@ export function SemesterHub() {
   const progress = semester ? weekProgress(semester.startDate, semester.endDate) : null;
   const activeLevelNum = levelToNumber(activeLevel);
 
+  const reduced = useReducedMotion();
+
   return (
     <div className={styles.root}>
       {/* ── hero ── */}
-      <div className={styles.hero}>
+      <motion.div
+        className={styles.hero}
+        variants={reduced ? undefined : heroStagger}
+        initial="hidden"
+        animate="visible"
+      >
         <div>
-          <NumberBadge number={semester?.id ?? "\u2014"} variant="gold" size="sm" />
-          <HairlineRule width="48px" color="gold" spacing="normal" />
+          <motion.div variants={reduced ? undefined : heroChild}><NumberBadge number={semester?.id ?? "\u2014"} variant="gold" size="sm" /></motion.div>
+          <motion.div variants={reduced ? undefined : heroChild}><HairlineRule width="48px" color="gold" spacing="normal" /></motion.div>
 
-          <h1 className={styles.heroTitle}>
+          <motion.h1 variants={reduced ? undefined : heroChild} className={styles.heroTitle}>
             {renderTitleWithItalic(semester?.name)}
             {isLocked && (
               <Badge variant="red" size="md">
@@ -217,10 +227,10 @@ export function SemesterHub() {
                 Archived
               </Badge>
             )}
-          </h1>
+          </motion.h1>
 
           {semester && (
-            <div className={styles.heroMeta}>
+            <motion.div variants={reduced ? undefined : heroChild} className={styles.heroMeta}>
               <span className={styles.heroDateRange}>
                 {formatDateLong(semester.startDate)} &mdash; {formatDateLong(semester.endDate)}
               </span>
@@ -232,11 +242,11 @@ export function SemesterHub() {
                   Week {progress.week} of {progress.total}
                 </span>
               )}
-            </div>
+            </motion.div>
           )}
         </div>
 
-        <div className={styles.heroActions}>
+        <motion.div variants={reduced ? undefined : heroChild} className={styles.heroActions}>
           <Button
             variant="ghost"
             size="md"
@@ -302,8 +312,8 @@ export function SemesterHub() {
               Add Schedule Group
             </Button>
           )}
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
 
       {error && <div className={styles.errorBanner}>{error}</div>}
 
@@ -371,17 +381,22 @@ export function SemesterHub() {
               }
             />
           ) : (
-            <div className={styles.grid}>
+            <motion.div
+              className={styles.grid}
+              variants={reduced ? undefined : staggerContainer(0.05)}
+              initial="hidden"
+              animate="visible"
+            >
               {scheduleList.map((schedule, idx) => {
                 const letter = String.fromCharCode(65 + idx);
                 return (
-                  <Card
-                    key={schedule.id}
-                    variant="raised"
-                    accentColor="gold"
-                    interactive
-                    onClick={() => navigate(`/schedule-builder/${schedule.id}`)}
-                  >
+                  <motion.div key={schedule.id} variants={reduced ? undefined : cardVariants}>
+                    <Card
+                      variant="raised"
+                      accentColor="gold"
+                      interactive
+                      onClick={() => navigate(`/schedule-builder/${schedule.id}`)}
+                    >
                     <div className={styles.cardBody}>
                       <div className={styles.cardTopRow}>
                         <NumberBadge number={letter} size="sm" variant="gold" />
@@ -428,9 +443,10 @@ export function SemesterHub() {
                       <EditAttribution entityType="Schedule" entityId={schedule.id} />
                     </div>
                   </Card>
+                  </motion.div>
                 );
               })}
-            </div>
+            </motion.div>
           )}
         </>
       )}

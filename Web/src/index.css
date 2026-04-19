@@ -177,6 +177,13 @@
   --transition-fast: 150ms ease;
   --transition-base: 200ms ease;
   --transition-slow: 300ms ease;
+
+  /* breakpoints — use in media queries via hardcoded values since CSS vars cant be used in @media */
+  /* --bp-mobile: 480px */
+  /* --bp-tablet: 768px */
+  /* --bp-laptop: 1024px */
+  /* --bp-desktop: 1280px */
+  /* --bp-wide: 1536px */
 }
 
 /* ===== reset ===== */

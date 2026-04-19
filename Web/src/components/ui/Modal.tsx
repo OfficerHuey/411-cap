@@ -2,6 +2,8 @@ import { useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
+import { useReducedMotion } from "../../hooks/useReducedMotion";
+import { modalOverlayVariants, modalVariants, reducedFade } from "../../Lib/motion";
 import styles from "./Modal.module.css";
 
 export interface ModalProps {
@@ -17,25 +19,6 @@ export interface ModalProps {
   closeOnEscape?: boolean;
   showCloseButton?: boolean;
 }
-
-const overlayVariants = {
-  hidden: { opacity: 0 },
-  visible: { opacity: 1 },
-};
-
-const containerVariants = {
-  hidden: { opacity: 0, scale: 0.95 },
-  visible: {
-    opacity: 1,
-    scale: 1,
-    transition: { duration: 0.3, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] },
-  },
-  exit: {
-    opacity: 0,
-    scale: 0.95,
-    transition: { duration: 0.2, ease: "easeIn" as const },
-  },
-} as const;
 
 //simple focus trap — keeps tab cycling within the modal
 function useFocusTrap(ref: React.RefObject<HTMLDivElement | null>, active: boolean) {
@@ -92,6 +75,7 @@ export function Modal({
   showCloseButton = true,
 }: ModalProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const reduced = useReducedMotion();
   useFocusTrap(containerRef, open);
 
   //escape key handler
@@ -119,17 +103,17 @@ export function Modal({
       {open && (
         <motion.div
           className={styles.overlay}
-          variants={overlayVariants}
+          variants={modalOverlayVariants}
           initial="hidden"
           animate="visible"
           exit="hidden"
-          transition={{ duration: 0.25 }}
+          transition={reduced ? reducedFade : { duration: 0.18 }}
           onClick={closeOnOverlayClick ? onClose : undefined}
         >
           <motion.div
             ref={containerRef}
             className={`${styles.container} ${styles[size]}`}
-            variants={containerVariants}
+            variants={modalVariants}
             initial="hidden"
             animate="visible"
             exit="exit"
@@ -137,6 +121,7 @@ export function Modal({
             role="dialog"
             aria-modal="true"
             aria-label={title}
+            style={{ willChange: "opacity, transform" }}
           >
             {showCloseButton && (
               <button

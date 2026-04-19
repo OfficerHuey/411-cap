@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from "react";
+import { motion } from "framer-motion";
 import { ArrowLeft, Download, CalendarIcon, Users, Lock, StickyNote } from "lucide-react";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
@@ -18,6 +19,8 @@ import { StudentRosterView } from "./StudentRosterView";
 import { CourseDetailsModal } from "./CourseDetailsModal";
 import { useBreadcrumbs } from "../Lib/BreadcrumbContext";
 import { useToast } from "../Lib/ToastContext";
+import { useReducedMotion } from "../hooks/useReducedMotion";
+import { heroStagger, heroChild, ease } from "../Lib/motion";
 import { Button } from "./ui/Button";
 import { NumberBadge } from "./ui/NumberBadge";
 import { HairlineRule } from "./ui/HairlineRule";
@@ -137,15 +140,22 @@ export function ScheduleBuilder() {
   //schedule letter from position
   const scheduleLetter = "A";
 
+  const reduced = useReducedMotion();
+
   return (
     <DndProvider backend={HTML5Backend}>
       <div className={styles.root}>
         {error && <div className={styles.errorBanner}>{error}</div>}
 
-        {/* ── hero ── */}
-        <div className={styles.hero}>
+        {/* ── hero (0-280ms) ── */}
+        <motion.div
+          className={styles.hero}
+          variants={reduced ? undefined : heroStagger}
+          initial="hidden"
+          animate="visible"
+        >
           <div className={styles.heroLeft}>
-            <div className={styles.heroBackRow}>
+            <motion.div variants={reduced ? undefined : heroChild} className={styles.heroBackRow}>
               <Button
                 variant="ghost"
                 size="sm"
@@ -155,11 +165,11 @@ export function ScheduleBuilder() {
               >
                 Back
               </Button>
-            </div>
+            </motion.div>
             <div className={styles.heroTitleGroup}>
-              <NumberBadge number={scheduleLetter} variant="gold" size="sm" />
-              <HairlineRule width="48px" color="gold" spacing="tight" />
-              <h1 className={styles.heroTitle}>
+              <motion.div variants={reduced ? undefined : heroChild}><NumberBadge number={scheduleLetter} variant="gold" size="sm" /></motion.div>
+              <motion.div variants={reduced ? undefined : heroChild}><HairlineRule width="48px" color="gold" spacing="tight" /></motion.div>
+              <motion.h1 variants={reduced ? undefined : heroChild} className={styles.heroTitle}>
                 {schedule.name}
                 {isLocked && (
                   <Badge variant="red" size="md">
@@ -169,10 +179,10 @@ export function ScheduleBuilder() {
                     </span>
                   </Badge>
                 )}
-              </h1>
-              <p className={styles.heroSubtitle}>
+              </motion.h1>
+              <motion.p variants={reduced ? undefined : heroChild} className={styles.heroSubtitle}>
                 {semester?.name} &middot; {schedule.locationDisplay} &middot; {levelLabel}
-              </p>
+              </motion.p>
             </div>
           </div>
 
@@ -230,7 +240,7 @@ export function ScheduleBuilder() {
               )}
             </div>
           </div>
-        </div>
+        </motion.div>
 
         {/* ── view toggle ── */}
         <div className={styles.viewToggle}>
@@ -253,10 +263,20 @@ export function ScheduleBuilder() {
         {/* ── content ── */}
         {view === "calendar" ? (
           <div className={styles.calendarGrid}>
-            <div>
+            {/* course palette slides in from left (200-500ms) */}
+            <motion.div
+              initial={reduced ? undefined : { opacity: 0, x: -24 }}
+              animate={reduced ? undefined : { opacity: 1, x: 0 }}
+              transition={reduced ? undefined : { duration: 0.3, delay: 0.2, ease: ease.ios }}
+            >
               <CoursePalette courses={courseList} />
-            </div>
-            <div>
+            </motion.div>
+            {/* canvas grid renders (300-550ms) */}
+            <motion.div
+              initial={reduced ? undefined : { opacity: 0 }}
+              animate={reduced ? undefined : { opacity: 1 }}
+              transition={reduced ? undefined : { duration: 0.25, delay: 0.3, ease: ease.ios }}
+            >
               <ScheduleCanvas
                 schedule={schedule}
                 semesterId={schedule.semesterId}
@@ -269,11 +289,18 @@ export function ScheduleBuilder() {
                 }
                 onInstructorClick={(id) => setDetailInstructorId(id)}
               />
-            </div>
-            <ScheduleViewer
-              semesterId={schedule.semesterId}
-              currentScheduleId={schedule.id}
-            />
+            </motion.div>
+            {/* viewer trigger fades in last (900-1100ms) */}
+            <motion.div
+              initial={reduced ? undefined : { opacity: 0 }}
+              animate={reduced ? undefined : { opacity: 1 }}
+              transition={reduced ? undefined : { duration: 0.2, delay: 0.9, ease: ease.ios }}
+            >
+              <ScheduleViewer
+                semesterId={schedule.semesterId}
+                currentScheduleId={schedule.id}
+              />
+            </motion.div>
           </div>
         ) : (
           <StudentRosterView

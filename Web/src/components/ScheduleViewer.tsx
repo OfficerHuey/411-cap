@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
 import "../App.css";
 import { Eye, X, ChevronRight } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { schedules as schedulesApi } from "../Lib/api";
 import type { Schedule } from "../Lib/Types";
 import { courseTypeColor, dayOfWeekName, timeSpanToDisplay } from "../Lib/Types";
+import { useReducedMotion } from "../hooks/useReducedMotion";
+import { panelVariants, panelOverlayVariants, reducedFade, ease } from "../Lib/motion";
 
 interface ScheduleViewerProps {
   semesterId: number;
@@ -16,6 +19,7 @@ export function ScheduleViewer({
 }: ScheduleViewerProps) {
   const [otherSchedules, setOtherSchedules] = useState<Schedule[]>([]);
   const [isOpen, setIsOpen] = useState(false);
+  const reduced = useReducedMotion();
 
   useEffect(() => {
     loadOtherSchedules();
@@ -68,36 +72,6 @@ export function ScheduleViewer({
           letter-spacing: 0.05em;
           text-transform: uppercase;
         }
-
-        .sv-overlay {
-          position: fixed;
-          inset: 0;
-          background: rgba(0,0,0,0.3);
-          z-index: 200;
-          opacity: 0;
-          pointer-events: none;
-          transition: opacity 0.25s;
-        }
-
-        .sv-overlay.open { opacity: 1; pointer-events: all; }
-
-        .sv-panel {
-          position: fixed;
-          top: 0;
-          right: 0;
-          height: 100vh;
-          width: 300px;
-          background: #ffffff;
-          z-index: 201;
-          box-shadow: -4px 0 24px rgba(0,0,0,0.15);
-          display: flex;
-          flex-direction: column;
-          transform: translateX(100%);
-          transition: transform 0.25s ease;
-          font-family: 'Inter', sans-serif;
-        }
-
-        .sv-panel.open { transform: translateX(0); }
 
         .sv-panel-header {
           background: #00563f;
@@ -207,73 +181,117 @@ export function ScheduleViewer({
         <ChevronRight size={14} />
       </button>
 
-      <div
-        className={`sv-overlay ${isOpen ? "open" : ""}`}
-        onClick={() => setIsOpen(false)}
-      />
-
-      <div className={`sv-panel ${isOpen ? "open" : ""}`}>
-        <div className="sv-panel-header">
-          <div>
-            <div className="sv-panel-header-left">
-              <Eye size={16} color="white" />
-              <h3>Other Schedules</h3>
-            </div>
-            <p>Other groups in this semester</p>
-          </div>
-          <button className="sv-close" onClick={() => setIsOpen(false)}>
-            <X size={16} />
-          </button>
-        </div>
-
-        <div className="sv-panel-body">
-          {otherSchedules.length === 0 ? (
-            <p className="sv-no-groups">No other schedules in this semester</p>
-          ) : (
-            otherSchedules.map((sched) => (
-              <div key={sched.id} className="sv-group">
-                <div className="sv-group-header">
-                  <p className="sv-group-name">{sched.name}</p>
-                  <p className="sv-group-location">{sched.locationDisplay}</p>
+      <AnimatePresence>
+        {isOpen && (
+          <>
+            <motion.div
+              style={{
+                position: "fixed",
+                inset: 0,
+                background: "rgba(0,0,0,0.3)",
+                zIndex: 200,
+              }}
+              variants={panelOverlayVariants}
+              initial="hidden"
+              animate="visible"
+              exit="hidden"
+              transition={reduced ? reducedFade : { duration: 0.2 }}
+              onClick={() => setIsOpen(false)}
+            />
+            <motion.div
+              style={{
+                position: "fixed",
+                top: 0,
+                right: 0,
+                height: "100vh",
+                width: 300,
+                background: "#ffffff",
+                zIndex: 201,
+                boxShadow: "-4px 0 24px rgba(0,0,0,0.15)",
+                display: "flex",
+                flexDirection: "column",
+                fontFamily: "'Inter', sans-serif",
+                willChange: "transform",
+              }}
+              variants={panelVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+            >
+              <div className="sv-panel-header">
+                <div>
+                  <div className="sv-panel-header-left">
+                    <Eye size={16} color="white" />
+                    <h3>Other Schedules</h3>
+                  </div>
+                  <p>Other groups in this semester</p>
                 </div>
-                <div className="sv-group-body">
-                  {sched.sections.length > 0 ? (
-                    sched.sections.map((section) => {
-                      const color = getColor(section.courseType);
-                      return (
-                        <div
-                          key={section.id}
-                          className="sv-course-item"
-                          style={{
-                            backgroundColor: `${color}18`,
-                            borderLeftColor: color,
-                          }}
-                        >
-                          <div className="sv-course-code">
-                            {section.courseCode}-{section.sectionNumber}
-                          </div>
-                          <div className="sv-course-time">
-                            {section.dayOfWeek != null && section.startTime
-                              ? `${dayOfWeekName(section.dayOfWeek)} at ${timeSpanToDisplay(section.startTime)}`
-                              : section.dateRange}
-                          </div>
-                          {section.notes && (
-                            <div style={{ fontSize: "0.7rem", color: "#9ca3af", marginTop: "0.1rem" }}>
-                              {section.notes}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })
-                  ) : (
-                    <p className="sv-empty">No courses scheduled</p>
-                  )}
-                </div>
+                <button className="sv-close" onClick={() => setIsOpen(false)}>
+                  <X size={16} />
+                </button>
               </div>
-            ))
-          )}
-        </div>
-      </div>
+
+              <div className="sv-panel-body">
+                {otherSchedules.length === 0 ? (
+                  <p className="sv-no-groups">No other schedules in this semester</p>
+                ) : (
+                  otherSchedules.map((sched, i) => (
+                    <motion.div
+                      key={sched.id}
+                      className="sv-group"
+                      initial={reduced ? undefined : { opacity: 0, y: 12 }}
+                      animate={reduced ? undefined : { opacity: 1, y: 0 }}
+                      transition={reduced ? undefined : {
+                        duration: 0.22,
+                        delay: 0.04 * i,
+                        ease: ease.ios,
+                      }}
+                    >
+                      <div className="sv-group-header">
+                        <p className="sv-group-name">{sched.name}</p>
+                        <p className="sv-group-location">{sched.locationDisplay}</p>
+                      </div>
+                      <div className="sv-group-body">
+                        {sched.sections.length > 0 ? (
+                          sched.sections.map((section) => {
+                            const color = getColor(section.courseType);
+                            return (
+                              <div
+                                key={section.id}
+                                className="sv-course-item"
+                                style={{
+                                  backgroundColor: `${color}18`,
+                                  borderLeftColor: color,
+                                }}
+                              >
+                                <div className="sv-course-code">
+                                  {section.courseCode}-{section.sectionNumber}
+                                </div>
+                                <div className="sv-course-time">
+                                  {section.dayOfWeek != null && section.startTime
+                                    ? `${dayOfWeekName(section.dayOfWeek)} at ${timeSpanToDisplay(section.startTime)}`
+                                    : section.dateRange}
+                                </div>
+                                {section.notes && (
+                                  <div style={{ fontSize: "0.7rem", color: "#9ca3af", marginTop: "0.1rem" }}>
+                                    {section.notes}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })
+                        ) : (
+                          <p className="sv-empty">No courses scheduled</p>
+                        )}
+                      </div>
+                    </motion.div>
+                  ))
+                )}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </>
   );
 }

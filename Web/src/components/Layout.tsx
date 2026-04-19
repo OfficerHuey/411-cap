@@ -1,8 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Calendar, LogOut, DoorOpen, GraduationCap, Archive, Search, StickyNote } from "lucide-react";
+import { Calendar, LogOut, DoorOpen, GraduationCap, Archive, Search, StickyNote, Menu, X } from "lucide-react";
 import { useNavigate, useLocation, Outlet } from "react-router-dom";
+import { AnimatePresence, motion } from "framer-motion";
 import { authService } from "../Lib/Auth";
 import { useBreadcrumbs } from "../Lib/BreadcrumbContext";
+import { useReducedMotion } from "../hooks/useReducedMotion";
+import { spring, reducedFade } from "../Lib/motion";
 import { Avatar } from "./ui/Avatar";
 import { Tooltip } from "./ui/Tooltip";
 import { Breadcrumbs } from "./ui/Breadcrumbs";
@@ -17,9 +20,11 @@ export function Layout() {
   const location = useLocation();
   const currentUser = authService.getCurrentUser();
   const { items: breadcrumbItems } = useBreadcrumbs();
+  const reduced = useReducedMotion();
 
   const [showPalette, setShowPalette] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const handleLogout = () => {
     authService.logout();
@@ -60,6 +65,11 @@ export function Layout() {
     if (path === "/") return location.pathname === "/";
     return location.pathname.startsWith(path);
   };
+
+  //close drawer on route change
+  useEffect(() => {
+    setDrawerOpen(false);
+  }, [location.pathname]);
 
   //loading bar on route changes
   const prevPath = useRef(location.pathname);
@@ -135,6 +145,14 @@ export function Layout() {
                 <LogOut size={16} />
               </button>
             </Tooltip>
+
+            <button
+              className={styles.hamburgerBtn}
+              onClick={() => setDrawerOpen(true)}
+              aria-label="Open menu"
+            >
+              <Menu size={20} />
+            </button>
           </div>
         </div>
       </nav>
@@ -155,6 +173,71 @@ export function Layout() {
         isOpen={showShortcuts}
         onClose={closeShortcuts}
       />
+
+      {/* mobile drawer */}
+      <AnimatePresence>
+        {drawerOpen && (
+          <>
+            <motion.div
+              className={styles.drawerOverlay}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={reduced ? reducedFade : { duration: 0.2 }}
+              onClick={() => setDrawerOpen(false)}
+            />
+            <motion.div
+              className={styles.drawer}
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={reduced ? reducedFade : spring.drawer}
+              style={{ willChange: "transform" }}
+            >
+              <div className={styles.drawerHeader}>
+                <span className={styles.drawerTitle}>Menu</span>
+                <button
+                  className={styles.drawerClose}
+                  onClick={() => setDrawerOpen(false)}
+                  aria-label="Close menu"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <nav className={styles.drawerNav}>
+                {navLinks.map((link) => (
+                  <button
+                    key={link.path}
+                    className={`${styles.drawerLink} ${isActive(link.path) ? styles.drawerLinkActive : ""}`}
+                    onClick={() => navigate(link.path)}
+                  >
+                    {link.icon && <link.icon size={18} />}
+                    {link.label}
+                  </button>
+                ))}
+              </nav>
+
+              {currentUser && (
+                <div className={styles.drawerFooter}>
+                  <Avatar name={currentUser.name || "User"} size="sm" />
+                  <div className={styles.drawerUser}>
+                    <div className={styles.drawerUserName}>{currentUser.name}</div>
+                    <div className={styles.drawerUserRole}>{currentUser.role}</div>
+                  </div>
+                  <button
+                    className={styles.drawerLogout}
+                    onClick={handleLogout}
+                    aria-label="Sign out"
+                  >
+                    <LogOut size={16} />
+                  </button>
+                </div>
+              )}
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

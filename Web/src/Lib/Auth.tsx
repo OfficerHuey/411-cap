@@ -7,7 +7,10 @@ class AuthService {
 
   getCurrentUser() {
     if (!this.isAuthenticated()) return null;
-    return { name: getUsername(), role: getUserRole() };
+    return {
+      name: localStorage.getItem("display_name") || getUsername(),
+      role: getUserRole(),
+    };
   }
 
   logout() {

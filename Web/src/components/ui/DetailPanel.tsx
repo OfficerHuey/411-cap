@@ -2,6 +2,8 @@ import { useEffect } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
+import { useReducedMotion } from "../../hooks/useReducedMotion";
+import { panelOverlayVariants, panelVariants, reducedFade } from "../../Lib/motion";
 import styles from "./DetailPanel.module.css";
 
 interface DetailPanelProps {
@@ -15,23 +17,6 @@ interface DetailPanelProps {
   footer?: React.ReactNode;
 }
 
-const overlayVariants = {
-  hidden: { opacity: 0 },
-  visible: { opacity: 1 },
-};
-
-const panelVariants = {
-  hidden: { x: "100%" },
-  visible: {
-    x: 0,
-    transition: { duration: 0.3, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] },
-  },
-  exit: {
-    x: "100%",
-    transition: { duration: 0.2, ease: "easeIn" as const },
-  },
-} as const;
-
 export function DetailPanel({
   isOpen,
   onClose,
@@ -42,6 +27,8 @@ export function DetailPanel({
   children,
   footer,
 }: DetailPanelProps) {
+  const reduced = useReducedMotion();
+
   //close on escape
   useEffect(() => {
     if (!isOpen) return;
@@ -58,15 +45,16 @@ export function DetailPanel({
         <>
           <motion.div
             className={styles.overlay}
-            variants={overlayVariants}
+            variants={panelOverlayVariants}
             initial="hidden"
             animate="visible"
             exit="hidden"
+            transition={reduced ? reducedFade : { duration: 0.2 }}
             onClick={onClose}
           />
           <motion.div
             className={styles.panel}
-            style={{ width }}
+            style={{ width, willChange: "transform" }}
             variants={panelVariants}
             initial="hidden"
             animate="visible"

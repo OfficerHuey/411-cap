@@ -45,7 +45,7 @@
 
 .statGrid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 1.5rem;
   padding: 2rem;
 }
@@ -112,7 +112,7 @@
 /* ── semester card grid ── */
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 1.75rem;
   margin-top: 1rem;
 }
@@ -215,13 +215,31 @@
 }
 
 /* ── responsive ── */
-@media (max-width: 900px) {
-  .hero { padding-top: 2rem; }
-  .statGrid { grid-template-columns: repeat(2, 1fr); }
-  .featuredInner { flex-direction: column; align-items: flex-start; }
-  .grid { grid-template-columns: 1fr; }
+@media (max-width: 768px) {
+  .hero {
+    padding-top: 2rem;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .statGrid {
+    padding: 1.25rem;
+    gap: 1rem;
+  }
+  .featuredInner {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 1.5rem;
+  }
+  .progressTrack {
+    width: 100%;
+  }
 }
 
-@media (max-width: 600px) {
-  .statGrid { grid-template-columns: 1fr; }
+@media (max-width: 480px) {
+  .statGrid {
+    padding: 1rem;
+  }
+  .cardBody {
+    padding: 1.25rem;
+  }
 }

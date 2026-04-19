@@ -1,12 +1,16 @@
 import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
 import "../App.css";
 import { ArrowLeft, Calendar, Lock, ArrowRight, Archive as ArchiveIcon } from "lucide-react";
 import { semesters as semestersApi } from "../Lib/api";
 import type { Semester } from "../Lib/Types";
 import { useNavigate } from "react-router-dom";
+import { useReducedMotion } from "../hooks/useReducedMotion";
+import { staggerContainer, cardVariants, heroStagger, heroChild } from "../Lib/motion";
 
 export function Archive() {
   const navigate = useNavigate();
+  const reduced = useReducedMotion();
   const [semesterList, setSemesterList] = useState<Semester[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -100,7 +104,7 @@ export function Archive() {
 
         .archive-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+          grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
           gap: 1.25rem;
         }
 
@@ -269,31 +273,49 @@ export function Archive() {
           font-size: 0.85rem;
           color: #991b1b;
         }
+
+        @media (max-width: 768px) {
+          .archive-header { margin-bottom: 1.5rem; }
+          .archive-header-text h1 { font-size: 1.5rem; }
+          .archive-card-body { padding: 1.25rem; }
+        }
       `}</style>
 
       <div className="archive-root">
-        <div className="archive-header">
+        <motion.div
+          className="archive-header"
+          variants={reduced ? undefined : heroStagger}
+          initial="hidden"
+          animate="visible"
+        >
           <div className="archive-header-left">
-            <button className="archive-btn-back" onClick={() => navigate("/")}>
-              <ArrowLeft size={16} />
-            </button>
+            <motion.div variants={reduced ? undefined : heroChild}>
+              <button className="archive-btn-back" onClick={() => navigate("/")}>
+                <ArrowLeft size={16} />
+              </button>
+            </motion.div>
             <div className="archive-header-text">
-              <h1>Archive</h1>
-              <p>
+              <motion.h1 variants={reduced ? undefined : heroChild}>Archive</motion.h1>
+              <motion.p variants={reduced ? undefined : heroChild}>
                 {loading ? "Loading..." : `${semesterList.length} archived semester${semesterList.length !== 1 ? "s" : ""}`}
-              </p>
+              </motion.p>
             </div>
           </div>
-        </div>
+        </motion.div>
 
         {error && <div className="error-banner">{error}</div>}
 
         {loading ? (
           <div className="loading-spinner"><span>Loading archived semesters…</span></div>
         ) : (
-          <div className="archive-grid">
+          <motion.div
+            className="archive-grid"
+            variants={reduced ? undefined : staggerContainer(0.05)}
+            initial="hidden"
+            animate="visible"
+          >
             {semesterList.map((semester) => (
-              <div key={semester.id} className="archive-card">
+              <motion.div key={semester.id} className="archive-card" variants={reduced ? undefined : cardVariants}>
                 <div className="archive-card-accent" />
                 <div className="archive-card-body">
                   <div className="archive-card-top">
@@ -330,7 +352,7 @@ export function Archive() {
                     <ArrowRight size={14} />
                   </button>
                 </div>
-              </div>
+              </motion.div>
             ))}
 
             {semesterList.length === 0 && (
@@ -342,7 +364,7 @@ export function Archive() {
                 <p>Locked semesters will appear here once they're finalized</p>
               </div>
             )}
-          </div>
+          </motion.div>
         )}
       </div>
     </>

@@ -1,4 +1,7 @@
 import { forwardRef } from "react";
+import { motion } from "framer-motion";
+import { useReducedMotion } from "../../hooks/useReducedMotion";
+import { cardHover, cardTap } from "../../Lib/motion";
 import styles from "./Card.module.css";
 
 type CardVariant = "flat" | "raised" | "elevated" | "hero";
@@ -17,10 +20,16 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(function Card(
     interactive = false,
     children,
     className,
+    onAnimationStart: _onAnimationStart,
+    onDrag: _onDrag,
+    onDragEnd: _onDragEnd,
+    onDragStart: _onDragStart,
     ...rest
   },
   ref,
 ) {
+  const reduced = useReducedMotion();
+
   //hero variant defaults to gold accent unless explicitly overridden
   const resolvedAccent = accentColor !== undefined
     ? accentColor
@@ -44,6 +53,20 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(function Card(
   ]
     .filter(Boolean)
     .join(" ");
+
+  if (interactive && !reduced) {
+    return (
+      <motion.div
+        ref={ref}
+        className={classes}
+        whileHover={cardHover}
+        whileTap={cardTap}
+        {...rest}
+      >
+        {children}
+      </motion.div>
+    );
+  }
 
   return (
     <div ref={ref} className={classes} {...rest}>

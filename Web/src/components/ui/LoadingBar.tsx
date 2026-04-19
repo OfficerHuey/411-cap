@@ -25,14 +25,15 @@ export const loadingBar = {
     }, 250);
   },
   finish() {
-    progress = 1;
-    notify();
     if (trickleInterval) clearInterval(trickleInterval);
     trickleInterval = null;
+    //ease to 100% then fade out
+    progress = 1;
+    notify();
     setTimeout(() => {
       progress = 0;
       notify();
-    }, 300);
+    }, 500);
   },
 };
 
@@ -48,10 +49,18 @@ export function LoadingBar() {
 
   if (value === 0) return null;
 
+  const isComplete = value >= 1;
+
   return (
     <div
       className={styles.bar}
-      style={{ transform: `translateX(${(value - 1) * 100}%)` }}
+      style={{
+        transform: `translateX(${(value - 1) * 100}%)`,
+        transition: isComplete
+          ? "transform 0.3s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.4s ease 0.1s"
+          : "transform 0.25s cubic-bezier(0.32, 0.72, 0, 1)",
+        opacity: isComplete ? 0 : 1,
+      }}
       role="progressbar"
       aria-valuenow={Math.round(value * 100)}
     />

@@ -39,12 +39,16 @@ namespace NursingScheduler.API.Controllers
             if (schedule != null && await IsSemesterLocked(schedule.SemesterId))
                 return BadRequest("This semester is locked and cannot be modified");
 
-            //check for duplicate w# in the same semester
+            //normalize w# to uppercase
+            createDto.WNumber = createDto.WNumber.ToUpperInvariant();
+
+            //check for duplicate w# in the same semester (case-insensitive)
             if (schedule != null)
             {
+                var normalizedW = createDto.WNumber;
                 var duplicate = await _context.Students
                     .Include(s => s.Schedule)
-                    .AnyAsync(s => s.WNumber == createDto.WNumber
+                    .AnyAsync(s => s.WNumber.ToUpper() == normalizedW
                                 && s.Schedule!.SemesterId == schedule.SemesterId);
 
                 if (duplicate)
@@ -178,8 +182,13 @@ namespace NursingScheduler.API.Controllers
         [HttpDelete("{id}")]
         public async Task<ActionResult> DeleteStudent(int id)
         {
-            var student = await _context.Students.FindAsync(id);
+            var student = await _context.Students
+                .Include(s => s.Schedule)
+                .FirstOrDefaultAsync(s => s.Id == id);
             if (student == null) return NotFound();
+
+            if (student.Schedule != null && await IsSemesterLocked(student.Schedule.SemesterId))
+                return BadRequest("This semester is locked and cannot be modified");
 
             _context.Students.Remove(student);
             await _context.SaveChangesAsync();
@@ -194,8 +203,13 @@ namespace NursingScheduler.API.Controllers
         [HttpPut("{id}")]
         public async Task<ActionResult> UpdateStudent(int id, CreateStudentDto updateDto)
         {
-            var student = await _context.Students.FindAsync(id);
+            var student = await _context.Students
+                .Include(s => s.Schedule)
+                .FirstOrDefaultAsync(s => s.Id == id);
             if (student == null) return NotFound();
+
+            if (student.Schedule != null && await IsSemesterLocked(student.Schedule.SemesterId))
+                return BadRequest("This semester is locked and cannot be modified");
 
             student.Name = updateDto.Name;
             student.WNumber = updateDto.WNumber;

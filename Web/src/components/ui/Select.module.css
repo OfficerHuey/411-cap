@@ -198,3 +198,15 @@
   flex-shrink: 0;
   color: var(--green-700);
 }
+
+/* ── responsive ── */
+@media (max-width: 768px) {
+  .trigger {
+    min-height: 44px;
+  }
+
+  .option {
+    min-height: 44px;
+    padding: 0.65rem var(--space-3);
+  }
+}

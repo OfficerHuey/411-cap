@@ -9,6 +9,7 @@ namespace NursingScheduler.API.DTOs.Instructor
         public required string Name { get; set; }
         public string? Email { get; set; }
         public InstructorType Type { get; set; }
+        public string? Phone { get; set; }
         //calculated total hours for workload view
         public double TotalWorkloadHours { get; set; }
     }

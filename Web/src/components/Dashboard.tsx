@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
 import { CreateSemesterModal } from "./CreateSemesterModal";
 import { CloneSemesterModal } from "./CloneSemesterModal";
 import { Plus, Calendar, Trash2, Unlock, Copy, ChevronRight } from "lucide-react";
@@ -8,6 +9,8 @@ import type { Semester } from "../Lib/Types";
 import { useNavigate } from "react-router-dom";
 import { useBreadcrumbs } from "../Lib/BreadcrumbContext";
 import { useToast } from "../Lib/ToastContext";
+import { useReducedMotion } from "../hooks/useReducedMotion";
+import { heroStagger, heroChild, statContainerVariants, statVariants, staggerContainer, cardVariants } from "../Lib/motion";
 import { Button } from "./ui/Button";
 import { Card } from "./ui/Card";
 import { NumberBadge } from "./ui/NumberBadge";
@@ -159,30 +162,39 @@ export function Dashboard() {
     ? `You're building schedules for ${featured.name}. ${totalSchedules} schedule group${totalSchedules !== 1 ? "s" : ""} across ${activeSemesters.length} active semester${activeSemesters.length !== 1 ? "s" : ""}.`
     : "You have no active semesters. Create one to begin building schedules.";
 
+  const reduced = useReducedMotion();
+
   return (
     <div className={styles.root}>
       {/* ── hero ── */}
-      <div className={styles.hero}>
+      <motion.div
+        className={styles.hero}
+        variants={reduced ? undefined : heroStagger}
+        initial="hidden"
+        animate="visible"
+      >
         <div className={styles.heroText}>
-          <NumberBadge number="01" variant="gold" size="sm" />
-          <HairlineRule width="48px" color="gold" spacing="normal" />
-          <h1>
+          <motion.div variants={reduced ? undefined : heroChild}><NumberBadge number="01" variant="gold" size="sm" /></motion.div>
+          <motion.div variants={reduced ? undefined : heroChild}><HairlineRule width="48px" color="gold" spacing="normal" /></motion.div>
+          <motion.h1 variants={reduced ? undefined : heroChild}>
             {greeting.text.replace(greeting.accent, "").trim()}{" "}
             <em>{greeting.accent}</em>, {firstName}.
-          </h1>
-          <p className={styles.heroSubtitle}>{subtitleText}</p>
+          </motion.h1>
+          <motion.p variants={reduced ? undefined : heroChild} className={styles.heroSubtitle}>{subtitleText}</motion.p>
         </div>
         {canEdit && (
-          <Button
-            variant="primary"
-            size="lg"
-            iconLeft={<Plus size={16} />}
-            onClick={() => setShowCreateModal(true)}
-          >
-            Create New Semester
-          </Button>
+          <motion.div variants={reduced ? undefined : heroChild}>
+            <Button
+              variant="primary"
+              size="lg"
+              iconLeft={<Plus size={16} />}
+              onClick={() => setShowCreateModal(true)}
+            >
+              Create New Semester
+            </Button>
+          </motion.div>
         )}
-      </div>
+      </motion.div>
 
       {error && <div className={styles.errorBanner}>{error}</div>}
 
@@ -193,43 +205,56 @@ export function Dashboard() {
         </div>
       ) : (
         <Card variant="raised" className={styles.statStrip}>
-          <div className={styles.statGrid}>
-            <StatTile
-              label="Active Semesters"
-              value={activeSemesters.length}
-              accent="gold"
-              size="sm"
-              trend={lockedCount > 0 ? { direction: "neutral", text: `${lockedCount} archived` } : undefined}
-            />
-            <StatTile
-              label="Schedule Groups"
-              value={totalSchedules}
-              accent="green"
-              size="sm"
-              trend={activeSemesters.length > 0 ? { direction: "neutral", text: `across ${activeSemesters.length} semester${activeSemesters.length !== 1 ? "s" : ""}` } : undefined}
-            />
-            <StatTile
-              label="Students Placed"
-              value={totalStudents ?? 0}
-              accent="green"
-              size="sm"
-              trend={totalStudents !== null && totalStudents > 0 ? { direction: "neutral", text: `across ${activeSemesters.length} semester${activeSemesters.length !== 1 ? "s" : ""}` } : undefined}
-            />
-            <StatTile
-              label="Attention Needed"
-              value={attentionCount ?? 0}
-              accent={attentionCount && attentionCount > 0 ? "gold" : "none"}
-              size="sm"
-              trend={
-                attentionCount !== null
-                  ? {
-                      direction: attentionCount === 0 ? "neutral" : "down",
-                      text: attentionCount === 0 ? "All clear" : "Review details",
-                    }
-                  : undefined
-              }
-            />
-          </div>
+          <motion.div
+            className={styles.statGrid}
+            variants={reduced ? undefined : statContainerVariants}
+            initial="hidden"
+            animate="visible"
+          >
+            <motion.div variants={reduced ? undefined : statVariants}>
+              <StatTile
+                label="Active Semesters"
+                value={activeSemesters.length}
+                accent="gold"
+                size="sm"
+                trend={lockedCount > 0 ? { direction: "neutral", text: `${lockedCount} archived` } : undefined}
+              />
+            </motion.div>
+            <motion.div variants={reduced ? undefined : statVariants}>
+              <StatTile
+                label="Schedule Groups"
+                value={totalSchedules}
+                accent="green"
+                size="sm"
+                trend={activeSemesters.length > 0 ? { direction: "neutral", text: `across ${activeSemesters.length} semester${activeSemesters.length !== 1 ? "s" : ""}` } : undefined}
+              />
+            </motion.div>
+            <motion.div variants={reduced ? undefined : statVariants}>
+              <StatTile
+                label="Students Placed"
+                value={totalStudents ?? 0}
+                accent="green"
+                size="sm"
+                trend={totalStudents !== null && totalStudents > 0 ? { direction: "neutral", text: `across ${activeSemesters.length} semester${activeSemesters.length !== 1 ? "s" : ""}` } : undefined}
+              />
+            </motion.div>
+            <motion.div variants={reduced ? undefined : statVariants}>
+              <StatTile
+                label="Attention Needed"
+                value={attentionCount ?? 0}
+                accent={attentionCount && attentionCount > 0 ? "gold" : "none"}
+                size="sm"
+                trend={
+                  attentionCount !== null
+                    ? {
+                        direction: attentionCount === 0 ? "neutral" : "down",
+                        text: attentionCount === 0 ? "All clear" : "Review details",
+                      }
+                    : undefined
+                }
+              />
+            </motion.div>
+          </motion.div>
         </Card>
       )}
 
@@ -297,66 +322,72 @@ export function Dashboard() {
               }
             />
           ) : (
-            <div className={styles.grid}>
+            <motion.div
+              className={styles.grid}
+              variants={reduced ? undefined : staggerContainer(0.05)}
+              initial="hidden"
+              animate="visible"
+            >
               {activeSemesters.map((semester) => (
-                <Card
-                  key={semester.id}
-                  variant="raised"
-                  accentColor="gold"
-                  interactive
-                  onClick={() => navigate(`/semester/${semester.id}`)}
-                >
-                  <div className={styles.cardBody}>
-                    <div className={styles.cardTopRow}>
-                      <NumberBadge number={semester.id} size="sm" variant="gold" />
-                      {canEdit && (
-                        <div className={styles.cardActions}>
-                          <button
-                            className={styles.cardActionBtn}
-                            onClick={(e) => { e.stopPropagation(); handleToggleLock(semester.id); }}
-                            title="Lock semester"
-                          >
-                            <Unlock size={15} />
-                          </button>
-                          <button
-                            className={styles.cardActionBtn}
-                            onClick={(e) => { e.stopPropagation(); setCloneSource(semester); }}
-                            title="Clone semester"
-                          >
-                            <Copy size={15} />
-                          </button>
-                          <button
-                            className={`${styles.cardActionBtn} ${styles.cardActionBtnDanger}`}
-                            onClick={(e) => { e.stopPropagation(); setDeleteConfirm(semester); }}
-                            title="Delete semester"
-                          >
-                            <Trash2 size={15} />
-                          </button>
-                        </div>
-                      )}
-                    </div>
+                <motion.div key={semester.id} variants={reduced ? undefined : cardVariants}>
+                  <Card
+                    variant="raised"
+                    accentColor="gold"
+                    interactive
+                    onClick={() => navigate(`/semester/${semester.id}`)}
+                  >
+                    <div className={styles.cardBody}>
+                      <div className={styles.cardTopRow}>
+                        <NumberBadge number={semester.id} size="sm" variant="gold" />
+                        {canEdit && (
+                          <div className={styles.cardActions}>
+                            <button
+                              className={styles.cardActionBtn}
+                              onClick={(e) => { e.stopPropagation(); handleToggleLock(semester.id); }}
+                              title="Lock semester"
+                            >
+                              <Unlock size={15} />
+                            </button>
+                            <button
+                              className={styles.cardActionBtn}
+                              onClick={(e) => { e.stopPropagation(); setCloneSource(semester); }}
+                              title="Clone semester"
+                            >
+                              <Copy size={15} />
+                            </button>
+                            <button
+                              className={`${styles.cardActionBtn} ${styles.cardActionBtnDanger}`}
+                              onClick={(e) => { e.stopPropagation(); setDeleteConfirm(semester); }}
+                              title="Delete semester"
+                            >
+                              <Trash2 size={15} />
+                            </button>
+                          </div>
+                        )}
+                      </div>
 
-                    <h3 className={styles.cardTitle}>{semester.name}</h3>
-                    <div className={styles.cardMeta}>
-                      <span className={styles.cardDate}>
-                        {formatDateRange(semester.startDate, semester.endDate)}
-                      </span>
-                      {semester.clinicalDays && (
-                        <Badge variant="gold" size="sm">{semester.clinicalDays}</Badge>
-                      )}
-                    </div>
+                      <h3 className={styles.cardTitle}>{semester.name}</h3>
+                      <div className={styles.cardMeta}>
+                        <span className={styles.cardDate}>
+                          {formatDateRange(semester.startDate, semester.endDate)}
+                        </span>
+                        {semester.clinicalDays && (
+                          <Badge variant="gold" size="sm">{semester.clinicalDays}</Badge>
+                        )}
+                      </div>
 
-                    <HairlineRule color="muted" spacing="tight" />
-                    <div className={styles.cardCta}>
-                      <span className={styles.cardCtaText}>
-                        {scheduleCountMap[semester.id] ?? 0} schedule group{(scheduleCountMap[semester.id] ?? 0) !== 1 ? "s" : ""}
-                      </span>
-                      <ChevronRight size={16} className={styles.cardCtaChevron} />
+                      <HairlineRule color="muted" spacing="tight" />
+                      <div className={styles.cardCta}>
+                        <span className={styles.cardCtaText}>
+                          {scheduleCountMap[semester.id] ?? 0} schedule group{(scheduleCountMap[semester.id] ?? 0) !== 1 ? "s" : ""}
+                        </span>
+                        <ChevronRight size={16} className={styles.cardCtaChevron} />
+                      </div>
                     </div>
-                  </div>
-                </Card>
+                  </Card>
+                </motion.div>
               ))}
-            </div>
+            </motion.div>
           )}
         </>
       )}

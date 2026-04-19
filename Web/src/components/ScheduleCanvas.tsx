@@ -1,4 +1,5 @@
 import { useRef, useEffect, useState, useMemo, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Plus, Trash2, Pencil, Building2, AlertTriangle, Info } from "lucide-react";
 import { useDrop, useDrag } from "react-dnd";
 import { sections as sectionsApi } from "../Lib/api";
@@ -8,6 +9,8 @@ import { CourseDetailsModal } from "./CourseDetailsModal";
 import { ConflictBanner } from "./ConflictBanner";
 import type { ConflictEntry } from "./ConflictBanner";
 import { useToast } from "../Lib/ToastContext";
+import { useReducedMotion } from "../hooks/useReducedMotion";
+import { badgePopVariants, ease } from "../Lib/motion";
 import { NumberBadge } from "./ui/NumberBadge";
 import { Modal } from "./ui/Modal";
 import { Button } from "./ui/Button";
@@ -218,6 +221,7 @@ function DraggableCourseBlock({
   onTooltipLeave: () => void;
   tooltipSection: number | null;
   tooltipPos: { x: number; y: number };
+  reduced?: boolean;
   onInstructorClick?: (instructorId: number) => void;
 }) {
   const elementRef = useRef<HTMLDivElement>(null);
@@ -280,27 +284,33 @@ function DraggableCourseBlock({
       }}
       aria-describedby={sectionConflicts.length > 0 ? tooltipId : undefined}
     >
-      {sectionConflicts.length > 0 && (
-        <span
-          className={styles.conflictIcon}
-          tabIndex={0}
-          role="img"
-          aria-label={sectionConflicts.map((c) => `${c.type}: ${c.message}`).join("; ")}
-          onFocus={(e) => {
-            e.stopPropagation();
-            if (!tooltipSuppressed) onTooltipEnter(section.id, e as unknown as React.MouseEvent);
-          }}
-          onBlur={onTooltipLeave}
-        >
-          {hasHard ? (
-            <AlertTriangle size={10} color="#fca5a5" />
-          ) : hasInfo ? (
-            <Info size={10} color="#93c5fd" />
-          ) : (
-            <AlertTriangle size={10} color="#fcd34d" />
-          )}
-        </span>
-      )}
+      <AnimatePresence>
+        {sectionConflicts.length > 0 && (
+          <motion.span
+            className={styles.conflictIcon}
+            tabIndex={0}
+            role="img"
+            aria-label={sectionConflicts.map((c) => `${c.type}: ${c.message}`).join("; ")}
+            variants={badgePopVariants}
+            initial="hidden"
+            animate="visible"
+            exit="hidden"
+            onFocus={(e) => {
+              e.stopPropagation();
+              if (!tooltipSuppressed) onTooltipEnter(section.id, e as unknown as React.MouseEvent);
+            }}
+            onBlur={onTooltipLeave}
+          >
+            {hasHard ? (
+              <AlertTriangle size={10} color="#fca5a5" />
+            ) : hasInfo ? (
+              <Info size={10} color="#93c5fd" />
+            ) : (
+              <AlertTriangle size={10} color="#fcd34d" />
+            )}
+          </motion.span>
+        )}
+      </AnimatePresence>
       <div className={`${styles.courseBlockInner}${sectionConflicts.length > 0 ? " " + styles.hasConflict : ""}`}>
         {!isLocked && (
           <div className={styles.courseBlockActions}>
@@ -414,6 +424,7 @@ export function ScheduleCanvas({
   onInstructorClick,
 }: ScheduleCanvasProps) {
   const { addToast } = useToast();
+  const reduced = useReducedMotion();
   const [deleteConfirm, setDeleteConfirm] = useState<DeleteConfirm | null>(null);
   const [editModal, setEditModal] = useState<EditModal | null>(null);
   const [allSemesterSections, setAllSemesterSections] = useState<Section[]>([]);
@@ -421,12 +432,17 @@ export function ScheduleCanvas({
   const [tooltipSection, setTooltipSection] = useState<number | null>(null);
   const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
 
+  //build a fingerprint that changes whenever any section moves or is added/removed
+  const sectionFingerprint = schedule.sections
+    .map(s => `${s.id}:${s.dayOfWeek}:${s.startTime}:${s.endTime}:${s.roomId}:${s.instructorId}`)
+    .join("|");
+
   //fetch all semester sections for cross-schedule conflict detection
   useEffect(() => {
     sectionsApi.getAllForSemester(semesterId)
       .then(setAllSemesterSections)
       .catch(() => {});
-  }, [semesterId, schedule.sections.length]);
+  }, [semesterId, sectionFingerprint]);
 
   //map sections to display data
   const scheduledSections = schedule.sections.map((section) => {
@@ -589,6 +605,13 @@ export function ScheduleCanvas({
       const [h, m] = startTimeSpan.split(":").map(Number);
       const startMinutes = h * 60 + m;
       const endMinutes = startMinutes + durationMinutes;
+
+      //reject moves that extend past the calendar boundary
+      if (endMinutes > SLOT_END_HOUR * 60) {
+        addToast("error", "Cannot move section here \u2014 it would extend past the end of the calendar");
+        return;
+      }
+
       const endH = Math.floor(endMinutes / 60);
       const endM = endMinutes % 60;
       const endTimeSpan = `${String(endH).padStart(2, "0")}:${String(endM).padStart(2, "0")}:00`;
@@ -795,8 +818,8 @@ export function ScheduleCanvas({
                       );
                     })}
 
-                    {/* course blocks */}
-                    {daySections.map(({ section, course }) => {
+                    {/* course blocks — staggered pop-in */}
+                    {daySections.map(({ section, course }, blockIdx) => {
                       const startMins = timeSpanToMinutes(section.startTime);
                       const endMins = timeSpanToMinutes(section.endTime);
                       const top = ((startMins - originMins) / 30) * SLOT_HEIGHT;
@@ -811,38 +834,50 @@ export function ScheduleCanvas({
                       const conflictClass = hasHard ? ` ${styles.conflictHard}` : hasSoft ? ` ${styles.conflictSoft}` : "";
 
                       return (
-                        <DraggableCourseBlock
+                        <motion.div
                           key={section.id}
-                          section={section}
-                          course={course}
-                          top={top}
-                          height={height}
-                          color={color}
-                          startDisplay={startDisplay}
-                          endDisplay={endDisplay}
-                          sectionConflicts={sectionConflicts}
-                          hasHard={hasHard}
-                          hasSoft={hasSoft}
-                          hasInfo={hasInfo}
-                          conflictClass={conflictClass}
-                          isLocked={isLocked}
-                          day={day}
-                          bannerVisible={bannerVisible}
-                          onEdit={() => setEditModal({ section, course })}
-                          onDelete={() =>
-                            setDeleteConfirm({
-                              sectionId: section.id,
-                              courseCode: section.courseCode,
-                              dayOfWeek: day,
-                              timeSlot: startDisplay,
-                            })
-                          }
-                          onTooltipEnter={handleTooltipEnter}
-                          onTooltipLeave={() => setTooltipSection(null)}
-                          tooltipSection={tooltipSection}
-                          tooltipPos={tooltipPos}
-                          onInstructorClick={onInstructorClick}
-                        />
+                          initial={reduced ? undefined : { opacity: 0, scale: 0.9 }}
+                          animate={reduced ? undefined : { opacity: 1, scale: 1 }}
+                          transition={reduced ? undefined : {
+                            duration: 0.24,
+                            delay: 0.55 + blockIdx * 0.03,
+                            ease: ease.ios,
+                          }}
+                          style={{ position: "absolute", top, left: 0, right: 0 }}
+                        >
+                          <DraggableCourseBlock
+                            section={section}
+                            course={course}
+                            top={0}
+                            height={height}
+                            color={color}
+                            startDisplay={startDisplay}
+                            endDisplay={endDisplay}
+                            sectionConflicts={sectionConflicts}
+                            hasHard={hasHard}
+                            hasSoft={hasSoft}
+                            hasInfo={hasInfo}
+                            conflictClass={conflictClass}
+                            isLocked={isLocked}
+                            day={day}
+                            bannerVisible={bannerVisible}
+                            reduced={reduced}
+                            onEdit={() => setEditModal({ section, course })}
+                            onDelete={() =>
+                              setDeleteConfirm({
+                                sectionId: section.id,
+                                courseCode: section.courseCode,
+                                dayOfWeek: day,
+                                timeSlot: startDisplay,
+                              })
+                            }
+                            onTooltipEnter={handleTooltipEnter}
+                            onTooltipLeave={() => setTooltipSection(null)}
+                            tooltipSection={tooltipSection}
+                            tooltipPos={tooltipPos}
+                            onInstructorClick={onInstructorClick}
+                          />
+                        </motion.div>
                       );
                     })}
                   </div>

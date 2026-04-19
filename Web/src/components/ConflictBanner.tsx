@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { AlertTriangle, X, ChevronRight } from "lucide-react";
+import { ease } from "../Lib/motion";
 
 export interface ConflictEntry {
   sectionId: number;
@@ -15,8 +17,18 @@ interface ConflictBannerProps {
 
 export function ConflictBanner({ conflicts, onJumpTo }: ConflictBannerProps) {
   const [dismissed, setDismissed] = useState(false);
+  const prevConflictKeyRef = useRef("");
 
-  if (dismissed || conflicts.length === 0) return null;
+  //reset dismissed state when the conflict list changes
+  useEffect(() => {
+    const key = conflicts.map(c => `${c.sectionId}-${c.type}-${c.message}`).join("|");
+    if (key !== prevConflictKeyRef.current) {
+      prevConflictKeyRef.current = key;
+      setDismissed(false);
+    }
+  }, [conflicts]);
+
+  const visible = !dismissed && conflicts.length > 0;
 
   const hasHard = conflicts.some((c) => c.severity === "Error");
   const bgColor = hasHard ? "rgba(220, 38, 38, 0.06)" : "rgba(217, 119, 6, 0.06)";
@@ -131,47 +143,55 @@ export function ConflictBanner({ conflicts, onJumpTo }: ConflictBannerProps) {
         }
       `}</style>
 
-      <div
-        className="conflict-banner"
-        style={{
-          background: bgColor,
-          border: `1px solid ${borderColor}`,
-        }}
-        role="alert"
-      >
-        <div className="conflict-banner-header">
-          <div className="conflict-banner-title" style={{ color: accentColor }}>
-            <AlertTriangle size={15} />
-            {conflicts.length} conflict{conflicts.length !== 1 ? "s" : ""} detected
-          </div>
-          <button
-            className="conflict-banner-dismiss"
-            onClick={() => setDismissed(true)}
-            aria-label="Dismiss conflict banner"
-            style={{ color: textColor }}
+      <AnimatePresence>
+        {visible && (
+          <motion.div
+            className="conflict-banner"
+            style={{
+              background: bgColor,
+              border: `1px solid ${borderColor}`,
+            }}
+            role="alert"
+            initial={{ opacity: 0, y: -8, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -8, scale: 0.98 }}
+            transition={{ duration: 0.25, ease: ease.ios }}
           >
-            <X size={14} />
-          </button>
-        </div>
-        <ul className="conflict-banner-list">
-          {conflicts.map((c, i) => (
-            <li key={`${c.sectionId}-${i}`} className="conflict-banner-item" style={{ color: textColor }}>
-              <div className="conflict-banner-item-left">
-                <span className="conflict-banner-type">{c.type}:</span>
-                <span className="conflict-banner-msg">{c.message}</span>
+            <div className="conflict-banner-header">
+              <div className="conflict-banner-title" style={{ color: accentColor }}>
+                <AlertTriangle size={15} />
+                {conflicts.length} conflict{conflicts.length !== 1 ? "s" : ""} detected
               </div>
               <button
-                className="conflict-banner-jump"
-                style={{ color: accentColor }}
-                onClick={() => onJumpTo(c.sectionId)}
+                className="conflict-banner-dismiss"
+                onClick={() => setDismissed(true)}
+                aria-label="Dismiss conflict banner"
+                style={{ color: textColor }}
               >
-                Jump to
-                <ChevronRight size={12} />
+                <X size={14} />
               </button>
-            </li>
-          ))}
-        </ul>
-      </div>
+            </div>
+            <ul className="conflict-banner-list">
+              {conflicts.map((c, i) => (
+                <li key={`${c.sectionId}-${i}`} className="conflict-banner-item" style={{ color: textColor }}>
+                  <div className="conflict-banner-item-left">
+                    <span className="conflict-banner-type">{c.type}:</span>
+                    <span className="conflict-banner-msg">{c.message}</span>
+                  </div>
+                  <button
+                    className="conflict-banner-jump"
+                    style={{ color: accentColor }}
+                    onClick={() => onJumpTo(c.sectionId)}
+                  >
+                    Jump to
+                    <ChevronRight size={12} />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 }

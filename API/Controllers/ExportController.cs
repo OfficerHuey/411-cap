@@ -96,7 +96,7 @@ namespace NursingScheduler.API.Controllers
 
             using var stream = new MemoryStream();
             workbook.SaveAs(stream);
-            return File(stream.ToArray(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"{semester.Name}_Student_Rosters.xlsx");
+            return File(stream.ToArray(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"{SanitizeFileName(semester.Name)}_Student_Rosters.xlsx");
         }
         //export 2: the visual grid
         [HttpGet("grid/{semesterId}")]
@@ -212,7 +212,7 @@ namespace NursingScheduler.API.Controllers
 
             using var stream = new MemoryStream();
             workbook.SaveAs(stream);
-            return File(stream.ToArray(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"{semester.Name}_Visual_Grids.xlsx");
+            return File(stream.ToArray(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"{SanitizeFileName(semester.Name)}_Visual_Grids.xlsx");
         }
 
         //export one row per student-per-course for workday mass enrollment
@@ -265,7 +265,7 @@ namespace NursingScheduler.API.Controllers
             workbook.SaveAs(stream);
             return File(stream.ToArray(),
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                $"{semester.Name}_Mass_Enrollment.xlsx");
+                $"{SanitizeFileName(semester.Name)}_Mass_Enrollment.xlsx");
         }
 
         //ensures exactly one space between alpha prefix and numeric portion
@@ -273,6 +273,15 @@ namespace NursingScheduler.API.Controllers
         {
             var match = Regex.Match(rawCode, @"^([A-Z]+)\s*(\d+)$");
             return match.Success ? $"{match.Groups[1].Value} {match.Groups[2].Value}" : rawCode;
+        }
+
+        //sanitize filenames for windows/mac compatibility
+        private static string SanitizeFileName(string name)
+        {
+            var invalid = new[] { '/', '\\', ':', '?', '*', '"', '<', '>', '|' };
+            foreach (var c in invalid)
+                name = name.Replace(c, '_');
+            return name;
         }
 
         //sanitize sheet names for closedxml (max 31 chars, no special chars)

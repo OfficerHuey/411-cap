@@ -1,29 +1,18 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocation } from "react-router-dom";
-
-const prefersReducedMotion =
-  typeof window !== "undefined" &&
-  window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-const variants = {
-  initial: prefersReducedMotion
-    ? { opacity: 0 }
-    : { opacity: 0, y: 12 },
-  animate: prefersReducedMotion
-    ? { opacity: 1 }
-    : { opacity: 1, y: 0 },
-  exit: prefersReducedMotion
-    ? { opacity: 0 }
-    : { opacity: 0, y: -8 },
-};
-
-const transition = {
-  duration: prefersReducedMotion ? 0.15 : 0.35,
-  ease: [0.19, 1, 0.22, 1] as [number, number, number, number],
-};
+import { useReducedMotion } from "../../hooks/useReducedMotion";
+import {
+  pageVariants,
+  pageEnterTransition,
+  reducedPageVariants,
+  reducedFade,
+} from "../../Lib/motion";
 
 export function PageTransition({ children }: { children: React.ReactNode }) {
   const location = useLocation();
+  const reduced = useReducedMotion();
+
+  const variants = reduced ? reducedPageVariants : pageVariants;
 
   return (
     <AnimatePresence mode="wait">
@@ -33,7 +22,8 @@ export function PageTransition({ children }: { children: React.ReactNode }) {
         animate="animate"
         exit="exit"
         variants={variants}
-        transition={transition}
+        transition={reduced ? reducedFade : pageEnterTransition}
+        style={{ willChange: "opacity, transform" }}
       >
         {children}
       </motion.div>

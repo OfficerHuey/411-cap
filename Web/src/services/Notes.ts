@@ -15,6 +15,10 @@ async function noteFetch<T>(endpoint: string, options: RequestInit = {}): Promis
   const response = await fetch(`${API_BASE}${endpoint}`, { ...options, headers });
 
   if (response.status === 401) {
+    localStorage.removeItem("jwt_token");
+    localStorage.removeItem("user_role");
+    localStorage.removeItem("username");
+    localStorage.removeItem("display_name");
     window.location.href = "/login";
     throw new Error("Unauthorized");
   }

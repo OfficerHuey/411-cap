@@ -1,3 +1,5 @@
+import { AnimatedNumber } from "./AnimatedNumber";
+
 interface CapacityMeterProps {
   currentCount: number;
   capacity: number;
@@ -57,7 +59,7 @@ export function CapacityMeter({ currentCount, capacity }: CapacityMeterProps) {
           fontFamily: "Inter, sans-serif",
         }}
       >
-        {currentCount}/{capacity} students
+        <AnimatedNumber value={currentCount} />/{capacity} students
       </span>
       <div
         style={{

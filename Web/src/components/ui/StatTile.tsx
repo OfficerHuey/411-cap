@@ -1,4 +1,5 @@
 import { TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { AnimatedNumber } from "../AnimatedNumber";
 import styles from "./StatTile.module.css";
 
 export interface StatTileProps {
@@ -26,6 +27,7 @@ export function StatTile({
   accent = "none",
 }: StatTileProps) {
   const TrendIcon = trend ? trendIcons[trend.direction] : null;
+  const isNumeric = typeof value === "number";
 
   return (
     <div className={`${styles.tile} ${styles[size]}`}>
@@ -33,7 +35,7 @@ export function StatTile({
         {label}
       </span>
       <span className={`${styles.value} ${styles[`value-${size}`]}`}>
-        {value}
+        {isNumeric ? <AnimatedNumber value={value} /> : value}
       </span>
       {trend && TrendIcon && (
         <span className={`${styles.trend} ${styles[`trend-${trend.direction}`]}`}>

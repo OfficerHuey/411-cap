@@ -31,6 +31,7 @@ namespace NursingScheduler.API.Controllers
                     Name = i.Name,
                     Email = i.Email,
                     Type = i.Type,
+                    Phone = i.Phone,
                     TotalWorkloadHours = 0
                 })
                 .ToListAsync();
@@ -55,6 +56,7 @@ namespace NursingScheduler.API.Controllers
                 Name = instructor.Name,
                 Email = instructor.Email,
                 Type = instructor.Type,
+                Phone = instructor.Phone,
                 TotalWorkloadHours = (double)instructor.Sections.Sum(s => WorkloadCalculator.Calculate(s.Course!))
             });
         }
@@ -67,7 +69,8 @@ namespace NursingScheduler.API.Controllers
             {
                 Name = createDto.Name,
                 Email = createDto.Email,
-                Type = createDto.Type
+                Type = createDto.Type,
+                Phone = createDto.Phone
             };
 
             _context.Instructors.Add(instructor);
@@ -79,6 +82,7 @@ namespace NursingScheduler.API.Controllers
                 Name = instructor.Name,
                 Email = instructor.Email,
                 Type = instructor.Type,
+                Phone = instructor.Phone,
                 TotalWorkloadHours = 0
             });
         }
@@ -93,17 +97,31 @@ namespace NursingScheduler.API.Controllers
             instructor.Name = updateDto.Name;
             instructor.Email = updateDto.Email;
             instructor.Type = updateDto.Type;
+            instructor.Phone = updateDto.Phone;
 
             await _context.SaveChangesAsync();
             return NoContent();
         }
 
-        //delete an instructor
+        //delete an instructor — clears assignments from sections and join table
         [HttpDelete("{id}")]
         public async Task<ActionResult> DeleteInstructor(int id)
         {
             var instructor = await _context.Instructors.FindAsync(id);
             if (instructor == null) return NotFound();
+
+            //clear the FK on any sections assigned to this instructor
+            var assignedSections = await _context.Sections
+                .Where(s => s.InstructorId == id)
+                .ToListAsync();
+            foreach (var section in assignedSections)
+                section.InstructorId = null;
+
+            //remove join table entries
+            var joinRows = await _context.SectionInstructors
+                .Where(si => si.InstructorId == id)
+                .ToListAsync();
+            _context.SectionInstructors.RemoveRange(joinRows);
 
             _context.Instructors.Remove(instructor);
             await _context.SaveChangesAsync();

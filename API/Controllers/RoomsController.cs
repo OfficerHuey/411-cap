@@ -104,12 +104,19 @@ namespace NursingScheduler.API.Controllers
             return NoContent();
         }
 
-        //delete a room
+        //delete a room — clears room assignment from sections first
         [HttpDelete("{id}")]
         public async Task<ActionResult> DeleteRoom(int id)
         {
             var room = await _context.Rooms.FindAsync(id);
             if (room == null) return NotFound();
+
+            //clear the FK on any sections assigned to this room
+            var assignedSections = await _context.Sections
+                .Where(s => s.RoomId == id)
+                .ToListAsync();
+            foreach (var section in assignedSections)
+                section.RoomId = null;
 
             _context.Rooms.Remove(room);
             await _context.SaveChangesAsync();

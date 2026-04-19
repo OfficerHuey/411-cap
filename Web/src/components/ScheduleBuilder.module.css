@@ -106,7 +106,7 @@
 /* ── grid layout ── */
 .calendarGrid {
   display: grid;
-  grid-template-columns: 280px 1fr;
+  grid-template-columns: 260px 1fr;
   gap: 1.5rem;
   margin-top: 1.5rem;
 }
@@ -173,11 +173,44 @@
 }
 
 /* ── responsive ── */
-@media (max-width: 900px) {
+@media (max-width: 1280px) {
+  .calendarGrid {
+    grid-template-columns: 220px 1fr;
+    gap: 1rem;
+  }
+}
+
+@media (max-width: 1024px) {
+  .calendarGrid {
+    grid-template-columns: 1fr;
+  }
   .hero {
     padding-top: 1.5rem;
   }
-  .calendarGrid {
-    grid-template-columns: 1fr;
+  .heroRight {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 768px) {
+  .hero {
+    gap: 1rem;
+  }
+  .heroTitle {
+    font-size: 1.75rem;
+  }
+  .viewToggle {
+    margin-bottom: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .heroTitle {
+    font-size: 1.5rem;
+  }
+  .viewBtn {
+    padding: 0.45rem 0.85rem;
+    font-size: 0.8rem;
   }
 }

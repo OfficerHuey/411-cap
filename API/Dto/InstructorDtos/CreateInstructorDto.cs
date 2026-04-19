@@ -11,5 +11,6 @@ namespace NursingScheduler.API.DTOs.Instructor
 
         public string? Email { get; set; }
         public InstructorType Type { get; set; }
+        public string? Phone { get; set; }
     }
 }

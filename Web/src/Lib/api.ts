@@ -26,6 +26,7 @@ function clearToken(): void {
   localStorage.removeItem("jwt_token");
   localStorage.removeItem("user_role");
   localStorage.removeItem("username");
+  localStorage.removeItem("display_name");
 }
 
 export function isAuthenticated(): boolean {
@@ -146,11 +147,15 @@ async function apiDownload(endpoint: string): Promise<Blob> {
   }
 }
 
+function sanitizeFileName(name: string): string {
+  return name.replace(/[/\\:?*"<>|]/g, "_");
+}
+
 function downloadBlob(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = filename;
+  a.download = sanitizeFileName(filename);
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);

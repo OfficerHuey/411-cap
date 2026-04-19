@@ -2,6 +2,7 @@ import { createContext, useContext, useCallback, useReducer, useRef, useEffect }
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
+import { toastVariants } from "../../Lib/motion";
 import styles from "./Toast.module.css";
 
 export type ToastType = "success" | "error" | "warning" | "info";
@@ -125,12 +126,13 @@ function ToastCard({ item, onDismiss }: { item: ToastItem; onDismiss: (id: strin
     <motion.div
       layout
       className={`${styles.toast} ${styles[item.type]}`}
-      initial={{ opacity: 0, x: 80 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: 80 }}
-      transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+      variants={toastVariants}
+      initial="initial"
+      animate="animate"
+      exit="exit"
       onMouseEnter={pauseTimer}
       onMouseLeave={resumeTimer}
+      style={{ willChange: "opacity, transform" }}
     >
       <div className={styles.content}>
         <span className={styles.title}>{item.title}</span>

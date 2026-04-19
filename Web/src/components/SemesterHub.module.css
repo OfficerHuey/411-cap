@@ -127,7 +127,7 @@
 /* ── schedule card grid ── */
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 1.5rem;
   margin-top: 1rem;
 }
@@ -228,11 +228,50 @@
 }
 
 /* ── responsive ── */
-@media (max-width: 900px) {
+@media (max-width: 1024px) {
+  .heroActions {
+    width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
   .hero {
     padding-top: 2rem;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .heroTitle {
+    font-size: clamp(1.75rem, 5vw, 2.5rem);
+  }
+  .heroActions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+  .tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 0.5rem;
+    margin-bottom: 1.5rem;
+    gap: 0.4rem;
+  }
+  .tab {
+    flex-shrink: 0;
+    scroll-snap-align: start;
+    padding: 0.55rem 1rem;
+    font-size: 0.85rem;
   }
   .grid {
     grid-template-columns: 1fr;
+  }
+  .cardBody {
+    padding: 1.25rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .heroTitle {
+    font-size: 1.75rem;
   }
 }

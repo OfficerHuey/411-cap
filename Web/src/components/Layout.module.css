@@ -207,11 +207,177 @@
   color: rgba(255, 255, 255, 0.9);
 }
 
+/* ── hamburger button (mobile only) ── */
+.hamburgerBtn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.85);
+  cursor: pointer;
+  transition: background 150ms ease-out;
+  flex-shrink: 0;
+}
+
+.hamburgerBtn:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* ── mobile drawer overlay ── */
+.drawerOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 200;
+  backdrop-filter: blur(2px);
+}
+
+/* ── mobile drawer panel ── */
+.drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 280px;
+  max-width: 85vw;
+  background: linear-gradient(180deg, var(--green-900) 0%, var(--green-950) 100%);
+  z-index: 201;
+  display: flex;
+  flex-direction: column;
+  box-shadow: -8px 0 32px rgba(0, 0, 0, 0.3);
+}
+
+.drawerHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.drawerTitle {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--paper-raised);
+}
+
+.drawerClose {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  transition: background 150ms;
+}
+
+.drawerClose:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.drawerNav {
+  flex: 1;
+  padding: 1rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  overflow-y: auto;
+}
+
+.drawerLink {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  background: none;
+  border: none;
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.7);
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 150ms, background 150ms;
+  min-height: 44px;
+  text-align: left;
+  width: 100%;
+}
+
+.drawerLink:hover {
+  color: rgba(255, 255, 255, 0.95);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.drawerLinkActive {
+  color: var(--paper-raised);
+  background: rgba(200, 149, 44, 0.12);
+  border-left: 3px solid var(--gold-400);
+}
+
+.drawerFooter {
+  padding: 1.25rem 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.drawerUser {
+  flex: 1;
+  min-width: 0;
+}
+
+.drawerUserName {
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--paper-raised);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.drawerUserRole {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: rgba(255, 255, 255, 0.5);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.drawerLogout {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  transition: background 150ms, color 150ms;
+}
+
+.drawerLogout:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.9);
+}
+
 /* ── main content ── */
 .main {
-  max-width: 1400px;
+  max-width: 1440px;
   margin: 0 auto;
-  padding: 2rem 2.5rem;
+  padding: 2rem clamp(1rem, 4vw, 3rem);
   animation: fadeInUp 0.4s ease both;
 }
 
@@ -226,10 +392,28 @@
   }
 }
 
-/* ── responsive ── */
-@media (max-width: 880px) {
+/* ── responsive: 768-1024 tighter nav ── */
+@media (max-width: 1024px) {
+  .navLink {
+    padding: 0.5rem 0.65rem;
+    font-size: 0.8rem;
+  }
+  .cmdTrigger {
+    width: 160px;
+  }
+  .navInner {
+    gap: 1rem;
+  }
+}
+
+/* ── responsive: below 768 — mobile hamburger ── */
+@media (max-width: 768px) {
   .navCenter { display: none; }
   .cmdTrigger { display: none; }
+  .avatarBtn { display: none; }
+  .logoutBtn { display: none; }
+  .hamburgerBtn { display: flex; }
   .nav { padding: 0 1rem; }
-  .main { padding: 1.5rem 1rem; }
+  .navInner { gap: 0.75rem; }
+  .brandType { display: none; }
 }

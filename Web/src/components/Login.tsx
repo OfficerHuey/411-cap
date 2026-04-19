@@ -1,7 +1,10 @@
 import { useState } from "react";
+import { motion } from "framer-motion";
 import { AlertCircle, User, Lock, Eye, EyeOff, Info, Copy, Check } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
 import { login, register } from "../Lib/api";
+import { useReducedMotion } from "../hooks/useReducedMotion";
+import { heroStagger, heroChild, ease } from "../Lib/motion";
 import { Card } from "./ui/Card";
 import { Input } from "./ui/Input";
 import { Button } from "./ui/Button";
@@ -52,36 +55,53 @@ export function Login() {
     setPassword(pass);
   };
 
+  const reduced = useReducedMotion();
+
   return (
     <div className={styles.root}>
       {/* ── left editorial hero ── */}
-      <div className={styles.panelLeft}>
+      <motion.div
+        className={styles.panelLeft}
+        initial={reduced ? undefined : { opacity: 0, x: -24 }}
+        animate={reduced ? undefined : { opacity: 1, x: 0 }}
+        transition={reduced ? undefined : { duration: 0.4, ease: ease.ios }}
+      >
         <span className={styles.stamp}>N&#186; 01&ensp;&middot;&ensp;Est. 1925</span>
 
-        <div className={styles.heroContent}>
-          <NumberBadge number="01" variant="gold" size="sm" />
-          <HairlineRule width="64px" color="gold" spacing="normal" />
+        <motion.div
+          className={styles.heroContent}
+          variants={reduced ? undefined : heroStagger}
+          initial="hidden"
+          animate="visible"
+        >
+          <motion.div variants={reduced ? undefined : heroChild}><NumberBadge number="01" variant="gold" size="sm" /></motion.div>
+          <motion.div variants={reduced ? undefined : heroChild}><HairlineRule width="64px" color="gold" spacing="normal" /></motion.div>
 
-          <h1 className={styles.heroTitle}>
+          <motion.h1 variants={reduced ? undefined : heroChild} className={styles.heroTitle}>
             Nursing student<br />
             <span className={styles.heroTitleItalic}>scheduler.</span>
-          </h1>
+          </motion.h1>
 
-          <div className={styles.diamond} />
+          <motion.div variants={reduced ? undefined : heroChild} className={styles.diamond} />
 
-          <p className={styles.heroSubtitle}>
+          <motion.p variants={reduced ? undefined : heroChild} className={styles.heroSubtitle}>
             A scheduling platform built for the Southeastern Louisiana
             University School of Nursing.
-          </p>
-        </div>
+          </motion.p>
+        </motion.div>
 
         <span className={styles.leftFooter}>
           Southeastern Louisiana University&ensp;&middot;&ensp;School of Nursing
         </span>
-      </div>
+      </motion.div>
 
       {/* ── right form panel ── */}
-      <div className={styles.panelRight}>
+      <motion.div
+        className={styles.panelRight}
+        initial={reduced ? undefined : { opacity: 0, x: 24 }}
+        animate={reduced ? undefined : { opacity: 1, x: 0 }}
+        transition={reduced ? undefined : { duration: 0.4, delay: 0.15, ease: ease.ios }}
+      >
         <Card variant="elevated" className={styles.loginCard}>
           <NumberBadge number="02" variant="gold" size="sm" />
           <HairlineRule width="48px" color="gold" spacing="normal" />
@@ -254,7 +274,7 @@ export function Login() {
             </>
           )}
         </Card>
-      </div>
+      </motion.div>
     </div>
   );
 }
