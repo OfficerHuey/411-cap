@@ -1,6 +1,6 @@
 import { useRef, useEffect, useState, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Trash2, Pencil, Building2, AlertTriangle, Info } from "lucide-react";
+import { Plus, Trash2, Pencil, Building2, AlertTriangle, Info, BookOpen, FlaskConical, Stethoscope, CalendarPlus } from "lucide-react";
 import { useDrop, useDrag } from "react-dnd";
 import { sections as sectionsApi } from "../Lib/api";
 import type { Schedule, Course, Section } from "../Lib/Types";
@@ -23,6 +23,8 @@ interface ScheduleCanvasProps {
   isSemester5: boolean;
   courses: Course[];
   isLocked: boolean;
+  semesterStart?: string;
+  semesterEnd?: string;
   onRefresh: () => void;
   onDrop: (
     courseId: number,
@@ -33,12 +35,32 @@ interface ScheduleCanvasProps {
   onInstructorClick?: (instructorId: number) => void;
 }
 
+//darken a hex color by a flat rgb amount for the left accent stripe
+function darkenColor(hex: string, amount: number): string {
+  const normalized = hex.replace("#", "");
+  if (normalized.length !== 6) return hex;
+  const num = parseInt(normalized, 16);
+  const r = Math.max(0, (num >> 16) - amount);
+  const g = Math.max(0, ((num >> 8) & 0x00ff) - amount);
+  const b = Math.max(0, (num & 0x0000ff) - amount);
+  return `rgb(${r}, ${g}, ${b})`;
+}
+
+function courseTypeIcon(type: string) {
+  switch (type) {
+    case "Lecture": return <BookOpen size={11} />;
+    case "Lab": return <FlaskConical size={11} />;
+    case "Clinical": return <Stethoscope size={11} />;
+    default: return null;
+  }
+}
+
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
 
 //30-min slots from 7:00am to 7:00pm
 const SLOT_START_HOUR = 7;
 const SLOT_END_HOUR = 19;
-const SLOT_HEIGHT = 32;
+const SLOT_HEIGHT = 44;
 const SLOTS: string[] = [];
 for (let h = SLOT_START_HOUR; h < SLOT_END_HOUR; h++) {
   for (let m = 0; m < 60; m += 30) {
@@ -192,6 +214,8 @@ function DraggableCourseBlock({
   isLocked,
   day,
   bannerVisible,
+  isNewlyPlaced,
+  reduced,
   onEdit,
   onDelete,
   onTooltipEnter,
@@ -215,6 +239,7 @@ function DraggableCourseBlock({
   isLocked: boolean;
   day: string;
   bannerVisible: boolean;
+  isNewlyPlaced: boolean;
   onEdit: () => void;
   onDelete: () => void;
   onTooltipEnter: (sectionId: number, e: React.MouseEvent) => void;
@@ -270,8 +295,8 @@ function DraggableCourseBlock({
       style={{
         top,
         height: Math.max(height - 2, SLOT_HEIGHT - 2),
-        background: `linear-gradient(135deg, ${color}d9, ${color})`,
-        borderLeft: `3px solid ${color}`,
+        backgroundColor: color,
+        borderLeft: `4px solid ${darkenColor(color, 30)}`,
         cursor: isLocked ? "default" : "grab",
       }}
       onMouseEnter={handleMouseEnter}
@@ -284,6 +309,21 @@ function DraggableCourseBlock({
       }}
       aria-describedby={sectionConflicts.length > 0 ? tooltipId : undefined}
     >
+      {isNewlyPlaced && !reduced && (
+        <motion.div
+          style={{
+            position: "absolute",
+            inset: 0,
+            borderRadius: 8,
+            border: "2px solid var(--gold-400)",
+            pointerEvents: "none",
+            zIndex: 4,
+          }}
+          initial={{ opacity: 1 }}
+          animate={{ opacity: 0 }}
+          transition={{ duration: 0.5, delay: 0.15, ease: "easeOut" }}
+        />
+      )}
       <AnimatePresence>
         {sectionConflicts.length > 0 && (
           <motion.span
@@ -311,6 +351,9 @@ function DraggableCourseBlock({
           </motion.span>
         )}
       </AnimatePresence>
+      <div className={styles.courseTypeIcon}>
+        {courseTypeIcon(course.defaultType)}
+      </div>
       <div className={`${styles.courseBlockInner}${sectionConflicts.length > 0 ? " " + styles.hasConflict : ""}`}>
         {!isLocked && (
           <div className={styles.courseBlockActions}>
@@ -419,6 +462,8 @@ export function ScheduleCanvas({
   isSemester5,
   courses,
   isLocked,
+  semesterStart,
+  semesterEnd,
   onRefresh,
   onDrop,
   onInstructorClick,
@@ -428,6 +473,50 @@ export function ScheduleCanvas({
   const [deleteConfirm, setDeleteConfirm] = useState<DeleteConfirm | null>(null);
   const [editModal, setEditModal] = useState<EditModal | null>(null);
   const [allSemesterSections, setAllSemesterSections] = useState<Section[]>([]);
+
+  //track which section ids were present on first render so newly placed ones animate differently
+  const initialIdsRef = useRef<Set<number> | null>(null);
+  if (initialIdsRef.current === null) {
+    initialIdsRef.current = new Set(schedule.sections.map((s) => s.id));
+  }
+
+  const todayName = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][new Date().getDay()];
+
+  //live now-line — recompute every minute so the gold marker walks down today's column
+  const [nowTick, setNowTick] = useState(() => Date.now());
+  useEffect(() => {
+    if (isSemester5) return;
+    const id = setInterval(() => setNowTick(Date.now()), 60_000);
+    return () => clearInterval(id);
+  }, [isSemester5]);
+
+  const nowLine = useMemo(() => {
+    if (isSemester5) return null;
+    if (!DAYS.includes(todayName)) return null;
+    const now = new Date(nowTick);
+    const minutesFromMidnight = now.getHours() * 60 + now.getMinutes();
+    const originMins = SLOT_START_HOUR * 60;
+    const endMins = SLOT_END_HOUR * 60;
+    if (minutesFromMidnight < originMins || minutesFromMidnight > endMins) return null;
+    const top = ((minutesFromMidnight - originMins) / 30) * SLOT_HEIGHT;
+    return { dayName: todayName, top };
+  }, [nowTick, isSemester5, todayName]);
+
+  const semesterProgress = useMemo(() => {
+    if (!semesterStart || !semesterEnd || isSemester5) return null;
+    const now = Date.now();
+    const start = new Date(semesterStart).getTime();
+    const end = new Date(semesterEnd).getTime();
+    const totalWeeks = Math.max(1, Math.round((end - start) / (7 * 86400000)));
+    const elapsed = Math.max(0, Math.round((now - start) / (7 * 86400000)));
+    const week = Math.min(elapsed + 1, totalWeeks);
+    const pct = Math.min(100, Math.round((week / totalWeeks) * 100));
+    const daysLeft = Math.max(0, Math.ceil((end - now) / 86400000));
+
+    if (now < start) return { status: "upcoming" as const, week: 0, totalWeeks, pct: 0, daysLeft: Math.ceil((start - now) / 86400000) };
+    if (now > end) return { status: "ended" as const, week: totalWeeks, totalWeeks, pct: 100, daysLeft: 0 };
+    return { status: "active" as const, week, totalWeeks, pct, daysLeft };
+  }, [semesterStart, semesterEnd, isSemester5]);
 
   const [tooltipSection, setTooltipSection] = useState<number | null>(null);
   const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
@@ -476,12 +565,14 @@ export function ScheduleCanvas({
         if (aStart < bEnd && bStart < aEnd) {
           addConflict(a.id, {
             sectionId: a.id,
+            conflictingSectionId: b.id,
             type: "Schedule overlap",
             severity: "Warning",
             message: `${a.courseCode} overlaps with ${b.courseCode} on ${a.dayOfWeek}`,
           });
           addConflict(b.id, {
             sectionId: b.id,
+            conflictingSectionId: a.id,
             type: "Schedule overlap",
             severity: "Warning",
             message: `${b.courseCode} overlaps with ${a.courseCode} on ${b.dayOfWeek}`,
@@ -504,10 +595,30 @@ export function ScheduleCanvas({
         const bEnd = timeSpanToMinutes(other.endTime);
         if (!(aStart < bEnd && bStart < aEnd)) continue;
 
+        //skip shared lectures — same course/section/time is an intentional link not a conflict
+        if (
+          section.courseCode === other.courseCode &&
+          section.sectionNumber === other.sectionNumber &&
+          section.startTime === other.startTime &&
+          section.endTime === other.endTime
+        ) {
+          continue;
+        }
+
+        //skip non-overlapping terms (Term1 vs Term2 cannot conflict)
+        if (
+          section.term && other.term &&
+          section.term !== other.term &&
+          section.term !== "Full" && other.term !== "Full"
+        ) {
+          continue;
+        }
+
         //room conflict
         if (section.roomId && section.roomId === other.roomId) {
           addConflict(section.id, {
             sectionId: section.id,
+            conflictingSectionId: other.id,
             type: "Room double-booking",
             severity: "Error",
             message: `${section.roomBuilding} ${section.roomNumber} is also booked by ${other.courseCode}-${other.sectionNumber} on ${other.dayOfWeek}`,
@@ -518,6 +629,7 @@ export function ScheduleCanvas({
         if (section.instructorId && section.instructorId === other.instructorId) {
           addConflict(section.id, {
             sectionId: section.id,
+            conflictingSectionId: other.id,
             type: "Instructor overlap",
             severity: "Error",
             message: `${section.instructorName} is also teaching ${other.courseCode}-${other.sectionNumber} on ${other.dayOfWeek}`,
@@ -529,13 +641,16 @@ export function ScheduleCanvas({
     return map;
   }, [scheduledSections, allSemesterSections, schedule.sections]);
 
-  //flat list for the banner
+  //flat list for the banner — pair-aware dedup so A→B and B→A collapse to one entry
   const allConflicts = useMemo(() => {
     const list: ConflictEntry[] = [];
     const seen = new Set<string>();
     sectionConflictMap.forEach((entries) => {
       entries.forEach((e) => {
-        const key = `${e.sectionId}-${e.type}-${e.message}`;
+        const pairKey = e.conflictingSectionId != null
+          ? [e.sectionId, e.conflictingSectionId].sort((a, b) => a - b).join("-")
+          : `${e.sectionId}`;
+        const key = `${e.type}-${pairKey}`;
         if (!seen.has(key)) {
           seen.add(key);
           list.push(e);
@@ -650,6 +765,24 @@ export function ScheduleCanvas({
 
   const totalHeight = SLOTS.length * SLOT_HEIGHT;
 
+  //compact stats above the grid — sections, teaching hours/week, distinct days touched
+  const scheduleStats = useMemo(() => {
+    const placed = scheduledSections.filter(({ section }) =>
+      section.dayOfWeek != null && section.startTime && section.endTime,
+    );
+    const minutes = placed.reduce((sum, { section }) => {
+      return sum + (timeSpanToMinutes(section.endTime) - timeSpanToMinutes(section.startTime));
+    }, 0);
+    const days = new Set(placed.map(({ section }) => section.dayOfWeek)).size;
+    return {
+      sections: scheduledSections.length,
+      hours: Math.round((minutes / 60) * 10) / 10,
+      days,
+    };
+  }, [scheduledSections]);
+
+  const calendarIsEmpty = !isSemester5 && schedule.sections.length === 0;
+
   return (
     <>
       <div className={styles.root}>
@@ -666,6 +799,23 @@ export function ScheduleCanvas({
         </div>
 
         <div className={styles.body}>
+          {!isSemester5 && semesterProgress && (
+            <div className={styles.progressRow}>
+              <span className={styles.progressLabel}>
+                {semesterProgress.status === "upcoming"
+                  ? `Starts in ${semesterProgress.daysLeft} days`
+                  : semesterProgress.status === "ended"
+                  ? `Ended ${Math.abs(semesterProgress.daysLeft)} days ago`
+                  : `Week ${semesterProgress.week} of ${semesterProgress.totalWeeks} \u00B7 ${semesterProgress.daysLeft} days remaining`}
+              </span>
+              <div className={styles.progressTrack}>
+                <div
+                  className={`${styles.progressFill} ${semesterProgress.status === "ended" ? styles.progressEnded : ""}`}
+                  style={{ width: `${semesterProgress.pct}%` }}
+                />
+              </div>
+            </div>
+          )}
           {!isSemester5 && (
             <ConflictBanner conflicts={allConflicts} onJumpTo={handleJumpTo} />
           )}
@@ -750,12 +900,54 @@ export function ScheduleCanvas({
               )}
             </div>
           ) : (
+            <>
+              {/* stats bar */}
+              <div className={styles.statsBar}>
+                <div className={styles.statsItem}>
+                  <span className={styles.statsValue}>{scheduleStats.sections}</span>
+                  <span className={styles.statsLabel}>Sections</span>
+                </div>
+                <div className={styles.statsDivider} />
+                <div className={styles.statsItem}>
+                  <span className={styles.statsValue}>{scheduleStats.hours}</span>
+                  <span className={styles.statsLabel}>Hours / Week</span>
+                </div>
+                <div className={styles.statsDivider} />
+                <div className={styles.statsItem}>
+                  <span className={styles.statsValue}>{scheduleStats.days}</span>
+                  <span className={styles.statsLabel}>Days Active</span>
+                </div>
+              </div>
+
+              <div className={styles.calGridWrap}>
+                {calendarIsEmpty && (
+                  <div className={styles.emptyCalOverlay}>
+                    <div className={styles.emptyCalIcon}>
+                      <CalendarPlus size={28} />
+                    </div>
+                    <h4 className={styles.emptyCalTitle}>Ready to build</h4>
+                    <p className={styles.emptyCalHint}>
+                      Drag courses from the palette onto the grid
+                    </p>
+                  </div>
+                )}
             <div className={styles.calGrid}>
               {/* header row */}
-              <div className={styles.calCorner} />
-              {DAYS.map((day) => (
-                <div key={day} className={styles.calDayHeader}>{day}</div>
-              ))}
+              <div className={styles.calCorner}>
+                <span className={styles.cornerLabel}>TIME</span>
+              </div>
+              {DAYS.map((day) => {
+                const isToday = day === todayName;
+                return (
+                  <div
+                    key={day}
+                    className={`${styles.calDayHeader} ${isToday ? styles.calDayToday : ""}`}
+                  >
+                    {day}
+                    {isToday && <span className={styles.todayBadge}>TODAY</span>}
+                  </div>
+                );
+              })}
 
               {/* time column */}
               <div className={styles.calTimeCol}>
@@ -765,7 +957,7 @@ export function ScheduleCanvas({
                     className={`${styles.calTimeLabel} ${i % 2 === 0 ? styles.hourMark : ""}`}
                     style={{ height: SLOT_HEIGHT }}
                   >
-                    {i % 2 === 0 ? slot : ""}
+                    {i % 2 === 0 ? slot : <span className={styles.calTimeLabelHalf}>:30</span>}
                   </div>
                 ))}
               </div>
@@ -777,13 +969,20 @@ export function ScheduleCanvas({
                 });
 
                 const originMins = SLOT_START_HOUR * 60;
+                const isToday = day === todayName;
+                const showNowLine = isToday && nowLine != null;
 
                 return (
                   <div
                     key={day}
-                    className={styles.calDayCol}
+                    className={`${styles.calDayCol} ${isToday ? styles.calDayColToday : ""}`}
                     style={{ height: totalHeight }}
                   >
+                    {showNowLine && (
+                      <div className={styles.nowLine} style={{ top: nowLine!.top }} aria-hidden>
+                        <span className={styles.nowDot} />
+                      </div>
+                    )}
                     {/* slot grid lines */}
                     {SLOTS.map((_, i) => (
                       <div
@@ -832,17 +1031,20 @@ export function ScheduleCanvas({
                       const hasSoft = sectionConflicts.some((c) => c.severity === "Warning");
                       const hasInfo = sectionConflicts.some((c) => c.severity === "Info");
                       const conflictClass = hasHard ? ` ${styles.conflictHard}` : hasSoft ? ` ${styles.conflictSoft}` : "";
+                      const isNewlyPlaced = !initialIdsRef.current!.has(section.id);
 
                       return (
                         <motion.div
                           key={section.id}
-                          initial={reduced ? undefined : { opacity: 0, scale: 0.9 }}
+                          initial={reduced ? undefined : { opacity: 0, scale: isNewlyPlaced ? 0.85 : 0.9 }}
                           animate={reduced ? undefined : { opacity: 1, scale: 1 }}
-                          transition={reduced ? undefined : {
-                            duration: 0.24,
-                            delay: 0.55 + blockIdx * 0.03,
-                            ease: ease.ios,
-                          }}
+                          transition={
+                            reduced
+                              ? undefined
+                              : isNewlyPlaced
+                                ? { type: "spring", stiffness: 350, damping: 20 }
+                                : { duration: 0.24, delay: 0.55 + blockIdx * 0.03, ease: ease.ios }
+                          }
                           style={{ position: "absolute", top, left: 0, right: 0 }}
                         >
                           <DraggableCourseBlock
@@ -861,6 +1063,7 @@ export function ScheduleCanvas({
                             isLocked={isLocked}
                             day={day}
                             bannerVisible={bannerVisible}
+                            isNewlyPlaced={isNewlyPlaced}
                             reduced={reduced}
                             onEdit={() => setEditModal({ section, course })}
                             onDelete={() =>
@@ -884,6 +1087,8 @@ export function ScheduleCanvas({
                 );
               })}
             </div>
+              </div>
+            </>
           )}
         </div>
       </div>

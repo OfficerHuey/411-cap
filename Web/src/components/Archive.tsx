@@ -1,16 +1,18 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import "../App.css";
-import { ArrowLeft, Calendar, Lock, ArrowRight, Archive as ArchiveIcon } from "lucide-react";
+import { ArrowLeft, Calendar, Lock, Unlock, ArrowRight, Archive as ArchiveIcon } from "lucide-react";
 import { semesters as semestersApi } from "../Lib/api";
 import type { Semester } from "../Lib/Types";
 import { useNavigate } from "react-router-dom";
 import { useReducedMotion } from "../hooks/useReducedMotion";
 import { staggerContainer, cardVariants, heroStagger, heroChild } from "../Lib/motion";
+import { useToast } from "../Lib/ToastContext";
 
 export function Archive() {
   const navigate = useNavigate();
   const reduced = useReducedMotion();
+  const { addToast } = useToast();
   const [semesterList, setSemesterList] = useState<Semester[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -29,6 +31,18 @@ export function Archive() {
       setError(err.message || "Failed to load semesters");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleUnlock = async (id: number) => {
+    try {
+      const result = await semestersApi.toggleLock(id);
+      if (!result.isLocked) {
+        addToast("success", "Semester unlocked and moved to active dashboard");
+        await loadSemesters();
+      }
+    } catch (err: any) {
+      addToast("error", err.message || "Failed to unlock semester");
     }
   };
 
@@ -87,12 +101,18 @@ export function Archive() {
         }
 
         .archive-header-text h1 {
-          font-family: 'Playfair Display', serif;
-          font-size: 1.85rem;
-          font-weight: 600;
-          color: #111827;
+          font-family: var(--font-display);
+          font-size: clamp(2.5rem, 5vw, 3.5rem);
+          font-weight: 500;
+          color: var(--text-on-paper);
           margin: 0 0 0.3rem 0;
-          letter-spacing: -0.01em;
+          letter-spacing: var(--tracking-tightest);
+          line-height: var(--leading-tight);
+        }
+
+        .archive-header-text h1 em {
+          font-style: italic;
+          color: var(--gold-500);
         }
 
         .archive-header-text p {
@@ -162,10 +182,12 @@ export function Archive() {
         }
 
         .archive-card-dates {
+          font-family: var(--font-mono);
           font-size: 0.78rem;
+          font-weight: 500;
+          letter-spacing: 0.02em;
           color: #9ca3af;
           margin: 0;
-          font-weight: 400;
         }
 
         .archive-badges {
@@ -226,6 +248,27 @@ export function Archive() {
           border-color: #00563f;
         }
 
+        .archive-btn-unlock {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.4rem;
+          padding: 0.5rem 1rem;
+          background: rgba(0, 86, 63, 0.08);
+          border: 1px solid rgba(0, 86, 63, 0.2);
+          border-radius: 8px;
+          font-family: 'Inter', sans-serif;
+          font-size: 0.82rem;
+          font-weight: 500;
+          color: #00563f;
+          cursor: pointer;
+          transition: all 0.15s;
+        }
+
+        .archive-btn-unlock:hover {
+          background: rgba(0, 86, 63, 0.15);
+          border-color: rgba(0, 86, 63, 0.35);
+        }
+
         .archive-empty {
           grid-column: 1 / -1;
           display: flex;
@@ -276,7 +319,6 @@ export function Archive() {
 
         @media (max-width: 768px) {
           .archive-header { margin-bottom: 1.5rem; }
-          .archive-header-text h1 { font-size: 1.5rem; }
           .archive-card-body { padding: 1.25rem; }
         }
       `}</style>
@@ -344,13 +386,22 @@ export function Archive() {
                     </span>
                   </div>
 
-                  <button
-                    className="archive-btn-open"
-                    onClick={() => navigate(`/semester/${semester.id}`)}
-                  >
-                    Open
-                    <ArrowRight size={14} />
-                  </button>
+                  <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.75rem" }}>
+                    <button
+                      className="archive-btn-unlock"
+                      onClick={(e) => { e.stopPropagation(); handleUnlock(semester.id); }}
+                    >
+                      <Unlock size={14} />
+                      Unlock
+                    </button>
+                    <button
+                      className="archive-btn-open"
+                      onClick={() => navigate(`/semester/${semester.id}`)}
+                    >
+                      Open
+                      <ArrowRight size={14} />
+                    </button>
+                  </div>
                 </div>
               </motion.div>
             ))}

@@ -34,23 +34,23 @@
 /* sizes */
 .sm {
   padding: 0.625rem 1rem;
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
   gap: 0.375rem;
 }
 
 .md {
   padding: 0.85rem 1.5rem;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
 }
 
 .lg {
   padding: 1rem 1.75rem;
-  font-size: 1rem;
+  font-size: 1.05rem;
 }
 
 .xl {
   padding: 1.25rem 2.25rem;
-  font-size: 1.0625rem;
+  font-size: 1.125rem;
   gap: 0.625rem;
 }
 

@@ -126,6 +126,85 @@ namespace NursingScheduler.API.Controllers
             });
         }
 
+        //getallstudentsacrosseverysemesterwithoptionalfilters
+        //usage:api/students?search=&semesterId=&semesterLevel=&scheduleId=
+        [HttpGet]
+        public async Task<ActionResult> GetAllStudents(
+            [FromQuery] string? search,
+            [FromQuery] int? semesterId,
+            [FromQuery] int? semesterLevel,
+            [FromQuery] int? scheduleId)
+        {
+            var query = _context.Students
+                .Include(s => s.Schedule)
+                    .ThenInclude(sch => sch!.Semester)
+                .AsQueryable();
+
+            //searchbynamewnumberoremail
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var term = search.ToLower();
+                query = query.Where(s =>
+                    s.Name.ToLower().Contains(term) ||
+                    s.WNumber.ToLower().Contains(term) ||
+                    (s.Email != null && s.Email.ToLower().Contains(term)));
+            }
+
+            if (semesterId.HasValue)
+                query = query.Where(s => s.Schedule != null && s.Schedule.SemesterId == semesterId.Value);
+
+            if (semesterLevel.HasValue)
+                query = query.Where(s => s.Schedule != null && s.Schedule.SemesterLevel == semesterLevel.Value);
+
+            if (scheduleId.HasValue)
+                query = query.Where(s => s.ScheduleId == scheduleId.Value);
+
+            var students = await query
+                .OrderBy(s => s.Name)
+                .Select(s => new
+                {
+                    s.Id,
+                    s.Name,
+                    s.WNumber,
+                    s.Email,
+                    ScheduleId = s.Schedule != null ? s.Schedule.Id : (int?)null,
+                    ScheduleName = s.Schedule != null ? s.Schedule.Name : null,
+                    SemesterLevel = s.Schedule != null ? s.Schedule.SemesterLevel : (int?)null,
+                    SemesterId = s.Schedule != null && s.Schedule.Semester != null ? s.Schedule.Semester.Id : (int?)null,
+                    SemesterName = s.Schedule != null && s.Schedule.Semester != null ? s.Schedule.Semester.Name : null,
+                    Campus = s.Schedule != null ? s.Schedule.LocationDisplay : null,
+                })
+                .ToListAsync();
+
+            return Ok(students);
+        }
+
+        //aggregatestudentstatsforthestudentspageheader
+        //usage:api/students/stats
+        [HttpGet("stats")]
+        public async Task<ActionResult> GetStudentStats()
+        {
+            var students = await _context.Students
+                .Include(s => s.Schedule)
+                .ToListAsync();
+
+            var total = students.Count;
+            var byLevel = students
+                .Where(s => s.Schedule != null)
+                .GroupBy(s => s.Schedule!.SemesterLevel)
+                .OrderBy(g => g.Key)
+                .Select(g => new { level = g.Key, count = g.Count() })
+                .ToList();
+
+            var byCampus = students
+                .Where(s => s.Schedule != null && s.Schedule.LocationDisplay != null)
+                .GroupBy(s => s.Schedule!.LocationDisplay!)
+                .Select(g => new { campus = g.Key, count = g.Count() })
+                .ToList();
+
+            return Ok(new { total, byLevel, byCampus });
+        }
+
         //get all students in a schedule bucket
         [HttpGet("schedule/{scheduleId}")]
         public async Task<ActionResult<IEnumerable<StudentDto>>> GetStudentsBySchedule(int scheduleId)

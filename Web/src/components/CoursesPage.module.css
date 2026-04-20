@@ -1,4 +1,4 @@
-/* instructors page — faculty directory */
+/* courses page — bsn curriculum */
 
 .root {
   font-family: var(--font-body);
@@ -38,7 +38,7 @@
   flex-wrap: wrap;
 }
 
-/* ── faculty type stat strip (signature element) ── */
+/* ── type stat strip ── */
 .statStrip {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -68,9 +68,9 @@
   pointer-events: none;
 }
 
-.statCard.fullTime { border-left-color: var(--green-600); }
-.statCard.adjunct { border-left-color: #2563eb; }
-.statCard.overload { border-left-color: #d97706; }
+.statCard.lecture { border-left-color: var(--course-lecture); }
+.statCard.lab { border-left-color: var(--course-lab); }
+.statCard.clinical { border-left-color: var(--course-clinical); }
 
 .statNumber {
   font-family: var(--font-display);
@@ -92,12 +92,12 @@
   margin: 0.35rem 0 0;
 }
 
-/* ── toolbar ── */
+/* ── toolbar/search ── */
 .toolbar {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  margin-bottom: 1rem;
+  margin-bottom: 1.25rem;
   flex-wrap: wrap;
 }
 
@@ -108,7 +108,8 @@
   font-family: var(--font-body);
   font-size: 0.85rem;
   outline: none;
-  width: 260px;
+  width: 320px;
+  max-width: 100%;
   background: var(--paper-sunk);
   color: var(--text-on-paper);
   transition: background 200ms, border-color 200ms, box-shadow 200ms;
@@ -120,103 +121,145 @@
   box-shadow: 0 0 0 3px rgba(0, 86, 63, 0.08);
 }
 
-/* ── table card ── */
-.tableCard {
+/* ── level sections ── */
+.levelSection {
+  margin-bottom: 2.25rem;
+}
+
+.levelHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.25rem;
+}
+
+.levelCount {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  background: var(--paper-sunk);
+  border: 1px solid var(--cream-300);
+  border-radius: 999px;
+  padding: 0.25rem 0.75rem;
+  white-space: nowrap;
+}
+
+/* ── course grid + card ── */
+.courseGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.courseCard {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
   background: var(--paper-raised);
   border: 1px solid var(--cream-300);
-  border-radius: 12px;
-  overflow: hidden;
+  border-radius: 10px;
+  border-left: 4px solid var(--cream-400);
   box-shadow: var(--elevation-1);
+  transition: box-shadow 200ms, transform 200ms;
+  position: relative;
 }
 
-.table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.92rem;
+.courseCard:hover {
+  box-shadow: var(--elevation-2);
+  transform: translateY(-1px);
 }
 
-.table thead th {
-  padding: 0.8rem 1.25rem;
-  text-align: left;
-  font-family: var(--font-mono);
-  font-size: 0.78rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--paper-raised);
-  background: linear-gradient(180deg, var(--green-700) 0%, var(--green-800) 100%);
-  border-bottom: 2px solid var(--gold-500);
-  cursor: pointer;
-  user-select: none;
-  transition: background 0.15s;
+.courseCard.lecture { border-left-color: var(--course-lecture); }
+.courseCard.lab { border-left-color: var(--course-lab); }
+.courseCard.clinical { border-left-color: var(--course-clinical); }
+
+.cardMain {
+  flex: 1;
+  min-width: 0;
 }
 
-.table thead th:hover {
-  background: linear-gradient(180deg, var(--green-800) 0%, var(--green-900) 100%);
-}
-
-.sortIcon {
-  display: inline-flex;
-  vertical-align: middle;
-  margin-left: 0.3rem;
-  opacity: 0.5;
-}
-
-.sortIconActive {
-  opacity: 1;
-  color: var(--gold-300);
-}
-
-.table tbody tr {
-  border-bottom: 1px solid var(--cream-200);
-  transition: background 0.12s;
-}
-
-.table tbody tr:hover {
-  background: var(--paper-sunk);
-}
-
-.table tbody tr:last-child {
-  border-bottom: none;
-}
-
-.table td {
-  padding: 0.875rem 1.25rem;
-  color: var(--text-on-paper);
-  vertical-align: middle;
-}
-
-.nameCell {
+.courseCode {
   font-family: var(--font-display);
-  font-weight: 500;
-  font-size: 0.95rem;
+  font-size: 1rem;
+  font-weight: 700;
   color: var(--text-on-paper);
-  letter-spacing: -0.005em;
-}
-
-.emailCell {
-  font-family: var(--font-mono);
-  font-size: 0.78rem;
-  color: var(--text-muted);
   letter-spacing: 0.01em;
+  line-height: 1.2;
+  margin: 0;
 }
 
-/* ── type badges ── */
+.courseName {
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin: 0.2rem 0 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cardMeta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
 .typeBadge {
   display: inline-block;
   padding: 0.18rem 0.55rem;
   border-radius: 4px;
   font-family: var(--font-mono);
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   font-weight: 600;
   letter-spacing: 0.02em;
 }
 
-.typeFullTime { background: #f0faf5; color: #065f46; border: 1px solid #a7f3d0; }
-.typeAdjunct { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
-.typeOverload { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
+.typeLecture {
+  background: rgba(59, 130, 246, 0.1);
+  color: #1e40af;
+  border: 1px solid rgba(59, 130, 246, 0.25);
+}
 
-/* ── action buttons ── */
+.typeLab {
+  background: rgba(16, 185, 129, 0.1);
+  color: #065f46;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+.typeClinical {
+  background: rgba(139, 92, 246, 0.1);
+  color: #6b21a8;
+  border: 1px solid rgba(139, 92, 246, 0.25);
+}
+
+.credits {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.cardActions {
+  display: flex;
+  gap: 0.15rem;
+  opacity: 0;
+  transition: opacity 160ms;
+  flex-shrink: 0;
+}
+
+.courseCard:hover .cardActions,
+.courseCard:focus-within .cardActions {
+  opacity: 1;
+}
+
 .btnIcon {
   background: none;
   border: none;
@@ -239,12 +282,15 @@
   background: rgba(220, 38, 38, 0.06);
 }
 
-/* ── empty state ── */
+/* ── empty/error ── */
 .empty {
   text-align: center;
   padding: 3rem 2rem;
   color: var(--text-muted);
   font-size: 0.88rem;
+  background: var(--paper-raised);
+  border: 1px dashed var(--cream-300);
+  border-radius: 12px;
 }
 
 .emptyIcon {
@@ -270,7 +316,6 @@
   font-weight: 300;
 }
 
-/* ── error banner ── */
 .errorBanner {
   background: #fef2f2;
   border: 1px solid #fecaca;
@@ -280,4 +325,11 @@
   margin-bottom: 1.5rem;
   font-size: 0.85rem;
   color: #991b1b;
+}
+
+/* ── form layout inside modal ── */
+.fieldRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
 }

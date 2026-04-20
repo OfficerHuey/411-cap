@@ -20,7 +20,7 @@ import { CourseDetailsModal } from "./CourseDetailsModal";
 import { useBreadcrumbs } from "../Lib/BreadcrumbContext";
 import { useToast } from "../Lib/ToastContext";
 import { useReducedMotion } from "../hooks/useReducedMotion";
-import { heroStagger, heroChild, ease } from "../Lib/motion";
+import { heroStagger, heroChild, ease, spring } from "../Lib/motion";
 import { Button } from "./ui/Button";
 import { NumberBadge } from "./ui/NumberBadge";
 import { HairlineRule } from "./ui/HairlineRule";
@@ -57,6 +57,7 @@ export function ScheduleBuilder() {
 
   const scheduleId = parseInt(scheduleGroupId || "0");
   const { openCount: noteCount } = useNotes({ scheduleId: scheduleId || undefined });
+  const reduced = useReducedMotion();
 
   //breadcrumbs
   useEffect(() => {
@@ -140,8 +141,6 @@ export function ScheduleBuilder() {
   //schedule letter from position
   const scheduleLetter = "A";
 
-  const reduced = useReducedMotion();
-
   return (
     <DndProvider backend={HTML5Backend}>
       <div className={styles.root}>
@@ -181,7 +180,11 @@ export function ScheduleBuilder() {
                 )}
               </motion.h1>
               <motion.p variants={reduced ? undefined : heroChild} className={styles.heroSubtitle}>
-                {semester?.name} &middot; {schedule.locationDisplay} &middot; {levelLabel}
+                <span>{semester?.name}</span>
+                <span className={styles.heroSubtitleSep}>&middot;</span>
+                <Badge variant="gold" size="sm">{schedule.locationDisplay}</Badge>
+                <span className={styles.heroSubtitleSep}>&middot;</span>
+                <span className={styles.heroSubtitleLevel}>{levelLabel}</span>
               </motion.p>
             </div>
           </div>
@@ -242,8 +245,13 @@ export function ScheduleBuilder() {
           </div>
         </motion.div>
 
-        {/* ── view toggle ── */}
-        <div className={styles.viewToggle}>
+        {/* ── view toggle (200-350ms) ── */}
+        <motion.div
+          className={styles.viewToggle}
+          initial={reduced ? undefined : { opacity: 0, y: 8 }}
+          animate={reduced ? undefined : { opacity: 1, y: 0 }}
+          transition={reduced ? undefined : { duration: 0.25, delay: 0.2, ease: ease.ios }}
+        >
           <button
             className={`${styles.viewBtn} ${view === "calendar" ? styles.active : ""}`}
             onClick={() => setView("calendar")}
@@ -258,16 +266,16 @@ export function ScheduleBuilder() {
             <Users size={14} />
             Student View
           </button>
-        </div>
+        </motion.div>
 
         {/* ── content ── */}
         {view === "calendar" ? (
           <div className={styles.calendarGrid}>
-            {/* course palette slides in from left (200-500ms) */}
+            {/* course palette slides in from left (250-500ms) */}
             <motion.div
-              initial={reduced ? undefined : { opacity: 0, x: -24 }}
+              initial={reduced ? undefined : { opacity: 0, x: -16 }}
               animate={reduced ? undefined : { opacity: 1, x: 0 }}
-              transition={reduced ? undefined : { duration: 0.3, delay: 0.2, ease: ease.ios }}
+              transition={reduced ? undefined : { ...spring.card, delay: 0.25 }}
             >
               <CoursePalette courses={courseList} />
             </motion.div>
@@ -283,6 +291,8 @@ export function ScheduleBuilder() {
                 isSemester5={isSemester5}
                 courses={courseList}
                 isLocked={isLocked}
+                semesterStart={semester?.startDate}
+                semesterEnd={semester?.endDate}
                 onRefresh={refreshSchedule}
                 onDrop={(courseId, dayOfWeek, timeSlot, dateRange) =>
                   setDetailsModal({ courseId, dayOfWeek, timeSlot, dateRange })

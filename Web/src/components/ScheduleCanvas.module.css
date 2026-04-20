@@ -41,7 +41,7 @@
 
 /* ── grid body ── */
 .body {
-  padding: 0.5rem;
+  padding: 0.75rem;
   overflow-x: auto;
   background: var(--paper-base);
 }
@@ -49,33 +49,51 @@
 /* ── calendar grid ── */
 .calGrid {
   display: grid;
-  grid-template-columns: 80px repeat(5, minmax(120px, 1fr));
+  grid-template-columns: 96px repeat(5, minmax(140px, 1fr));
   border: 1px solid var(--cream-400);
-  border-radius: 8px;
+  border-radius: 10px;
   overflow: hidden;
-  min-width: 680px;
+  min-width: 780px;
+  box-shadow:
+    inset 0 1px 3px rgba(0, 0, 0, 0.04),
+    0 1px 2px rgba(0, 0, 0, 0.02);
 }
 
 .calCorner {
-  background: var(--green-900, #001a12);
+  background: var(--green-900);
   border-bottom: 2px solid var(--gold-500);
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
   position: sticky;
   left: 0;
-  z-index: 6;
+  top: 0;
+  z-index: 7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cornerLabel {
+  font-family: var(--font-mono);
+  font-size: 0.55rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--gold-400);
+  opacity: 0.7;
 }
 
 .calDayHeader {
-  padding: 0.75rem 0.5rem;
+  padding: 0.85rem 0.5rem;
   text-align: center;
   font-family: var(--font-body);
-  font-size: 0.78rem;
-  font-weight: 500;
-  letter-spacing: 0.1em;
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--paper-raised);
-  background: var(--green-800, #002a1d);
+  background: linear-gradient(180deg, var(--green-700) 0%, var(--green-800) 100%);
   border-bottom: 2px solid var(--gold-500);
-  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
   position: sticky;
   top: 0;
   z-index: 5;
@@ -99,17 +117,24 @@
   align-items: center;
   justify-content: center;
   font-family: var(--font-mono);
-  font-size: 0.68rem;
+  font-size: 0.72rem;
   font-weight: 500;
   color: var(--text-faint);
   border-bottom: 1px solid var(--cream-200);
   white-space: nowrap;
-  padding: 0 0.25rem;
+  padding: 0 0.5rem;
 }
 
 .calTimeLabel.hourMark {
-  border-bottom-color: var(--cream-300);
-  color: var(--text-muted);
+  border-bottom-color: var(--cream-400);
+  color: var(--text-on-paper-muted);
+  font-weight: 600;
+}
+
+.calTimeLabelHalf {
+  font-size: 0.6rem;
+  color: var(--cream-500);
+  font-weight: 400;
 }
 
 /* ── day columns ── */
@@ -123,16 +148,24 @@
   border-right: none;
 }
 
+.calDayCol:nth-child(odd) {
+  background: var(--paper-raised);
+}
+
+.calDayCol:nth-child(even) {
+  background: rgba(0, 0, 0, 0.008);
+}
+
 .calSlotLine {
   position: absolute;
   left: 0;
   right: 0;
-  border-bottom: 1px solid var(--cream-200);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
   pointer-events: none;
 }
 
 .calSlotLine.hourMark {
-  border-bottom-color: var(--cream-300);
+  border-bottom: 1px solid var(--cream-400);
 }
 
 /* ── drop zones ── */
@@ -170,29 +203,24 @@
 /* ── course blocks ── */
 .courseBlock {
   position: absolute;
-  left: 3px;
-  right: 3px;
-  border-radius: 6px;
+  left: 4px;
+  right: 4px;
+  border-radius: 8px;
   color: #ffffff;
   font-size: 0.75rem;
   overflow: hidden;
   cursor: grab;
-  transition: box-shadow 150ms, opacity 150ms, transform 150ms;
   z-index: 2;
   display: flex;
   flex-direction: column;
-}
-
-.courseBlock:hover:not(.dragging) {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-.dragging {
-  opacity: 0.4;
-  cursor: grabbing;
-  transform: scale(1.06) translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.1),
+    0 4px 8px rgba(0, 0, 0, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  transition:
+    box-shadow 200ms ease-out,
+    transform 200ms ease-out,
+    opacity 150ms ease-out;
 }
 
 .courseBlock::before {
@@ -201,30 +229,65 @@
   top: 0;
   left: 0;
   right: 0;
-  height: 1px;
-  background: var(--gold-400);
-  opacity: 0.6;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    rgba(200, 149, 44, 0.6) 0%,
+    rgba(200, 149, 44, 0.2) 100%
+  );
+  z-index: 2;
 }
 
-.courseBlock:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+.courseBlock::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    165deg,
+    rgba(255, 255, 255, 0.15) 0%,
+    rgba(255, 255, 255, 0.03) 40%,
+    rgba(0, 0, 0, 0.05) 100%
+  );
+  pointer-events: none;
+  border-radius: inherit;
+  z-index: 1;
+}
+
+.courseBlock:hover:not(.dragging) {
+  transform: translateY(-2px);
+  box-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.12),
+    0 8px 20px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+
+.dragging {
+  opacity: 0.35;
+  cursor: grabbing;
+  transform: scale(1.04) translateY(-3px);
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.2),
+    0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .courseBlockInner {
-  padding: 0.3rem 0.4rem;
+  padding: 0.55rem 0.7rem;
   flex: 1;
   min-height: 0;
   overflow: hidden;
+  position: relative;
+  z-index: 2;
 }
 
 .courseBlockActions {
   position: absolute;
-  top: 4px;
-  right: 4px;
+  top: 8px;
+  right: 8px;
   display: flex;
-  gap: 3px;
+  gap: 5px;
   opacity: 0;
-  transition: opacity 150ms;
+  transition: opacity 180ms ease-out;
+  z-index: 4;
 }
 
 .courseBlock:hover .courseBlockActions {
@@ -232,29 +295,31 @@
 }
 
 .courseBlockBtn {
-  width: 22px;
-  height: 22px;
-  background: rgba(0, 0, 0, 0.15);
-  backdrop-filter: blur(4px);
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  border-radius: 4px;
+  width: 28px;
+  height: 28px;
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 6px;
   color: #ffffff;
   cursor: pointer;
   padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 150ms, border-color 150ms;
+  transition: background 150ms, transform 150ms;
+}
+
+.courseBlockBtn:hover {
+  transform: scale(1.1);
 }
 
 .courseBlockBtn.edit:hover {
-  background: rgba(0, 86, 63, 0.85);
-  border-color: rgba(0, 86, 63, 0.6);
+  background: rgba(0, 86, 63, 0.9);
 }
 
 .courseBlockBtn.delete:hover {
-  background: rgba(220, 38, 38, 0.75);
-  border-color: rgba(220, 38, 38, 0.5);
+  background: rgba(220, 38, 38, 0.85);
 }
 
 .courseBlockBtn:focus-visible {
@@ -263,53 +328,76 @@
 }
 
 .blockTime {
-  font-size: 0.62rem;
-  opacity: 0.85;
-  margin-bottom: 1px;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  font-variant-numeric: tabular-nums;
+  opacity: 1;
+  margin-bottom: 3px;
+  color: rgba(255, 255, 255, 0.95);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
 }
 
 .blockCode {
   font-family: var(--font-display);
-  font-weight: 500;
-  font-size: 0.82rem;
-  letter-spacing: -0.01em;
-  line-height: 1.1;
+  font-weight: 700;
+  font-size: 1.1rem;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  color: #ffffff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
 }
 
 .blockSec {
-  font-family: var(--font-body);
-  opacity: 0.8;
-  font-size: 0.7rem;
-  margin-top: 1px;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 500;
+  opacity: 0.9;
+  margin-top: 3px;
+  letter-spacing: 0.03em;
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .blockRoom {
   font-family: var(--font-body);
-  font-size: 0.68rem;
-  opacity: 0.75;
-  margin-top: 1px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  opacity: 0.9;
+  margin-top: 2px;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: rgba(255, 255, 255, 0.88);
 }
 
 .blockInstructor {
-  font-size: 0.64rem;
-  opacity: 0.75;
+  font-family: var(--font-body);
+  font-size: 0.74rem;
+  font-weight: 400;
+  opacity: 0.85;
+  font-style: italic;
+  margin-top: 2px;
+  color: rgba(255, 255, 255, 0.85);
 }
 
 .blockTerm {
-  font-size: 0.62rem;
-  opacity: 0.8;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
   font-weight: 600;
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.25);
   display: inline-block;
-  padding: 0 4px;
-  border-radius: 3px;
-  margin-top: 1px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  margin-top: 3px;
+  letter-spacing: 0.04em;
+  color: #ffffff;
 }
 
 .blockPreclinical {
   font-family: var(--font-mono);
-  font-size: var(--text-xs);
-  color: rgba(255, 255, 255, 0.55);
+  font-size: 0.68rem;
+  color: rgba(255, 255, 255, 0.5);
   font-style: italic;
   margin-top: 0.25rem;
   line-height: 1.3;
@@ -320,14 +408,18 @@
 
 .blockAttribution {
   margin-top: auto;
-  padding-top: 0.15rem;
-  opacity: 0.7;
+  padding-top: 0.2rem;
+  opacity: 0.5;
   overflow: hidden;
+  z-index: 2;
+  position: relative;
 }
 
 .blockAttribution span {
-  color: rgba(255, 255, 255, 0.5) !important;
-  font-size: 9px !important;
+  color: rgba(255, 255, 255, 0.4) !important;
+  font-size: 0.58rem !important;
+  font-family: var(--font-mono) !important;
+  letter-spacing: 0.02em !important;
 }
 
 .sem5Preclinical {
@@ -344,11 +436,21 @@
 .conflictHard {
   border: 2px solid var(--error);
   border-left-width: 4px;
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.1),
+    0 4px 8px rgba(0, 0, 0, 0.06),
+    0 0 0 1px rgba(220, 38, 38, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
 .conflictSoft {
   border: 2px dashed var(--warning);
   border-left-width: 4px;
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.1),
+    0 4px 8px rgba(0, 0, 0, 0.06),
+    0 0 0 1px rgba(217, 119, 6, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
 .conflictIcon {
@@ -560,30 +662,49 @@
   }
 
   .calGrid {
+    grid-template-columns: 76px repeat(5, minmax(110px, 1fr));
     min-width: 600px;
   }
 
   .calTimeLabel {
-    font-size: 0.6rem;
-    --slot-height: 28px;
+    font-size: 0.62rem;
+    --slot-height: 36px;
+  }
+
+  .courseBlock {
+    left: 3px;
+    right: 3px;
+    border-radius: 6px;
+    border-left-width: 3px;
   }
 
   .courseBlockInner {
-    padding: 0.2rem 0.3rem;
+    padding: 0.4rem 0.55rem;
   }
 
   .blockCode {
-    font-size: 0.72rem;
+    font-size: 0.88rem;
   }
 
   .blockTime {
-    font-size: 0.56rem;
+    font-size: 0.68rem;
   }
 
-  .blockSec,
-  .blockRoom,
+  .blockSec {
+    font-size: 0.68rem;
+  }
+
+  .blockRoom {
+    font-size: 0.68rem;
+  }
+
   .blockInstructor {
-    font-size: 0.6rem;
+    font-size: 0.64rem;
+  }
+
+  .courseBlockBtn {
+    width: 22px;
+    height: 22px;
   }
 
   .sem5Card {
@@ -626,4 +747,203 @@
     animation: none;
     opacity: 0.7;
   }
+}
+
+/* ── today indicator ── */
+.calDayToday {
+  background: linear-gradient(180deg, var(--green-600) 0%, var(--green-700) 100%) !important;
+  border-bottom: 2px solid var(--gold-300) !important;
+}
+
+.todayBadge {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.55rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: var(--gold-300);
+  margin-top: 0.15rem;
+}
+
+.calDayColToday {
+  background: rgba(200, 149, 44, 0.03);
+}
+
+/* ── semester progress bar ── */
+.progressRow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 0.5rem;
+  background: var(--paper-raised);
+  border: 1px solid var(--cream-200);
+  border-radius: 6px;
+}
+
+.progressLabel {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.progressTrack {
+  flex: 1;
+  height: 3px;
+  background: var(--cream-300);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: var(--gold-400);
+  border-radius: 2px;
+  transition: width 600ms ease-out;
+}
+
+.progressEnded {
+  background: var(--cream-400);
+}
+
+/* ── stats bar (above grid) ── */
+.statsBar {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.6rem;
+  background: var(--paper-raised);
+  border: 1px solid var(--cream-300);
+  border-radius: 8px;
+  box-shadow: var(--elevation-1);
+}
+
+.statsItem {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.statsValue {
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 600;
+  color: var(--text-on-paper);
+  line-height: 1;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+.statsLabel {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.statsDivider {
+  width: 1px;
+  height: 22px;
+  background: var(--cream-300);
+}
+
+/* ── empty calendar overlay ── */
+.calGridWrap {
+  position: relative;
+}
+
+.emptyCalOverlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  z-index: 6;
+  pointer-events: none;
+  background: rgba(252, 250, 244, 0.78);
+  backdrop-filter: blur(2px);
+  padding: 1.5rem 2rem;
+  border-radius: 12px;
+}
+
+.emptyCalIcon {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  background: rgba(200, 149, 44, 0.12);
+  border: 1px solid rgba(200, 149, 44, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gold-600);
+  margin-bottom: 0.85rem;
+}
+
+.emptyCalTitle {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 500;
+  color: var(--text-on-paper);
+  margin: 0 0 0.25rem;
+  letter-spacing: -0.005em;
+}
+
+.emptyCalHint {
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin: 0;
+  font-weight: 400;
+}
+
+/* ── now line ── */
+.nowLine {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 0;
+  border-top: 1.5px solid var(--gold-500);
+  z-index: 6;
+  pointer-events: none;
+  box-shadow: 0 0 6px rgba(200, 149, 44, 0.35);
+}
+
+.nowDot {
+  position: absolute;
+  left: -5px;
+  top: -5px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--gold-500);
+  box-shadow:
+    0 0 0 3px rgba(200, 149, 44, 0.2),
+    0 1px 2px rgba(0, 0, 0, 0.15);
+}
+
+/* ── course-type icon on section blocks ── */
+.courseTypeIcon {
+  position: absolute;
+  top: 3px;
+  right: 4px;
+  z-index: 3;
+  color: rgba(255, 255, 255, 0.6);
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+  transition: opacity 150ms;
+}
+
+.courseBlock:hover .courseTypeIcon {
+  opacity: 0;
 }

@@ -38,6 +38,13 @@ export interface Course {
   name: string;
   semesterLevel: number;
   defaultType: CourseType;
+  creditHours?: number;
+}
+
+export interface CourseStats {
+  total: number;
+  byLevel: { level: number; count: number }[];
+  byType: { type: string; count: number }[];
 }
 
 export interface Section {
@@ -67,6 +74,25 @@ export interface Student {
   name: string;
   wNumber: string;
   email: string;
+}
+
+export interface StudentListItem {
+  id: number;
+  name: string;
+  wNumber: string;
+  email: string;
+  scheduleId: number | null;
+  scheduleName: string | null;
+  semesterLevel: number | null;
+  semesterId: number | null;
+  semesterName: string | null;
+  campus: string | null;
+}
+
+export interface StudentStats {
+  total: number;
+  byLevel: { level: number; count: number }[];
+  byCampus: { campus: string; count: number }[];
 }
 
 export interface StudentDetail {

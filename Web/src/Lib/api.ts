@@ -1,8 +1,8 @@
 import type {
   UserDto, LoginDto, RegisterDto, ProfileDto, UpdateProfileDto,
   Semester, CreateSemesterDto,
-  Schedule, CreateScheduleDto, Course, Section, CreateSectionDto,
-  Student, StudentDetail, CreateStudentDto, Room, Instructor, ConflictResult,
+  Schedule, CreateScheduleDto, Course, CourseStats, Section, CreateSectionDto,
+  Student, StudentDetail, StudentListItem, StudentStats, CreateStudentDto, Room, Instructor, ConflictResult,
   SectionWithConflicts
 } from "./Types";
 
@@ -164,10 +164,21 @@ function downloadBlob(blob: Blob, filename: string): void {
 
 // ===== auth api =====
 export async function login(dto: LoginDto): Promise<UserDto> {
-  const user = await apiFetch<UserDto>("/auth/login", {
+  const response = await fetch(`${API_BASE}/auth/login`, {
     method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(dto),
   });
+
+  if (!response.ok) {
+    const errorText = await response.text().catch(() => "");
+    if (response.status === 401) {
+      throw new Error("Invalid username or password.");
+    }
+    throw new Error(errorText || `Login failed (HTTP ${response.status})`);
+  }
+
+  const user: UserDto = await response.json();
   setToken(user.token);
   localStorage.setItem("username", user.username);
   localStorage.setItem("user_role", user.role);
@@ -176,13 +187,25 @@ export async function login(dto: LoginDto): Promise<UserDto> {
 }
 
 export async function register(dto: RegisterDto): Promise<UserDto> {
-  const user = await apiFetch<UserDto>("/auth/register", {
+  const response = await fetch(`${API_BASE}/auth/register`, {
     method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(dto),
   });
+
+  if (!response.ok) {
+    const errorText = await response.text().catch(() => "");
+    if (response.status === 400) {
+      throw new Error(errorText || "Registration failed. Please check your inputs.");
+    }
+    throw new Error(errorText || `Registration failed (HTTP ${response.status})`);
+  }
+
+  const user: UserDto = await response.json();
   setToken(user.token);
   localStorage.setItem("username", user.username);
   localStorage.setItem("user_role", user.role);
+  if (user.displayName) localStorage.setItem("display_name", user.displayName);
   return user;
 }
 
@@ -244,8 +267,12 @@ export const schedules = {
 
 // ===== courses api =====
 export const courses = {
+  getAll: () => apiFetch<Course[]>("/courses"),
   getPalette: (semesterLevel: number) => apiFetch<Course[]>(`/courses/palette/${semesterLevel}`),
+  getStats: () => apiFetch<CourseStats>("/courses/stats"),
   create: (dto: Partial<Course>) => apiFetch<Course>("/courses", { method: "POST", body: JSON.stringify(dto) }),
+  update: (id: number, dto: Partial<Course>) => apiFetch<void>(`/courses/${id}`, { method: "PUT", body: JSON.stringify(dto) }),
+  delete: (id: number) => apiFetch<void>(`/courses/${id}`, { method: "DELETE" }),
 };
 
 // ===== sections api =====
@@ -264,6 +291,16 @@ export const sections = {
 
 // ===== students api =====
 export const students = {
+  getAll: (filters?: { search?: string; semesterId?: number; semesterLevel?: number; scheduleId?: number }) => {
+    const params = new URLSearchParams();
+    if (filters?.search) params.set("search", filters.search);
+    if (filters?.semesterId) params.set("semesterId", String(filters.semesterId));
+    if (filters?.semesterLevel) params.set("semesterLevel", String(filters.semesterLevel));
+    if (filters?.scheduleId) params.set("scheduleId", String(filters.scheduleId));
+    const query = params.toString();
+    return apiFetch<StudentListItem[]>(`/students${query ? `?${query}` : ""}`);
+  },
+  getStats: () => apiFetch<StudentStats>("/students/stats"),
   getBySchedule: (scheduleId: number) => apiFetch<Student[]>(`/students/schedule/${scheduleId}`),
   getDetail: (id: number) => apiFetch<StudentDetail>(`/students/${id}/detail`),
   create: (dto: CreateStudentDto) => apiFetch<Student>("/students", { method: "POST", body: JSON.stringify(dto) }),

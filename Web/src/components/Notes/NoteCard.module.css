@@ -3,18 +3,22 @@
 .card {
   background: var(--paper-raised);
   border: 1px solid var(--cream-300);
+  border-top: 3px solid var(--gold-400);
   border-radius: var(--radius-lg);
-  padding: 1rem;
-  transition: box-shadow var(--motion-fast);
+  padding: 1.1rem 1.25rem 1.25rem;
+  box-shadow: var(--elevation-1);
+  transition: box-shadow 200ms, transform 200ms, border-top-color 200ms;
 }
 
 .card:hover {
   box-shadow: var(--elevation-2);
+  transform: translateY(-2px);
 }
 
 .card.done {
   background: var(--paper-sunk);
-  opacity: 0.75;
+  opacity: 0.6;
+  border-top-color: var(--cream-400);
 }
 
 .card.done .title {

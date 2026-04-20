@@ -24,7 +24,31 @@ export function StudentImportModal({ semesterId, onClose, onSuccess }: StudentIm
   const [scheduleOptions, setScheduleOptions] = useState<Schedule[]>([]);
   //track manual assignments for unassigned students
   const [manualAssignments, setManualAssignments] = useState<Record<number, number>>({});
+  //track reassignments for auto-assigned students (index -> new scheduleId)
+  const [reassignments, setReassignments] = useState<Record<number, number>>({});
   const [committedCount, setCommittedCount] = useState(0);
+  const [editedStudents, setEditedStudents] = useState<
+    Record<string, { name?: string; wNumber?: string; email?: string }>
+  >({});
+
+  const getEditedValue = (
+    key: string,
+    field: "name" | "wNumber" | "email",
+    original: string
+  ) => {
+    return editedStudents[key]?.[field] ?? original;
+  };
+
+  const setEditedField = (
+    key: string,
+    field: "name" | "wNumber" | "email",
+    value: string
+  ) => {
+    setEditedStudents((prev) => ({
+      ...prev,
+      [key]: { ...prev[key], [field]: value },
+    }));
+  };
 
   const handleFile = async (file: File) => {
     const ext = file.name.split(".").pop()?.toLowerCase();
@@ -72,23 +96,25 @@ export function StudentImportModal({ semesterId, onClose, onSuccess }: StudentIm
       //build commit list from auto-assigned + manually assigned
       const commitList: CommitStudent[] = [];
 
-      for (const a of result.assignments) {
+      result.assignments.forEach((a, i) => {
+        const key = `assigned-${i}`;
         commitList.push({
-          name: a.student.name,
-          wNumber: a.student.wNumber,
-          scheduleId: a.scheduleId,
+          name: getEditedValue(key, "name", a.student.name),
+          wNumber: getEditedValue(key, "wNumber", a.student.wNumber),
+          scheduleId: reassignments[i] ?? a.scheduleId,
           acknowledgeOverride: a.requiresOverride,
           overrideReason: a.requiresOverride ? "Bulk import override — reviewed in preview" : undefined,
         });
-      }
+      });
 
       //add manually assigned students
       result.unassigned.forEach((student, idx) => {
         const schedId = manualAssignments[idx];
         if (schedId) {
+          const key = `unassigned-${idx}`;
           commitList.push({
-            name: student.name,
-            wNumber: student.wNumber,
+            name: getEditedValue(key, "name", student.name),
+            wNumber: getEditedValue(key, "wNumber", student.wNumber),
             scheduleId: schedId,
           });
         }
@@ -518,6 +544,34 @@ export function StudentImportModal({ semesterId, onClose, onSuccess }: StudentIm
           border-color: #00563f;
           box-shadow: 0 0 0 3px rgba(0, 86, 63, 0.1);
         }
+
+        .sim-edit-input {
+          width: 100%;
+          padding: 0.35rem 0.5rem;
+          border: 1px solid #e5e7eb;
+          border-radius: 4px;
+          font-family: 'Inter', sans-serif;
+          font-size: 0.8rem;
+          color: #0a1f14;
+          background: #ffffff;
+          outline: none;
+          transition: border-color 0.15s;
+        }
+
+        .sim-edit-input:focus {
+          border-color: #00563f;
+          box-shadow: 0 0 0 2px rgba(0, 86, 63, 0.08);
+        }
+
+        .sim-edit-input:hover:not(:focus) {
+          border-color: #d1d5db;
+        }
+
+        .sim-edit-mono {
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 0.75rem;
+          letter-spacing: 0.02em;
+        }
       `}</style>
 
       <div className="sim-overlay" onClick={onClose}>
@@ -674,17 +728,55 @@ export function StudentImportModal({ semesterId, onClose, onSuccess }: StudentIm
                         <tbody>
                           {result.assignments.map((a, i) => (
                             <tr key={i}>
-                              <td style={{ fontWeight: 500, color: "#0a1f14" }}>{a.student.name}</td>
-                              <td style={{ fontFamily: "monospace", fontSize: "0.78rem", color: "#6b7280" }}>
-                                {a.student.wNumber}
+                              <td>
+                                <input
+                                  type="text"
+                                  value={getEditedValue(`assigned-${i}`, "name", a.student.name)}
+                                  onChange={(e) => setEditedField(`assigned-${i}`, "name", e.target.value)}
+                                  className="sim-edit-input"
+                                />
+                              </td>
+                              <td>
+                                <input
+                                  type="text"
+                                  value={getEditedValue(`assigned-${i}`, "wNumber", a.student.wNumber)}
+                                  onChange={(e) => setEditedField(`assigned-${i}`, "wNumber", e.target.value)}
+                                  className="sim-edit-input sim-edit-mono"
+                                />
                               </td>
                               <td>{a.student.semesterLevel}</td>
                               <td>
                                 <span className="sim-tag-badge">{tagLabel(a.student.locationTag)}</span>
                               </td>
                               <td>
-                                {a.scheduleName}
-                                {a.requiresOverride && (
+                                <select
+                                  className="sim-select"
+                                  value={reassignments[i] ?? a.scheduleId}
+                                  onChange={(e) => {
+                                    const newId = parseInt(e.target.value);
+                                    setReassignments((prev) => {
+                                      const next = { ...prev };
+                                      if (newId === a.scheduleId) {
+                                        delete next[i];
+                                      } else {
+                                        next[i] = newId;
+                                      }
+                                      return next;
+                                    });
+                                  }}
+                                >
+                                  {scheduleOptions.map((s) => (
+                                    <option key={s.id} value={s.id}>
+                                      {s.name} ({s.students?.length ?? 0}/{s.capacity})
+                                    </option>
+                                  ))}
+                                </select>
+                                {reassignments[i] != null && (
+                                  <span className="sim-tag-badge override" style={{ marginLeft: "0.4rem" }}>
+                                    changed
+                                  </span>
+                                )}
+                                {a.requiresOverride && reassignments[i] == null && (
                                   <span className="sim-tag-badge override" style={{ marginLeft: "0.4rem" }}>
                                     override
                                   </span>
@@ -717,9 +809,21 @@ export function StudentImportModal({ semesterId, onClose, onSuccess }: StudentIm
                         <tbody>
                           {result.unassigned.map((student, idx) => (
                             <tr key={idx}>
-                              <td style={{ fontWeight: 500, color: "#0a1f14" }}>{student.name}</td>
-                              <td style={{ fontFamily: "monospace", fontSize: "0.78rem", color: "#6b7280" }}>
-                                {student.wNumber}
+                              <td>
+                                <input
+                                  type="text"
+                                  value={getEditedValue(`unassigned-${idx}`, "name", student.name)}
+                                  onChange={(e) => setEditedField(`unassigned-${idx}`, "name", e.target.value)}
+                                  className="sim-edit-input"
+                                />
+                              </td>
+                              <td>
+                                <input
+                                  type="text"
+                                  value={getEditedValue(`unassigned-${idx}`, "wNumber", student.wNumber)}
+                                  onChange={(e) => setEditedField(`unassigned-${idx}`, "wNumber", e.target.value)}
+                                  className="sim-edit-input sim-edit-mono"
+                                />
                               </td>
                               <td>{student.semesterLevel}</td>
                               <td>
@@ -753,7 +857,7 @@ export function StudentImportModal({ semesterId, onClose, onSuccess }: StudentIm
                 )}
 
                 <div className="sim-footer">
-                  <button className="sim-btn-cancel" onClick={() => { setStep("upload"); setResult(null); setError(""); }}>
+                  <button className="sim-btn-cancel" onClick={() => { setStep("upload"); setResult(null); setError(""); setEditedStudents({}); setReassignments({}); }}>
                     Back
                   </button>
                   <button

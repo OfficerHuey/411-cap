@@ -1,12 +1,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocation } from "react-router-dom";
 import { useReducedMotion } from "../../hooks/useReducedMotion";
-import {
-  pageVariants,
-  pageEnterTransition,
-  reducedPageVariants,
-  reducedFade,
-} from "../../Lib/motion";
+import { pageVariants, reducedPageVariants } from "../../Lib/motion";
 
 export function PageTransition({ children }: { children: React.ReactNode }) {
   const location = useLocation();
@@ -15,14 +10,13 @@ export function PageTransition({ children }: { children: React.ReactNode }) {
   const variants = reduced ? reducedPageVariants : pageVariants;
 
   return (
-    <AnimatePresence mode="wait">
+    <AnimatePresence mode="popLayout" initial={false}>
       <motion.div
         key={location.pathname}
         initial="initial"
         animate="animate"
         exit="exit"
         variants={variants}
-        transition={reduced ? reducedFade : pageEnterTransition}
         style={{ willChange: "opacity, transform" }}
       >
         {children}

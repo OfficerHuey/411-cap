@@ -1,4 +1,4 @@
-/* notes page — editorial global view */
+/* notes page — planning journal */
 
 .root {
   font-family: var(--font-body);
@@ -6,7 +6,7 @@
 
 /* ── hero ── */
 .hero {
-  padding: 3rem 0 0;
+  padding: 1.5rem 0 0;
 }
 
 .heroTitle {
@@ -14,8 +14,8 @@
   font-size: clamp(2.5rem, 5vw, 3.5rem);
   font-weight: 500;
   color: var(--text-on-paper);
-  letter-spacing: var(--tracking-tighter);
-  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-tightest);
+  line-height: 1.05;
   margin: 0;
 }
 
@@ -32,12 +32,65 @@
   margin: var(--space-2) 0 0;
 }
 
+/* ── status stat strip (signature element) ── */
+.statStrip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  margin: 1.5rem 0 2rem;
+}
+
+.statCard {
+  background: var(--paper-raised);
+  border: 1px solid var(--cream-300);
+  border-radius: 10px;
+  padding: 1.25rem;
+  box-shadow: var(--elevation-1);
+  border-left: 4px solid var(--cream-400);
+  position: relative;
+  overflow: hidden;
+}
+
+.statCard::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 40%;
+  background: linear-gradient(90deg, transparent, rgba(200, 149, 44, 0.02));
+  pointer-events: none;
+}
+
+.statCard.open { border-left-color: var(--green-600); }
+.statCard.done { border-left-color: var(--cream-400); }
+
+.statNumber {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-weight: 500;
+  color: var(--text-on-paper);
+  line-height: 1;
+  margin: 0;
+  letter-spacing: var(--tracking-tightest);
+}
+
+.statLabel {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin: 0.35rem 0 0;
+}
+
 /* ── filters ── */
 .filters {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 1rem 0;
+  padding: 0.5rem 0 1rem;
   flex-wrap: wrap;
 }
 
@@ -47,45 +100,61 @@
 }
 
 .filterSelect {
-  padding: 0.45rem 0.75rem;
+  padding: 0.5rem 0.75rem;
   border: 1px solid var(--cream-300);
   border-radius: var(--radius-md);
   font-family: var(--font-body);
   font-size: var(--text-sm);
   color: var(--text-secondary);
-  background: var(--paper-raised);
+  background: var(--paper-sunk);
   outline: none;
   cursor: pointer;
-  transition: border-color var(--motion-fast);
+  transition: background 200ms, border-color 200ms, box-shadow 200ms;
 }
 
 .filterSelect:focus {
+  background: var(--paper-raised);
   border-color: var(--green-600);
   box-shadow: 0 0 0 3px rgba(0, 86, 63, 0.08);
 }
 
-/* ── day groups ── */
+/* ── day groups — journal date dividers ── */
 .dayGroups {
   display: flex;
   flex-direction: column;
-  gap: 2rem;
-  margin-top: 1rem;
+  gap: 2.25rem;
+  margin-top: 1.5rem;
 }
 
 .dayGroup {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 1rem;
 }
 
 .dayLabel {
   font-family: var(--font-display);
-  font-size: 1.1rem;
+  font-size: 1.3rem;
   font-weight: 500;
   color: var(--text-on-paper);
   margin: 0;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid var(--cream-200);
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid rgba(200, 149, 44, 0.2);
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  letter-spacing: -0.01em;
+}
+
+.dayCount {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--gold-600);
+  background: rgba(200, 149, 44, 0.1);
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  letter-spacing: 0.06em;
 }
 
 /* ── card grid ── */
@@ -108,6 +177,6 @@
   }
 
   .hero {
-    padding-top: 2rem;
+    padding-top: 1rem;
   }
 }

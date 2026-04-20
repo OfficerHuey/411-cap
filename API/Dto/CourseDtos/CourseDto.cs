@@ -10,5 +10,7 @@ namespace NursingScheduler.API.DTOs.Course
         public required string Name { get; set; } //class name
         public int SemesterLevel { get; set; }//only shows classes from that level
         public CourseType DefaultType { get; set; } //enum; color codes the type of course
+        //credithoursforworkloadcalculation
+        public int CreditHours { get; set; } = 3;
     }
 }

@@ -56,7 +56,9 @@ export function CapacityMeter({ currentCount, capacity }: CapacityMeterProps) {
           background: bgColor,
           color: color,
           border: `1px solid ${borderColor}`,
-          fontFamily: "Inter, sans-serif",
+          fontFamily: "var(--font-mono)",
+          fontVariantNumeric: "tabular-nums",
+          letterSpacing: "0.02em",
         }}
       >
         <AnimatedNumber value={currentCount} />/{capacity} students

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Plus, Trash2, Lock, Copy, Download, History, Upload, ChevronRight, MapPin, Calendar, StickyNote } from "lucide-react";
+import { Plus, Trash2, Lock, Unlock, Copy, Download, History, Upload, ChevronRight, MapPin, Calendar, StickyNote } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
 import { authService } from "../Lib/Auth";
 import { semesters as semestersApi, schedules as schedulesApi, exports as exportsApi } from "../Lib/api";
@@ -166,6 +166,18 @@ export function SemesterHub() {
     }
   };
 
+  const handleUnlock = async () => {
+    try {
+      const result = await semestersApi.toggleLock(semIdNum);
+      if (!result.isLocked) {
+        addToast("success", "Semester unlocked");
+        await loadSemester();
+      }
+    } catch (err: any) {
+      addToast("error", err.message || "Failed to unlock semester");
+    }
+  };
+
   const handleCloneSchedule = async (schedId: number) => {
     const sched = scheduleList.find((s) => s.id === schedId);
     if (!sched) return;
@@ -247,6 +259,16 @@ export function SemesterHub() {
         </div>
 
         <motion.div variants={reduced ? undefined : heroChild} className={styles.heroActions}>
+          {isLocked && canEdit && (
+            <Button
+              variant="secondary"
+              size="md"
+              iconLeft={<Unlock size={14} />}
+              onClick={handleUnlock}
+            >
+              Unlock Semester
+            </Button>
+          )}
           <Button
             variant="ghost"
             size="md"

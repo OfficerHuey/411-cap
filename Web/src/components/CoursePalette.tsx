@@ -40,7 +40,7 @@ function DraggableCourse({ course }: { course: Course }) {
       }}
     >
       <div className={styles.pillDot} style={{ backgroundColor: color }} />
-      <div>
+      <div className={styles.pillBody}>
         <div className={styles.pillCode}>{course.code}</div>
         <div className={styles.pillType}>{course.defaultType}</div>
       </div>
@@ -63,7 +63,7 @@ export function CoursePalette({ courses }: CoursePaletteProps) {
   const clinicals = filtered.filter((c) => c.defaultType === "Clinical");
 
   const PaletteSection = ({ label, items }: { label: string; items: Course[] }) => (
-    <div>
+    <div className={styles.section}>
       <div className={styles.sectionHeader}>
         <span className={styles.sectionLabel}>{label}</span>
         <span className={styles.sectionCount}>{items.length}</span>
@@ -79,8 +79,16 @@ export function CoursePalette({ courses }: CoursePaletteProps) {
   return (
     <div className={styles.root}>
       <div className={styles.header}>
-        <NumberBadge number="01" variant="gold" size="sm" />
-        <h3 className={styles.headerTitle}>Courses</h3>
+        <div className={styles.headerTop}>
+          <NumberBadge number="01" variant="gold" size="sm" />
+          <span className={styles.headerSummary}>
+            <span className={styles.headerSummaryNum}>{filtered.length}</span>
+            <span className={styles.headerSummaryLabel}>
+              {filtered.length === 1 ? "course" : "courses"}
+            </span>
+          </span>
+        </div>
+        <h3 className={styles.headerTitle}>Course Palette</h3>
         <p className={styles.headerSubtitle}>Drag onto the calendar</p>
       </div>
 

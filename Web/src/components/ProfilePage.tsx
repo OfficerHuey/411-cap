@@ -21,9 +21,8 @@ const landingOptions = [
 ];
 
 const themeOptions = [
-  { value: "System", label: "System" },
+  { value: "System", label: "System (follows your device)" },
   { value: "Light", label: "Light" },
-  { value: "Dark", label: "Dark (coming soon)" },
 ];
 
 export function ProfilePage() {
@@ -47,7 +46,8 @@ export function ProfilePage() {
       setData(p);
       setDisplayName(p.displayName || "");
       setLandingPage(p.defaultLandingPage);
-      setTheme(p.themePreference);
+      const loadedTheme = p.themePreference === "Dark" ? "System" : p.themePreference;
+      setTheme(loadedTheme);
       setLoading(false);
     }).catch(() => {
       addToast("error", "Failed to load profile");

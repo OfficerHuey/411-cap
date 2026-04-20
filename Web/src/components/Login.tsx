@@ -10,6 +10,7 @@ import { Input } from "./ui/Input";
 import { Button } from "./ui/Button";
 import { NumberBadge } from "./ui/NumberBadge";
 import { HairlineRule } from "./ui/HairlineRule";
+import { SeluLogo } from "./ui/SeluLogo";
 import styles from "./Login.module.css";
 
 const SHOW_DEMO = import.meta.env.VITE_SHOW_DEMO_CREDS === "true";
@@ -62,11 +63,28 @@ export function Login() {
       {/* ── left editorial hero ── */}
       <motion.div
         className={styles.panelLeft}
-        initial={reduced ? undefined : { opacity: 0, x: -24 }}
+        initial={reduced ? undefined : { opacity: 0, x: -40 }}
         animate={reduced ? undefined : { opacity: 1, x: 0 }}
-        transition={reduced ? undefined : { duration: 0.4, ease: ease.ios }}
+        transition={reduced ? undefined : { duration: 0.5, ease: ease.ios }}
       >
-        <span className={styles.stamp}>N&#186; 01&ensp;&middot;&ensp;Est. 1925</span>
+        <motion.span
+          className={styles.stamp}
+          initial={reduced ? undefined : { opacity: 0 }}
+          animate={reduced ? undefined : { opacity: 1 }}
+          transition={reduced ? undefined : { duration: 0.35, delay: 0.8, ease: ease.ios }}
+        >
+          N&#186; 01&ensp;&middot;&ensp;Est. 1925
+        </motion.span>
+
+        <motion.div
+          className={styles.crest}
+          initial={reduced ? undefined : { opacity: 0, scale: 0.92 }}
+          animate={reduced ? undefined : { opacity: 1, scale: 1 }}
+          transition={reduced ? undefined : { duration: 0.45, delay: 0.95, ease: ease.ios }}
+          aria-hidden
+        >
+          <SeluLogo size={52} />
+        </motion.div>
 
         <motion.div
           className={styles.heroContent}
@@ -98,10 +116,15 @@ export function Login() {
       {/* ── right form panel ── */}
       <motion.div
         className={styles.panelRight}
-        initial={reduced ? undefined : { opacity: 0, x: 24 }}
+        initial={reduced ? undefined : { opacity: 0, x: 20 }}
         animate={reduced ? undefined : { opacity: 1, x: 0 }}
-        transition={reduced ? undefined : { duration: 0.4, delay: 0.15, ease: ease.ios }}
+        transition={reduced ? undefined : { duration: 0.45, delay: 0.2, ease: ease.ios }}
       >
+        <motion.div
+          initial={reduced ? undefined : { opacity: 0, y: 12 }}
+          animate={reduced ? undefined : { opacity: 1, y: 0 }}
+          transition={reduced ? undefined : { duration: 0.4, delay: 0.6, ease: ease.ios }}
+        >
         <Card variant="elevated" className={styles.loginCard}>
           <NumberBadge number="02" variant="gold" size="sm" />
           <HairlineRule width="48px" color="gold" spacing="normal" />
@@ -274,6 +297,7 @@ export function Login() {
             </>
           )}
         </Card>
+        </motion.div>
       </motion.div>
     </div>
   );

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Calendar, LogOut, DoorOpen, GraduationCap, Archive, Search, StickyNote, Menu, X } from "lucide-react";
+import { LogOut, DoorOpen, GraduationCap, Archive, Search, StickyNote, Menu, X, BookOpen } from "lucide-react";
 import { useNavigate, useLocation, Outlet } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { authService } from "../Lib/Auth";
@@ -13,6 +13,7 @@ import { loadingBar } from "./ui/LoadingBar";
 import { PageTransition } from "./ui/PageTransition";
 import { CommandPalette } from "./CommandPalette";
 import { KeyboardShortcutsModal } from "./KeyboardShortcutsModal";
+import { SeluLogo } from "./ui/SeluLogo";
 import styles from "./Layout.module.css";
 
 export function Layout() {
@@ -83,6 +84,8 @@ export function Layout() {
 
   const navLinks = [
     { path: "/", label: "Dashboard", icon: null },
+    { path: "/courses", label: "Courses", icon: BookOpen },
+    { path: "/students", label: "Students", icon: GraduationCap },
     { path: "/rooms", label: "Rooms", icon: DoorOpen },
     { path: "/instructors", label: "Instructors", icon: GraduationCap },
     { path: "/notes", label: "Notes", icon: StickyNote },
@@ -95,9 +98,7 @@ export function Layout() {
         <div className={styles.navInner}>
           {/* brand */}
           <div className={styles.brand} onClick={() => navigate("/")}>
-            <div className={styles.brandMark}>
-              <Calendar size={18} />
-            </div>
+            <SeluLogo size={38} className={styles.brandLogo} />
             <div className={styles.brandType}>
               <span className={styles.brandName}>Nursing Scheduler</span>
               <span className={styles.brandSubtitle}>SELU &middot; School of Nursing</span>

@@ -3,8 +3,9 @@
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(10, 15, 8, 0.6);
-  backdrop-filter: blur(4px);
+  background: rgba(0, 12, 8, 0.45);
+  backdrop-filter: blur(4px) saturate(0.9);
+  -webkit-backdrop-filter: blur(4px) saturate(0.9);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -116,7 +117,7 @@
 .footer {
   padding: 1.5rem 2.25rem;
   background: var(--paper-sunk);
-  border-top: 1px solid var(--cream-300);
+  border-top: 1px solid rgba(200, 149, 44, 0.15);
   display: flex;
   justify-content: flex-end;
   gap: var(--space-3);

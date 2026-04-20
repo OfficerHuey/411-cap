@@ -10,7 +10,7 @@ import { useNavigate } from "react-router-dom";
 import { useBreadcrumbs } from "../Lib/BreadcrumbContext";
 import { useToast } from "../Lib/ToastContext";
 import { useReducedMotion } from "../hooks/useReducedMotion";
-import { heroStagger, heroChild, statContainerVariants, statVariants, staggerContainer, cardVariants } from "../Lib/motion";
+import { heroStagger, heroChild, statStripVariants, statVariants, cardVariants, spring } from "../Lib/motion";
 import { Button } from "./ui/Button";
 import { Card } from "./ui/Card";
 import { NumberBadge } from "./ui/NumberBadge";
@@ -198,64 +198,65 @@ export function Dashboard() {
 
       {error && <div className={styles.errorBanner}>{error}</div>}
 
-      {/* ── stat strip ── */}
+      {/* ── stat strip (beat 2: 300-600ms) ── */}
       {loading ? (
         <div style={{ marginTop: "2rem" }}>
           <Skeleton variant="card" height={140} />
         </div>
       ) : (
-        <Card variant="raised" className={styles.statStrip}>
-          <motion.div
-            className={styles.statGrid}
-            variants={reduced ? undefined : statContainerVariants}
-            initial="hidden"
-            animate="visible"
-          >
-            <motion.div variants={reduced ? undefined : statVariants}>
-              <StatTile
-                label="Active Semesters"
-                value={activeSemesters.length}
-                accent="gold"
-                size="sm"
-                trend={lockedCount > 0 ? { direction: "neutral", text: `${lockedCount} archived` } : undefined}
-              />
-            </motion.div>
-            <motion.div variants={reduced ? undefined : statVariants}>
-              <StatTile
-                label="Schedule Groups"
-                value={totalSchedules}
-                accent="green"
-                size="sm"
-                trend={activeSemesters.length > 0 ? { direction: "neutral", text: `across ${activeSemesters.length} semester${activeSemesters.length !== 1 ? "s" : ""}` } : undefined}
-              />
-            </motion.div>
-            <motion.div variants={reduced ? undefined : statVariants}>
-              <StatTile
-                label="Students Placed"
-                value={totalStudents ?? 0}
-                accent="green"
-                size="sm"
-                trend={totalStudents !== null && totalStudents > 0 ? { direction: "neutral", text: `across ${activeSemesters.length} semester${activeSemesters.length !== 1 ? "s" : ""}` } : undefined}
-              />
-            </motion.div>
-            <motion.div variants={reduced ? undefined : statVariants}>
-              <StatTile
-                label="Attention Needed"
-                value={attentionCount ?? 0}
-                accent={attentionCount && attentionCount > 0 ? "gold" : "none"}
-                size="sm"
-                trend={
-                  attentionCount !== null
-                    ? {
-                        direction: attentionCount === 0 ? "neutral" : "down",
-                        text: attentionCount === 0 ? "All clear" : "Review details",
-                      }
-                    : undefined
-                }
-              />
-            </motion.div>
-          </motion.div>
-        </Card>
+        <motion.div
+          variants={reduced ? undefined : statStripVariants}
+          initial="hidden"
+          animate="visible"
+        >
+          <Card variant="raised" className={styles.statStrip}>
+            <div className={styles.statGrid}>
+              <motion.div variants={reduced ? undefined : statVariants}>
+                <StatTile
+                  label="Active Semesters"
+                  value={activeSemesters.length}
+                  accent="gold"
+                  size="sm"
+                  trend={lockedCount > 0 ? { direction: "neutral", text: `${lockedCount} archived` } : undefined}
+                />
+              </motion.div>
+              <motion.div variants={reduced ? undefined : statVariants}>
+                <StatTile
+                  label="Schedule Groups"
+                  value={totalSchedules}
+                  accent="green"
+                  size="sm"
+                  trend={activeSemesters.length > 0 ? { direction: "neutral", text: `across ${activeSemesters.length} semester${activeSemesters.length !== 1 ? "s" : ""}` } : undefined}
+                />
+              </motion.div>
+              <motion.div variants={reduced ? undefined : statVariants}>
+                <StatTile
+                  label="Students Placed"
+                  value={totalStudents ?? 0}
+                  accent="green"
+                  size="sm"
+                  trend={totalStudents !== null && totalStudents > 0 ? { direction: "neutral", text: `across ${activeSemesters.length} semester${activeSemesters.length !== 1 ? "s" : ""}` } : undefined}
+                />
+              </motion.div>
+              <motion.div variants={reduced ? undefined : statVariants}>
+                <StatTile
+                  label="Attention Needed"
+                  value={attentionCount ?? 0}
+                  accent={attentionCount && attentionCount > 0 ? "gold" : "none"}
+                  size="sm"
+                  trend={
+                    attentionCount !== null
+                      ? {
+                          direction: attentionCount === 0 ? "neutral" : "down",
+                          text: attentionCount === 0 ? "All clear" : "Review details",
+                        }
+                      : undefined
+                  }
+                />
+              </motion.div>
+            </div>
+          </Card>
+        </motion.div>
       )}
 
       {/* ── featured semester ── */}
@@ -324,12 +325,21 @@ export function Dashboard() {
           ) : (
             <motion.div
               className={styles.grid}
-              variants={reduced ? undefined : staggerContainer(0.05)}
+              variants={reduced ? undefined : {
+                hidden: {},
+                visible: { transition: { staggerChildren: 0.06, delayChildren: 0.6 } },
+              }}
               initial="hidden"
               animate="visible"
             >
               {activeSemesters.map((semester) => (
-                <motion.div key={semester.id} variants={reduced ? undefined : cardVariants}>
+                <motion.div
+                  key={semester.id}
+                  variants={reduced ? undefined : cardVariants}
+                  whileHover={reduced ? undefined : { y: -3, scale: 1.005 }}
+                  whileTap={reduced ? undefined : { scale: 0.995 }}
+                  transition={reduced ? undefined : spring.snappy}
+                >
                   <Card
                     variant="raised"
                     accentColor="gold"

@@ -28,7 +28,7 @@
 
 .link {
   font-family: var(--font-body);
-  font-size: 0.78rem;
+  font-size: 0.84rem;
   font-weight: 500;
   color: var(--text-muted);
   text-decoration: none;
@@ -42,7 +42,7 @@
 
 .current {
   font-family: var(--font-body);
-  font-size: 0.78rem;
+  font-size: 0.84rem;
   font-weight: 400;
   color: var(--text-primary);
 }

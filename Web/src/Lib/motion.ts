@@ -20,19 +20,28 @@ export const spring = {
 };
 
 //page transition
+//variants carry their own transitions so enter and exit run on independent timings
 export const pageVariants: Variants = {
-  initial: { opacity: 0, y: 12 },
-  animate: { opacity: 1, y: 0 },
-  exit: { opacity: 0, y: -8 },
+  initial: { opacity: 0, y: 8 },
+  animate: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.2, ease: ease.ios },
+  },
+  exit: {
+    opacity: 0,
+    y: -4,
+    transition: { duration: 0.08, ease: ease.ios },
+  },
 };
 
 export const pageEnterTransition: Transition = {
-  duration: 0.28,
+  duration: 0.2,
   ease: ease.ios,
 };
 
 export const pageExitTransition: Transition = {
-  duration: 0.18,
+  duration: 0.08,
   ease: ease.ios,
 };
 
@@ -174,11 +183,54 @@ export const dropInVariants: Variants = {
   },
 };
 
+//orchestrated page entrance (parent; children stagger in)
+export const orchestration = (stagger = 0.1, delayChildren = 0.05): Variants => ({
+  hidden: {},
+  visible: {
+    transition: { staggerChildren: stagger, delayChildren },
+  },
+});
+
+//child that enters from the left (for sidebars, palettes)
+export const fromLeft: Variants = {
+  hidden: { opacity: 0, x: -16 },
+  visible: {
+    opacity: 1,
+    x: 0,
+    transition: spring.card,
+  },
+};
+
+//child that pops in with overshoot (for newly placed elements)
+export const popIn: Variants = {
+  hidden: { opacity: 0, scale: 0.85 },
+  visible: {
+    opacity: 1,
+    scale: 1,
+    transition: { type: "spring", stiffness: 350, damping: 20 },
+  },
+};
+
+//dashboard stat strip — card fades up as a unit, then children stagger
+export const statStripVariants: Variants = {
+  hidden: { opacity: 0, y: 16, scale: 0.98 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: {
+      ...spring.card,
+      delayChildren: 0.15,
+      staggerChildren: 0.08,
+    },
+  },
+};
+
 //reduced motion overrides
 export const reducedPageVariants: Variants = {
   initial: { opacity: 0 },
-  animate: { opacity: 1 },
-  exit: { opacity: 0 },
+  animate: { opacity: 1, transition: { duration: 0.1 } },
+  exit: { opacity: 0, transition: { duration: 0.05 } },
 };
 
 export const reducedFade: Transition = { duration: 0.15 };
