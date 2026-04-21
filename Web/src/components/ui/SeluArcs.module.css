@@ -1,0 +1,81 @@
+/*seluarcs large concentric quarter-circle corner accents*/
+
+.arcs {
+  position: absolute;
+  width: 280px;
+  height: 280px;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+/*positioning variants*/
+.top-right { top: -40px; right: -40px; }
+.bottom-left { bottom: -40px; left: -40px; }
+.top-left { top: -40px; left: -40px; }
+.bottom-right { bottom: -40px; right: -40px; }
+
+.arc1, .arc2, .arc3, .arc4 {
+  position: absolute;
+  border-radius: 50%;
+  border-style: solid;
+}
+
+/*default positions anchor to top-right*/
+.arc1 {
+  width: 260px;
+  height: 260px;
+  top: 10px;
+  right: 10px;
+  border-width: 10px;
+  border-color: var(--gold-400);
+}
+
+.arc2 {
+  width: 200px;
+  height: 200px;
+  top: 40px;
+  right: 40px;
+  border-width: 8px;
+  border-color: var(--green-600);
+}
+
+.arc3 {
+  width: 150px;
+  height: 150px;
+  top: 65px;
+  right: 65px;
+  border-width: 10px;
+  border-color: var(--gold-400);
+}
+
+.arc4 {
+  width: 100px;
+  height: 100px;
+  top: 90px;
+  right: 90px;
+  border-width: 6px;
+  border-color: var(--green-600);
+}
+
+/*bottom-left*/
+.bottom-left .arc1 { top: auto; right: auto; bottom: 10px; left: 10px; }
+.bottom-left .arc2 { top: auto; right: auto; bottom: 40px; left: 40px; }
+.bottom-left .arc3 { top: auto; right: auto; bottom: 65px; left: 65px; }
+.bottom-left .arc4 { top: auto; right: auto; bottom: 90px; left: 90px; }
+
+/*top-left*/
+.top-left .arc1 { right: auto; left: 10px; }
+.top-left .arc2 { right: auto; left: 40px; }
+.top-left .arc3 { right: auto; left: 65px; }
+.top-left .arc4 { right: auto; left: 90px; }
+
+/*bottom-right*/
+.bottom-right .arc1 { top: auto; bottom: 10px; }
+.bottom-right .arc2 { top: auto; bottom: 40px; }
+.bottom-right .arc3 { top: auto; bottom: 65px; }
+.bottom-right .arc4 { top: auto; bottom: 90px; }
+
+@media print {
+  .arcs { display: none; }
+}

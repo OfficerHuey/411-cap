@@ -23,7 +23,7 @@
 /* title base */
 .title {
   font-family: var(--font-display);
-  font-weight: 500;
+  font-weight: 600;
   color: var(--text-on-paper);
   margin: 0;
 }

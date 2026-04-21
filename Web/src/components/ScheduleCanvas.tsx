@@ -298,7 +298,9 @@ function DraggableCourseBlock({
         backgroundColor: color,
         borderLeft: `4px solid ${darkenColor(color, 30)}`,
         cursor: isLocked ? "default" : "grab",
-      }}
+        //exposed as a css variable so hover glow can use the actual course color
+        ["--block-color" as string]: color,
+      } as React.CSSProperties}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       onFocus={(e) => {
@@ -314,7 +316,7 @@ function DraggableCourseBlock({
           style={{
             position: "absolute",
             inset: 0,
-            borderRadius: 8,
+            borderRadius: 10,
             border: "2px solid var(--gold-400)",
             pointerEvents: "none",
             zIndex: 4,
@@ -799,7 +801,9 @@ export function ScheduleCanvas({
         </div>
 
         <div className={styles.body}>
-          {!isSemester5 && semesterProgress && (
+          {!isSemester5 && (
+            <div className={styles.aboveGrid}>
+              {semesterProgress && (
             <div className={styles.progressRow}>
               <span className={styles.progressLabel}>
                 {semesterProgress.status === "upcoming"
@@ -815,9 +819,26 @@ export function ScheduleCanvas({
                 />
               </div>
             </div>
-          )}
-          {!isSemester5 && (
-            <ConflictBanner conflicts={allConflicts} onJumpTo={handleJumpTo} />
+              )}
+              <ConflictBanner conflicts={allConflicts} onJumpTo={handleJumpTo} />
+              {/*stats bar in inset zone so the flush grid below can fill the frame*/}
+              <div className={styles.statsBar}>
+                <div className={styles.statsItem}>
+                  <span className={styles.statsValue}>{scheduleStats.sections}</span>
+                  <span className={styles.statsLabel}>Sections</span>
+                </div>
+                <div className={styles.statsDivider} />
+                <div className={styles.statsItem}>
+                  <span className={styles.statsValue}>{scheduleStats.hours}</span>
+                  <span className={styles.statsLabel}>Hours / Week</span>
+                </div>
+                <div className={styles.statsDivider} />
+                <div className={styles.statsItem}>
+                  <span className={styles.statsValue}>{scheduleStats.days}</span>
+                  <span className={styles.statsLabel}>Days Active</span>
+                </div>
+              </div>
+            </div>
           )}
           {isSemester5 ? (
             <div style={{ padding: "1.5rem", display: "flex", flexDirection: "column", gap: "1rem" }}>
@@ -901,24 +922,6 @@ export function ScheduleCanvas({
             </div>
           ) : (
             <>
-              {/* stats bar */}
-              <div className={styles.statsBar}>
-                <div className={styles.statsItem}>
-                  <span className={styles.statsValue}>{scheduleStats.sections}</span>
-                  <span className={styles.statsLabel}>Sections</span>
-                </div>
-                <div className={styles.statsDivider} />
-                <div className={styles.statsItem}>
-                  <span className={styles.statsValue}>{scheduleStats.hours}</span>
-                  <span className={styles.statsLabel}>Hours / Week</span>
-                </div>
-                <div className={styles.statsDivider} />
-                <div className={styles.statsItem}>
-                  <span className={styles.statsValue}>{scheduleStats.days}</span>
-                  <span className={styles.statsLabel}>Days Active</span>
-                </div>
-              </div>
-
               <div className={styles.calGridWrap}>
                 {calendarIsEmpty && (
                   <div className={styles.emptyCalOverlay}>

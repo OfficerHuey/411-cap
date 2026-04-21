@@ -25,7 +25,7 @@
 .headerTitle {
   font-family: var(--font-display);
   font-size: 1.25rem;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--text-on-paper);
   margin: 0.25rem 0 0;
 }
@@ -91,7 +91,7 @@
   align-items: center;
   padding: 0.75rem 1.5rem;
   background: var(--paper-sunk);
-  border-bottom: 1px solid rgba(200, 149, 44, 0.15);
+  border-bottom: 1px solid rgba(255, 198, 41, 0.15);
 }
 
 .tableHeaderLabel {

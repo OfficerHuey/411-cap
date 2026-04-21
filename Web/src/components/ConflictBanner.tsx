@@ -61,8 +61,8 @@ export function ConflictBanner({ conflicts, onJumpTo }: ConflictBannerProps) {
         }
 
         .conflict-bar.clear {
-          background: rgba(0, 86, 63, 0.06);
-          color: #00563f;
+          background: rgba(26, 86, 50, 0.06);
+          color: #1A5632;
         }
 
         .conflict-bar.error {
@@ -142,7 +142,7 @@ export function ConflictBanner({ conflicts, onJumpTo }: ConflictBannerProps) {
           font-family: 'Inter', sans-serif;
           font-size: 0.72rem;
           font-weight: 500;
-          color: #00563f;
+          color: #1A5632;
           padding: 0.15rem 0.4rem;
           border-radius: 4px;
           transition: background 0.15s;
@@ -150,7 +150,7 @@ export function ConflictBanner({ conflicts, onJumpTo }: ConflictBannerProps) {
         }
 
         .conflict-jump:hover {
-          background: rgba(0, 86, 63, 0.08);
+          background: rgba(26, 86, 50, 0.08);
         }
       `}</style>
 

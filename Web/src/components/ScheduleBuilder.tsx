@@ -26,6 +26,7 @@ import { NumberBadge } from "./ui/NumberBadge";
 import { HairlineRule } from "./ui/HairlineRule";
 import { Badge } from "./ui/Badge";
 import { Skeleton } from "./ui/Skeleton";
+import { SeluBars } from "./ui/SeluBars";
 import { NotesPanel } from "./Notes/NotesPanel";
 import { InstructorDetailPanel } from "./InstructorDetailPanel";
 import { useNotes } from "../hooks/useNotes";
@@ -244,6 +245,8 @@ export function ScheduleBuilder() {
             </div>
           </div>
         </motion.div>
+
+        <SeluBars compact />
 
         {/* ── view toggle (200-350ms) ── */}
         <motion.div

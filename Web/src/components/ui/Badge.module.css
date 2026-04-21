@@ -6,7 +6,7 @@
   gap: var(--space-1);
   font-family: var(--font-body);
   font-weight: 500;
-  border-radius: 20px;
+  border-radius: 3px;
   white-space: nowrap;
 }
 
@@ -25,15 +25,15 @@
 
 /* variants */
 .green {
-  background: rgba(0, 86, 63, 0.1);
+  background: rgba(26, 86, 50, 0.1);
   color: var(--green-700);
-  border: 1px solid rgba(0, 86, 63, 0.2);
+  border: 1px solid rgba(26, 86, 50, 0.2);
 }
 
 .gold {
-  background: rgba(200, 149, 44, 0.12);
+  background: rgba(255, 198, 41, 0.12);
   color: var(--gold-700);
-  border: 1px solid rgba(200, 149, 44, 0.3);
+  border: 1px solid rgba(255, 198, 41, 0.3);
 }
 
 .red {

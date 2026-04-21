@@ -117,7 +117,7 @@
 .footer {
   padding: 1.5rem 2.25rem;
   background: var(--paper-sunk);
-  border-top: 1px solid rgba(200, 149, 44, 0.15);
+  border-top: 1px solid rgba(255, 198, 41, 0.15);
   display: flex;
   justify-content: flex-end;
   gap: var(--space-3);

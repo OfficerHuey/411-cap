@@ -9,8 +9,8 @@
   z-index: 10003;
   background: var(--gold-400);
   box-shadow:
-    0 0 8px rgba(200, 149, 44, 0.4),
-    0 0 4px rgba(200, 149, 44, 0.6);
+    0 0 8px rgba(255, 198, 41, 0.4),
+    0 0 4px rgba(255, 198, 41, 0.6);
   transition: transform 200ms ease-out;
   pointer-events: none;
 }

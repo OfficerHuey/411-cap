@@ -16,7 +16,7 @@ import { Login } from "./components/Login";
 import { ForgotPassword } from "./components/ForgotPassword";
 import { ResetPassword } from "./components/ResetPassword";
 import { NotFound } from "./components/NotFound";
-import { ProtectedRoute } from "./components/ProjectedRoute";
+import { ProtectedRoute } from "./components/ProtectedRoute";
 
 export const router = createBrowserRouter([
   {

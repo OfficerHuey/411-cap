@@ -177,7 +177,7 @@ export function CreateScheduleModal({
               {validStudents > 0 && (
                 <span style={{
                   fontSize: "0.72rem",
-                  background: "rgba(0, 86, 63, 0.1)",
+                  background: "rgba(26, 86, 50, 0.1)",
                   color: "var(--green-700)",
                   padding: "0.15rem 0.5rem",
                   borderRadius: "20px",

@@ -1,0 +1,29 @@
+.stripe {
+  width: 100%;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.full {
+  margin-left: calc(-50vw + 50%);
+  margin-right: calc(-50vw + 50%);
+  width: 100vw;
+  background: linear-gradient(
+    90deg,
+    var(--green-600) 0%,
+    var(--green-600) 40%,
+    var(--gold-400) 60%,
+    var(--gold-400) 100%
+  );
+}
+
+.contained {
+  border-radius: 2px;
+  background: linear-gradient(
+    90deg,
+    var(--green-600) 0%,
+    var(--green-600) 40%,
+    var(--gold-400) 60%,
+    var(--gold-400) 100%
+  );
+}

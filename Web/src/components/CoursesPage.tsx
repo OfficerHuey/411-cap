@@ -4,6 +4,7 @@ import { Plus, Pencil, Trash2, BookOpen } from "lucide-react";
 import { courses as coursesApi } from "../Lib/api";
 import type { Course, CourseType, CourseStats } from "../Lib/Types";
 import { useToast } from "../Lib/ToastContext";
+import { useBreadcrumbs } from "../Lib/BreadcrumbContext";
 import { Modal } from "./ui/Modal";
 import { Button } from "./ui/Button";
 import { Input } from "./ui/Input";
@@ -12,6 +13,8 @@ import type { SelectOption } from "./ui/Select";
 import { NumberBadge } from "./ui/NumberBadge";
 import { HairlineRule } from "./ui/HairlineRule";
 import { SectionHeading } from "./ui/SectionHeading";
+import { SeluBars } from "./ui/SeluBars";
+import { PageDecor } from "./ui/PageDecor";
 import { staggerContainer, cardVariants } from "../Lib/motion";
 import styles from "./CoursesPage.module.css";
 
@@ -53,6 +56,7 @@ const emptyForm: CourseForm = {
 
 export function CoursesPage() {
   const { addToast } = useToast();
+  const { setItems: setBreadcrumbs } = useBreadcrumbs();
   const [courseList, setCourseList] = useState<Course[]>([]);
   const [stats, setStats] = useState<CourseStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -65,6 +69,11 @@ export function CoursesPage() {
   const [form, setForm] = useState<CourseForm>(emptyForm);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState("");
+
+  useEffect(() => {
+    setBreadcrumbs([{ label: "Courses" }]);
+    return () => setBreadcrumbs([]);
+  }, [setBreadcrumbs]);
 
   useEffect(() => {
     loadCourses();
@@ -183,6 +192,7 @@ export function CoursesPage() {
   return (
     <>
       <div className={styles.root}>
+        <PageDecor variant="courses" />
         {/* editorial hero */}
         <div className={styles.hero}>
           <NumberBadge number="01" variant="gold" size="sm" />
@@ -220,6 +230,8 @@ export function CoursesPage() {
         )}
 
         {error && <div className={styles.errorBanner}>{error}</div>}
+
+        <SeluBars />
 
         <div className={styles.toolbar}>
           <input

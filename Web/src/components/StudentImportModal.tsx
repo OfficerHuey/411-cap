@@ -181,7 +181,7 @@ export function StudentImportModal({ semesterId, onClose, onSuccess }: StudentIm
         }
 
         .sim-header {
-          background: #00563f;
+          background: #1A5632;
           padding: 1.25rem 1.5rem;
           display: flex;
           align-items: flex-start;
@@ -190,7 +190,7 @@ export function StudentImportModal({ semesterId, onClose, onSuccess }: StudentIm
         }
 
         .sim-header h2 {
-          font-family: 'Playfair Display', serif;
+          font-family: 'Montserrat', 'Inter', sans-serif;
           font-size: 1.2rem;
           font-weight: 600;
           color: #ffffff;
@@ -247,8 +247,8 @@ export function StudentImportModal({ semesterId, onClose, onSuccess }: StudentIm
         }
 
         .sim-drop-zone:hover, .sim-drop-zone.drag-over {
-          border-color: #00563f;
-          background: rgba(0, 86, 63, 0.04);
+          border-color: #1A5632;
+          background: rgba(26, 86, 50, 0.04);
         }
 
         .sim-drop-icon {
@@ -263,7 +263,7 @@ export function StudentImportModal({ semesterId, onClose, onSuccess }: StudentIm
         }
 
         .sim-drop-zone h3 {
-          font-family: 'Playfair Display', serif;
+          font-family: 'Montserrat', 'Inter', sans-serif;
           font-size: 1.1rem;
           color: #0a1f14;
           margin: 0 0 0.5rem 0;
@@ -277,7 +277,7 @@ export function StudentImportModal({ semesterId, onClose, onSuccess }: StudentIm
         }
 
         .sim-drop-zone .browse-link {
-          color: #00563f;
+          color: #1A5632;
           font-weight: 500;
           text-decoration: underline;
           cursor: pointer;
@@ -296,7 +296,7 @@ export function StudentImportModal({ semesterId, onClose, onSuccess }: StudentIm
           gap: 0.4rem;
           padding: 0.5rem 1rem;
           background: #ffffff;
-          color: #00563f;
+          color: #1A5632;
           border: 1.5px solid #c6e8d8;
           border-radius: 8px;
           font-family: 'Inter', sans-serif;
@@ -339,7 +339,7 @@ export function StudentImportModal({ semesterId, onClose, onSuccess }: StudentIm
         }
 
         .sim-stat.assigned { background: #f0faf5; border-color: #c6e8d8; }
-        .sim-stat.assigned .sim-stat-value { color: #00563f; }
+        .sim-stat.assigned .sim-stat-value { color: #1A5632; }
         .sim-stat.unassigned { background: #fffbeb; border-color: #fde68a; }
         .sim-stat.unassigned .sim-stat-value { color: #92400e; }
         .sim-stat.errors { background: #fef2f2; border-color: #fecaca; }
@@ -377,7 +377,7 @@ export function StudentImportModal({ semesterId, onClose, onSuccess }: StudentIm
           text-transform: uppercase;
           letter-spacing: 0.04em;
           color: #ffffff;
-          background: #00563f;
+          background: #1A5632;
           border-bottom: 1px solid #004d38;
           white-space: nowrap;
         }
@@ -426,8 +426,8 @@ export function StudentImportModal({ semesterId, onClose, onSuccess }: StudentIm
         }
 
         .sim-select:focus {
-          border-color: #00563f;
-          box-shadow: 0 0 0 3px rgba(0, 86, 63, 0.1);
+          border-color: #1A5632;
+          box-shadow: 0 0 0 3px rgba(26, 86, 50, 0.1);
         }
 
         .sim-footer {
@@ -456,7 +456,7 @@ export function StudentImportModal({ semesterId, onClose, onSuccess }: StudentIm
 
         .sim-btn-commit {
           padding: 0.6rem 1.5rem;
-          background: #00563f;
+          background: #1A5632;
           color: #ffffff;
           border: none;
           border-radius: 8px;
@@ -467,7 +467,7 @@ export function StudentImportModal({ semesterId, onClose, onSuccess }: StudentIm
           transition: background 0.15s;
         }
 
-        .sim-btn-commit:hover { background: #003d2a; }
+        .sim-btn-commit:hover { background: #144425; }
         .sim-btn-commit:disabled { background: #6b7280; cursor: not-allowed; }
         .sim-btn-commit .btn-spinner { animation: sim-btn-spin 0.7s linear infinite; }
         @keyframes sim-btn-spin { to { transform: rotate(360deg); } }
@@ -489,7 +489,7 @@ export function StudentImportModal({ semesterId, onClose, onSuccess }: StudentIm
         }
 
         .sim-success h3 {
-          font-family: 'Playfair Display', serif;
+          font-family: 'Montserrat', 'Inter', sans-serif;
           font-size: 1.2rem;
           color: #0a1f14;
           margin: 0 0 0.5rem 0;
@@ -513,7 +513,7 @@ export function StudentImportModal({ semesterId, onClose, onSuccess }: StudentIm
           width: 40px;
           height: 40px;
           border: 3px solid #e5e2db;
-          border-top-color: #00563f;
+          border-top-color: #1A5632;
           border-radius: 50%;
           margin: 0 auto 1rem;
           animation: sim-spin 0.8s linear infinite;
@@ -541,8 +541,8 @@ export function StudentImportModal({ semesterId, onClose, onSuccess }: StudentIm
         }
 
         .sim-override-textarea:focus {
-          border-color: #00563f;
-          box-shadow: 0 0 0 3px rgba(0, 86, 63, 0.1);
+          border-color: #1A5632;
+          box-shadow: 0 0 0 3px rgba(26, 86, 50, 0.1);
         }
 
         .sim-edit-input {
@@ -559,8 +559,8 @@ export function StudentImportModal({ semesterId, onClose, onSuccess }: StudentIm
         }
 
         .sim-edit-input:focus {
-          border-color: #00563f;
-          box-shadow: 0 0 0 2px rgba(0, 86, 63, 0.08);
+          border-color: #1A5632;
+          box-shadow: 0 0 0 2px rgba(26, 86, 50, 0.08);
         }
 
         .sim-edit-input:hover:not(:focus) {
@@ -620,7 +620,7 @@ export function StudentImportModal({ semesterId, onClose, onSuccess }: StudentIm
                       onClick={() => fileInputRef.current?.click()}
                     >
                       <div className="sim-drop-icon">
-                        <FileSpreadsheet size={26} color="#00563f" />
+                        <FileSpreadsheet size={26} color="#1A5632" />
                       </div>
                       <h3>Drop your file here</h3>
                       <p>
@@ -875,7 +875,7 @@ export function StudentImportModal({ semesterId, onClose, onSuccess }: StudentIm
             {step === "done" && (
               <div className="sim-success">
                 <div className="sim-success-icon">
-                  <CheckCircle size={28} color="#00563f" />
+                  <CheckCircle size={28} color="#1A5632" />
                 </div>
                 <h3>Import Successful</h3>
                 <p>{committedCount} students have been added to their schedule groups.</p>

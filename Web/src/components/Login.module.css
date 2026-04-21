@@ -21,25 +21,24 @@
   .panelLeft { display: flex; }
 }
 
-/* paper grain overlay */
-.panelLeft::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background-image: url('/paper-grain.svg');
-  background-size: 400px 400px;
-  opacity: 0.05;
-  pointer-events: none;
-  mix-blend-mode: multiply;
-}
-
-/* gold cross-hatch overlay */
+/* selu diagonal stripe overlay */
 .panelLeft::after {
   content: '';
   position: absolute;
   inset: 0;
-  background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23C8952C' fill-opacity='0.02'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  background: repeating-linear-gradient(
+    -55deg,
+    transparent,
+    transparent 60px,
+    rgba(255, 198, 41, 0.05) 60px,
+    rgba(255, 198, 41, 0.05) 64px,
+    transparent 64px,
+    transparent 180px,
+    rgba(255, 198, 41, 0.03) 180px,
+    rgba(255, 198, 41, 0.03) 182px
+  );
   pointer-events: none;
+  z-index: 0;
 }
 
 /* editorial stamp top-right */
@@ -70,7 +69,7 @@
   position: absolute;
   inset: -5px;
   border-radius: 50%;
-  border: 1px solid rgba(200, 149, 44, 0.35);
+  border: 1px solid rgba(255, 198, 41, 0.35);
   pointer-events: none;
 }
 
@@ -84,7 +83,7 @@
 .heroTitle {
   font-family: var(--font-display);
   font-size: clamp(3.5rem, 8vw, 6.5rem);
-  font-weight: 500;
+  font-weight: 700;
   color: var(--paper-raised);
   letter-spacing: var(--tracking-tightest);
   line-height: var(--leading-none);
@@ -135,7 +134,6 @@
   align-items: center;
   justify-content: center;
   padding: 4rem 3rem;
-  background: var(--paper-base);
   position: relative;
 }
 
@@ -148,7 +146,7 @@
 .cardTitle {
   font-family: var(--font-display);
   font-size: 2.5rem;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--text-on-paper);
   letter-spacing: var(--tracking-tighter);
   line-height: var(--leading-tight);

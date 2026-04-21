@@ -23,6 +23,8 @@ import { Badge } from "./ui/Badge";
 import { EmptyState } from "./ui/EmptyState";
 import { Modal } from "./ui/Modal";
 import { Skeleton } from "./ui/Skeleton";
+import { SeluBars } from "./ui/SeluBars";
+import { PageDecor } from "./ui/PageDecor";
 import { NotesPanel } from "./Notes/NotesPanel";
 import { useNotes } from "../hooks/useNotes";
 import { EditAttribution } from "./EditAttribution";
@@ -220,6 +222,7 @@ export function SemesterHub() {
 
   return (
     <div className={styles.root}>
+      <PageDecor variant="semesterHub" />
       {/* ── hero ── */}
       <motion.div
         className={styles.hero}
@@ -338,6 +341,8 @@ export function SemesterHub() {
       </motion.div>
 
       {error && <div className={styles.errorBanner}>{error}</div>}
+
+      <SeluBars />
 
       <HairlineRule color="muted" spacing="normal" />
 

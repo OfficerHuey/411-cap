@@ -13,6 +13,8 @@ import type { SelectOption } from "./ui/Select";
 import { NumberBadge } from "./ui/NumberBadge";
 import { HairlineRule } from "./ui/HairlineRule";
 import { EmptyState } from "./ui/EmptyState";
+import { SeluBars } from "./ui/SeluBars";
+import { PageDecor } from "./ui/PageDecor";
 import { StudentDetailPanel } from "./StudentDetailPanel";
 import styles from "./StudentsPage.module.css";
 
@@ -134,6 +136,7 @@ export function StudentsPage() {
   return (
     <>
       <div className={styles.root}>
+        <PageDecor variant="students" />
         {/* editorial hero */}
         <div className={styles.hero}>
           <NumberBadge number="01" variant="gold" size="sm" />
@@ -187,6 +190,8 @@ export function StudentsPage() {
         )}
 
         {error && <div className={styles.errorBanner}>{error}</div>}
+
+        <SeluBars />
 
         {/* toolbar */}
         <div className={styles.toolbar}>

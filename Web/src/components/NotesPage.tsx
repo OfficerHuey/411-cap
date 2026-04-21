@@ -10,6 +10,8 @@ import { NumberBadge } from "./ui/NumberBadge";
 import { HairlineRule } from "./ui/HairlineRule";
 import { EmptyState } from "./ui/EmptyState";
 import { Skeleton } from "./ui/Skeleton";
+import { SeluBars } from "./ui/SeluBars";
+import { PageDecor } from "./ui/PageDecor";
 import styles from "./NotesPage.module.css";
 
 type StatusFilter = "all" | "open" | "done";
@@ -56,10 +58,8 @@ export function NotesPage() {
   const [targetFilter, setTargetFilter] = useState<TargetFilter>("all");
 
   useEffect(() => {
-    setBreadcrumbs([
-      { label: "Dashboard", href: "/" },
-      { label: "Notes" },
-    ]);
+    setBreadcrumbs([{ label: "Notes" }]);
+    return () => setBreadcrumbs([]);
   }, [setBreadcrumbs]);
 
   useEffect(() => {
@@ -134,6 +134,7 @@ export function NotesPage() {
 
   return (
     <div className={styles.root}>
+      <PageDecor variant="notes" />
       {/* ── editorial hero ── */}
       <div className={styles.hero}>
         <NumberBadge number="01" variant="gold" size="sm" />
@@ -159,6 +160,8 @@ export function NotesPage() {
           </div>
         </div>
       )}
+
+      <SeluBars />
 
       {/* ── filters ── */}
       <div className={styles.filters}>

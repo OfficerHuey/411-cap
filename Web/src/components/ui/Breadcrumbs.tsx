@@ -9,6 +9,7 @@ export interface BreadcrumbsProps {
 
 export function Breadcrumbs({ items }: BreadcrumbsProps) {
   if (items.length === 0) return null;
+  if (items.length === 1 && !items[0].href) return null;
 
   return (
     <nav className={styles.strip} aria-label="Breadcrumb">

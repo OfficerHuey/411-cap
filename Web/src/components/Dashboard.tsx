@@ -21,6 +21,8 @@ import { Badge } from "./ui/Badge";
 import { EmptyState } from "./ui/EmptyState";
 import { Modal } from "./ui/Modal";
 import { Skeleton } from "./ui/Skeleton";
+import { SeluBars } from "./ui/SeluBars";
+import { PageDecor } from "./ui/PageDecor";
 import styles from "./Dashboard.module.css";
 
 function getGreeting(): { text: string; accent: string } {
@@ -82,8 +84,11 @@ export function Dashboard() {
   const greeting = getGreeting();
   const firstName = getFirstName(authService.getCurrentUser()?.name);
 
-  //clear breadcrumbs on dashboard
-  useEffect(() => { setBreadcrumbs([]); }, [setBreadcrumbs]);
+  //top-level breadcrumb — single item, hidden by Breadcrumbs but used for active-state logic
+  useEffect(() => {
+    setBreadcrumbs([{ label: "Dashboard" }]);
+    return () => setBreadcrumbs([]);
+  }, [setBreadcrumbs]);
 
   useEffect(() => { loadSemesters(); }, []);
 
@@ -166,6 +171,7 @@ export function Dashboard() {
 
   return (
     <div className={styles.root}>
+      <PageDecor variant="dashboard" />
       {/* ── hero ── */}
       <motion.div
         className={styles.hero}
@@ -205,59 +211,60 @@ export function Dashboard() {
         </div>
       ) : (
         <motion.div
+          className={styles.statSection}
           variants={reduced ? undefined : statStripVariants}
           initial="hidden"
           animate="visible"
         >
-          <Card variant="raised" className={styles.statStrip}>
-            <div className={styles.statGrid}>
-              <motion.div variants={reduced ? undefined : statVariants}>
-                <StatTile
-                  label="Active Semesters"
-                  value={activeSemesters.length}
-                  accent="gold"
-                  size="sm"
-                  trend={lockedCount > 0 ? { direction: "neutral", text: `${lockedCount} archived` } : undefined}
-                />
-              </motion.div>
-              <motion.div variants={reduced ? undefined : statVariants}>
-                <StatTile
-                  label="Schedule Groups"
-                  value={totalSchedules}
-                  accent="green"
-                  size="sm"
-                  trend={activeSemesters.length > 0 ? { direction: "neutral", text: `across ${activeSemesters.length} semester${activeSemesters.length !== 1 ? "s" : ""}` } : undefined}
-                />
-              </motion.div>
-              <motion.div variants={reduced ? undefined : statVariants}>
-                <StatTile
-                  label="Students Placed"
-                  value={totalStudents ?? 0}
-                  accent="green"
-                  size="sm"
-                  trend={totalStudents !== null && totalStudents > 0 ? { direction: "neutral", text: `across ${activeSemesters.length} semester${activeSemesters.length !== 1 ? "s" : ""}` } : undefined}
-                />
-              </motion.div>
-              <motion.div variants={reduced ? undefined : statVariants}>
-                <StatTile
-                  label="Attention Needed"
-                  value={attentionCount ?? 0}
-                  accent={attentionCount && attentionCount > 0 ? "gold" : "none"}
-                  size="sm"
-                  trend={
-                    attentionCount !== null
-                      ? {
-                          direction: attentionCount === 0 ? "neutral" : "down",
-                          text: attentionCount === 0 ? "All clear" : "Review details",
-                        }
-                      : undefined
-                  }
-                />
-              </motion.div>
-            </div>
-          </Card>
+          <div className={styles.statSectionGrid}>
+            <motion.div variants={reduced ? undefined : statVariants}>
+              <StatTile
+                label="Active Semesters"
+                value={activeSemesters.length}
+                accent="gold"
+                size="sm"
+                trend={lockedCount > 0 ? { direction: "neutral", text: `${lockedCount} archived` } : undefined}
+              />
+            </motion.div>
+            <motion.div variants={reduced ? undefined : statVariants}>
+              <StatTile
+                label="Schedule Groups"
+                value={totalSchedules}
+                accent="green"
+                size="sm"
+                trend={activeSemesters.length > 0 ? { direction: "neutral", text: `across ${activeSemesters.length} semester${activeSemesters.length !== 1 ? "s" : ""}` } : undefined}
+              />
+            </motion.div>
+            <motion.div variants={reduced ? undefined : statVariants}>
+              <StatTile
+                label="Students Placed"
+                value={totalStudents ?? 0}
+                accent="green"
+                size="sm"
+                trend={totalStudents !== null && totalStudents > 0 ? { direction: "neutral", text: `across ${activeSemesters.length} semester${activeSemesters.length !== 1 ? "s" : ""}` } : undefined}
+              />
+            </motion.div>
+            <motion.div variants={reduced ? undefined : statVariants}>
+              <StatTile
+                label="Attention Needed"
+                value={attentionCount ?? 0}
+                accent={attentionCount && attentionCount > 0 ? "gold" : "none"}
+                size="sm"
+                trend={
+                  attentionCount !== null
+                    ? {
+                        direction: attentionCount === 0 ? "neutral" : "down",
+                        text: attentionCount === 0 ? "All clear" : "Review details",
+                      }
+                    : undefined
+                }
+              />
+            </motion.div>
+          </div>
         </motion.div>
       )}
+
+      {!loading && <SeluBars />}
 
       {/* ── featured semester ── */}
       {featured && !loading && (

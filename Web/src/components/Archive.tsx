@@ -8,14 +8,23 @@ import { useNavigate } from "react-router-dom";
 import { useReducedMotion } from "../hooks/useReducedMotion";
 import { staggerContainer, cardVariants, heroStagger, heroChild } from "../Lib/motion";
 import { useToast } from "../Lib/ToastContext";
+import { useBreadcrumbs } from "../Lib/BreadcrumbContext";
+import { SeluBars } from "./ui/SeluBars";
+import { PageDecor } from "./ui/PageDecor";
 
 export function Archive() {
   const navigate = useNavigate();
   const reduced = useReducedMotion();
   const { addToast } = useToast();
+  const { setItems: setBreadcrumbs } = useBreadcrumbs();
   const [semesterList, setSemesterList] = useState<Semester[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    setBreadcrumbs([{ label: "Archive" }]);
+    return () => setBreadcrumbs([]);
+  }, [setBreadcrumbs]);
 
   useEffect(() => {
     loadSemesters();
@@ -62,7 +71,18 @@ export function Archive() {
   return (
     <>
       <style>{`
-        .archive-root { font-family: 'Inter', sans-serif; }
+        .archive-root {
+          font-family: 'Inter', sans-serif;
+          position: relative;
+          overflow: hidden;
+          background: transparent;
+          min-height: calc(100vh - 72px);
+        }
+
+        .archive-root > * {
+          position: relative;
+          z-index: 1;
+        }
 
         .archive-header {
           display: flex;
@@ -95,9 +115,9 @@ export function Archive() {
         }
 
         .archive-btn-back:hover {
-          background: #00563f;
+          background: #1A5632;
           color: #ffffff;
-          border-color: #00563f;
+          border-color: #1A5632;
         }
 
         .archive-header-text h1 {
@@ -202,9 +222,9 @@ export function Archive() {
           display: inline-flex;
           align-items: center;
           padding: 0.2rem 0.65rem;
-          background: rgba(200, 149, 44, 0.08);
+          background: rgba(255, 198, 41, 0.08);
           color: #92400e;
-          border: 1px solid rgba(200, 149, 44, 0.2);
+          border: 1px solid rgba(255, 198, 41, 0.2);
           border-radius: 20px;
           font-size: 0.72rem;
           font-weight: 500;
@@ -243,9 +263,9 @@ export function Archive() {
         }
 
         .archive-btn-open:hover {
-          background: #00563f;
+          background: #1A5632;
           color: #ffffff;
-          border-color: #00563f;
+          border-color: #1A5632;
         }
 
         .archive-btn-unlock {
@@ -253,20 +273,20 @@ export function Archive() {
           align-items: center;
           gap: 0.4rem;
           padding: 0.5rem 1rem;
-          background: rgba(0, 86, 63, 0.08);
-          border: 1px solid rgba(0, 86, 63, 0.2);
+          background: rgba(26, 86, 50, 0.08);
+          border: 1px solid rgba(26, 86, 50, 0.2);
           border-radius: 8px;
           font-family: 'Inter', sans-serif;
           font-size: 0.82rem;
           font-weight: 500;
-          color: #00563f;
+          color: #1A5632;
           cursor: pointer;
           transition: all 0.15s;
         }
 
         .archive-btn-unlock:hover {
-          background: rgba(0, 86, 63, 0.15);
-          border-color: rgba(0, 86, 63, 0.35);
+          background: rgba(26, 86, 50, 0.15);
+          border-color: rgba(26, 86, 50, 0.35);
         }
 
         .archive-empty {
@@ -294,7 +314,7 @@ export function Archive() {
         }
 
         .archive-empty h3 {
-          font-family: 'Playfair Display', serif;
+          font-family: 'Montserrat', 'Inter', sans-serif;
           font-size: 1.25rem;
           color: #111827;
           margin: 0 0 0.4rem 0;
@@ -324,6 +344,7 @@ export function Archive() {
       `}</style>
 
       <div className="archive-root">
+        <PageDecor variant="archive" />
         <motion.div
           className="archive-header"
           variants={reduced ? undefined : heroStagger}
@@ -346,6 +367,8 @@ export function Archive() {
         </motion.div>
 
         {error && <div className="error-banner">{error}</div>}
+
+        <SeluBars />
 
         {loading ? (
           <div className="loading-spinner"><span>Loading archived semesters…</span></div>

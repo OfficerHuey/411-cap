@@ -22,26 +22,26 @@ export const spring = {
 //page transition
 //variants carry their own transitions so enter and exit run on independent timings
 export const pageVariants: Variants = {
-  initial: { opacity: 0, y: 8 },
+  initial: { opacity: 0, y: 10 },
   animate: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.2, ease: ease.ios },
+    transition: { duration: 0.35, ease: ease.ios },
   },
   exit: {
     opacity: 0,
-    y: -4,
-    transition: { duration: 0.08, ease: ease.ios },
+    y: -6,
+    transition: { duration: 0.18, ease: ease.ios },
   },
 };
 
 export const pageEnterTransition: Transition = {
-  duration: 0.2,
+  duration: 0.35,
   ease: ease.ios,
 };
 
 export const pageExitTransition: Transition = {
-  duration: 0.08,
+  duration: 0.18,
   ease: ease.ios,
 };
 
@@ -229,8 +229,8 @@ export const statStripVariants: Variants = {
 //reduced motion overrides
 export const reducedPageVariants: Variants = {
   initial: { opacity: 0 },
-  animate: { opacity: 1, transition: { duration: 0.1 } },
-  exit: { opacity: 0, transition: { duration: 0.05 } },
+  animate: { opacity: 1, transition: { duration: 0.2 } },
+  exit: { opacity: 0, transition: { duration: 0.12 } },
 };
 
 export const reducedFade: Transition = { duration: 0.15 };

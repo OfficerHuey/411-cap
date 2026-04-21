@@ -4,6 +4,7 @@ import { Plus, Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown, DoorOpen, Upload
 import { rooms as roomsApi } from "../Lib/api";
 import type { Room, RoomType } from "../Lib/Types";
 import { useToast } from "../Lib/ToastContext";
+import { useBreadcrumbs } from "../Lib/BreadcrumbContext";
 import { Modal } from "./ui/Modal";
 import { Button } from "./ui/Button";
 import { Input } from "./ui/Input";
@@ -12,6 +13,8 @@ import type { SelectOption } from "./ui/Select";
 import { NumberBadge } from "./ui/NumberBadge";
 import { HairlineRule } from "./ui/HairlineRule";
 import { SectionHeading } from "./ui/SectionHeading";
+import { SeluBars } from "./ui/SeluBars";
+import { PageDecor } from "./ui/PageDecor";
 import { RoomImportModal } from "./Imports/RoomImportModal";
 import styles from "./RoomsPage.module.css";
 
@@ -28,6 +31,7 @@ const TYPE_CLASS: Record<string, string> = {
 
 export function RoomsPage() {
   const { addToast } = useToast();
+  const { setItems: setBreadcrumbs } = useBreadcrumbs();
   const [roomList, setRoomList] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -52,6 +56,11 @@ export function RoomsPage() {
       setSortDir("asc");
     }
   };
+
+  useEffect(() => {
+    setBreadcrumbs([{ label: "Rooms" }]);
+    return () => setBreadcrumbs([]);
+  }, [setBreadcrumbs]);
 
   useEffect(() => { loadRooms(); }, []);
 
@@ -159,6 +168,7 @@ export function RoomsPage() {
   return (
     <>
       <div className={styles.root}>
+        <PageDecor variant="rooms" />
         {/* editorial hero */}
         <div className={styles.hero}>
           <NumberBadge number="01" variant="gold" size="sm" />
@@ -213,6 +223,8 @@ export function RoomsPage() {
         )}
 
         {error && <div className={styles.errorBanner}>{error}</div>}
+
+        <SeluBars />
 
         <SectionHeading number="02" title="All rooms" level="section" />
 

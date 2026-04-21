@@ -3,7 +3,7 @@
 .root {
   background: var(--paper-raised);
   border: 1px solid var(--cream-300);
-  border-top-color: rgba(200, 149, 44, 0.3);
+  border-top-color: rgba(255, 198, 41, 0.3);
   border-radius: var(--radius-lg);
   box-shadow: var(--elevation-2);
   overflow: hidden;
@@ -120,7 +120,7 @@
 
 .searchInput:focus {
   border-color: var(--green-700);
-  box-shadow: 0 0 0 3px rgba(0, 86, 63, 0.1);
+  box-shadow: 0 0 0 3px rgba(26, 86, 50, 0.1);
   background: var(--paper-raised);
 }
 
@@ -149,7 +149,7 @@
   align-items: center;
   margin-bottom: 0.55rem;
   padding-bottom: 0.4rem;
-  border-bottom: 1px solid rgba(200, 149, 44, 0.18);
+  border-bottom: 1px solid rgba(255, 198, 41, 0.18);
 }
 
 .sectionLabel {
@@ -166,8 +166,8 @@
   font-size: 0.6rem;
   font-weight: 600;
   padding: 0.12rem 0.45rem;
-  background: var(--gold-100, rgba(200, 149, 44, 0.1));
-  border: 1px solid rgba(200, 149, 44, 0.25);
+  background: var(--gold-100, rgba(255, 198, 41, 0.1));
+  border: 1px solid rgba(255, 198, 41, 0.25);
   color: var(--gold-600);
   border-radius: 999px;
   letter-spacing: 0.04em;
@@ -216,7 +216,7 @@
 .pill:hover {
   transform: translateX(3px);
   box-shadow: var(--elevation-2);
-  border-color: rgba(200, 149, 44, 0.35);
+  border-color: rgba(255, 198, 41, 0.35);
 }
 
 .pill:hover::before {

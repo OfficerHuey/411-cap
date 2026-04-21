@@ -90,34 +90,34 @@ export function InstructorImportModal({ onClose, onSuccess }: InstructorImportMo
       <style>{`
         .iim-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; padding: 1.5rem; z-index: 9999; backdrop-filter: blur(2px); }
         .iim-box { background: #ffffff; border-radius: 12px; width: 100%; max-width: 680px; max-height: 90vh; overflow-y: auto; box-shadow: 0 24px 60px rgba(0,0,0,0.2); font-family: 'Inter', sans-serif; }
-        .iim-header { background: #00563f; padding: 1.25rem 1.5rem; display: flex; align-items: flex-start; justify-content: space-between; border-radius: 12px 12px 0 0; }
-        .iim-header h2 { font-family: 'Playfair Display', serif; font-size: 1.2rem; font-weight: 600; color: #ffffff; margin: 0 0 0.2rem 0; }
+        .iim-header { background: #1A5632; padding: 1.25rem 1.5rem; display: flex; align-items: flex-start; justify-content: space-between; border-radius: 12px 12px 0 0; }
+        .iim-header h2 { font-family: 'Montserrat', 'Inter', sans-serif; font-size: 1.2rem; font-weight: 600; color: #ffffff; margin: 0 0 0.2rem 0; }
         .iim-header p { font-size: 0.8rem; color: rgba(255,255,255,0.65); margin: 0; font-weight: 300; }
         .iim-close { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; color: #ffffff; cursor: pointer; padding: 0.3rem; display: flex; align-items: center; transition: background 0.15s; flex-shrink: 0; margin-left: 1rem; }
         .iim-close:hover { background: rgba(255,255,255,0.2); }
         .iim-body { padding: 1.5rem; }
         .iim-error { background: #fef2f2; border: 1px solid #fecaca; border-left: 3px solid #dc2626; border-radius: 6px; padding: 0.6rem 0.875rem; margin-bottom: 1rem; font-size: 0.82rem; color: #991b1b; display: flex; align-items: center; gap: 0.5rem; }
         .iim-drop-zone { border: 2px dashed #d1d5db; border-radius: 10px; padding: 3rem 2rem; text-align: center; cursor: pointer; transition: all 0.15s; background: #fafaf8; }
-        .iim-drop-zone:hover, .iim-drop-zone.drag-over { border-color: #00563f; background: rgba(0,86,63,0.04); }
+        .iim-drop-zone:hover, .iim-drop-zone.drag-over { border-color: #1A5632; background: rgba(26,86,50,0.04); }
         .iim-drop-icon { width: 56px; height: 56px; background: #f0faf5; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; }
-        .iim-drop-zone h3 { font-family: 'Playfair Display', serif; font-size: 1.1rem; color: #0a1f14; margin: 0 0 0.5rem 0; }
+        .iim-drop-zone h3 { font-family: 'Montserrat', 'Inter', sans-serif; font-size: 1.1rem; color: #0a1f14; margin: 0 0 0.5rem 0; }
         .iim-drop-zone p { font-size: 0.82rem; color: #9ca3af; margin: 0; font-weight: 300; }
-        .iim-drop-zone .browse-link { color: #00563f; font-weight: 500; text-decoration: underline; cursor: pointer; }
+        .iim-drop-zone .browse-link { color: #1A5632; font-weight: 500; text-decoration: underline; cursor: pointer; }
         .iim-actions-top { display: flex; justify-content: center; gap: 1rem; margin-top: 1.25rem; }
-        .iim-btn-template { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.5rem 1rem; background: #ffffff; color: #00563f; border: 1.5px solid #c6e8d8; border-radius: 8px; font-family: 'Inter', sans-serif; font-size: 0.82rem; font-weight: 500; cursor: pointer; transition: background 0.15s; }
+        .iim-btn-template { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.5rem 1rem; background: #ffffff; color: #1A5632; border: 1.5px solid #c6e8d8; border-radius: 8px; font-family: 'Inter', sans-serif; font-size: 0.82rem; font-weight: 500; cursor: pointer; transition: background 0.15s; }
         .iim-btn-template:hover { background: #f0faf5; }
         .iim-stats { display: flex; gap: 1rem; margin-bottom: 1.25rem; }
         .iim-stat { flex: 1; padding: 0.875rem; border-radius: 8px; border: 1px solid #e5e2db; text-align: center; }
         .iim-stat-value { font-size: 1.5rem; font-weight: 600; color: #0a1f14; margin: 0; }
         .iim-stat-label { font-size: 0.72rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.04em; color: #9ca3af; margin: 0.2rem 0 0; }
         .iim-stat.valid { background: #f0faf5; border-color: #c6e8d8; }
-        .iim-stat.valid .iim-stat-value { color: #00563f; }
+        .iim-stat.valid .iim-stat-value { color: #1A5632; }
         .iim-stat.errors { background: #fef2f2; border-color: #fecaca; }
         .iim-stat.errors .iim-stat-value { color: #991b1b; }
         .iim-section-title { font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: #6b7280; margin: 1.25rem 0 0.75rem; padding-bottom: 0.5rem; border-bottom: 1px solid #f3f4f6; }
         .iim-table-wrap { overflow-x: auto; border: 1px solid #e5e2db; border-radius: 8px; margin-bottom: 1rem; }
         .iim-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
-        .iim-table thead th { padding: 0.6rem 0.75rem; text-align: left; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: #ffffff; background: #00563f; border-bottom: 1px solid #004d38; white-space: nowrap; }
+        .iim-table thead th { padding: 0.6rem 0.75rem; text-align: left; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: #ffffff; background: #1A5632; border-bottom: 1px solid #004d38; white-space: nowrap; }
         .iim-table tbody tr { border-bottom: 1px solid #f3f4f6; }
         .iim-table tbody tr:last-child { border-bottom: none; }
         .iim-table tbody tr:hover { background: #fafaf8; }
@@ -130,17 +130,17 @@ export function InstructorImportModal({ onClose, onSuccess }: InstructorImportMo
         .iim-footer { display: flex; justify-content: flex-end; gap: 0.75rem; padding-top: 1rem; border-top: 1px solid #f3f4f6; margin-top: 0.5rem; }
         .iim-btn-cancel { padding: 0.6rem 1.25rem; border: 1.5px solid #e5e7eb; border-radius: 8px; background: #ffffff; color: #6b7280; font-family: 'Inter', sans-serif; font-size: 0.85rem; font-weight: 500; cursor: pointer; transition: background 0.15s; }
         .iim-btn-cancel:hover { background: #f9fafb; color: #374151; }
-        .iim-btn-commit { padding: 0.6rem 1.5rem; background: #00563f; color: #ffffff; border: none; border-radius: 8px; font-family: 'Inter', sans-serif; font-size: 0.85rem; font-weight: 500; cursor: pointer; transition: background 0.15s; }
-        .iim-btn-commit:hover { background: #003d2a; }
+        .iim-btn-commit { padding: 0.6rem 1.5rem; background: #1A5632; color: #ffffff; border: none; border-radius: 8px; font-family: 'Inter', sans-serif; font-size: 0.85rem; font-weight: 500; cursor: pointer; transition: background 0.15s; }
+        .iim-btn-commit:hover { background: #144425; }
         .iim-btn-commit:disabled { background: #6b7280; cursor: not-allowed; }
         .iim-btn-commit .btn-spinner { animation: iim-spin 0.7s linear infinite; }
         @keyframes iim-spin { to { transform: rotate(360deg); } }
         .iim-success { text-align: center; padding: 2rem 1rem; }
         .iim-success-icon { width: 56px; height: 56px; background: #f0faf5; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; }
-        .iim-success h3 { font-family: 'Playfair Display', serif; font-size: 1.2rem; color: #0a1f14; margin: 0 0 0.5rem 0; }
+        .iim-success h3 { font-family: 'Montserrat', 'Inter', sans-serif; font-size: 1.2rem; color: #0a1f14; margin: 0 0 0.5rem 0; }
         .iim-success p { font-size: 0.88rem; color: #6b7280; margin: 0 0 1.5rem 0; font-weight: 300; }
         .iim-uploading { text-align: center; padding: 2rem; color: #6b7280; font-size: 0.88rem; }
-        .iim-uploading-spinner { width: 40px; height: 40px; border: 3px solid #e5e2db; border-top-color: #00563f; border-radius: 50%; margin: 0 auto 1rem; animation: iim-spin 0.8s linear infinite; }
+        .iim-uploading-spinner { width: 40px; height: 40px; border: 3px solid #e5e2db; border-top-color: #1A5632; border-radius: 50%; margin: 0 auto 1rem; animation: iim-spin 0.8s linear infinite; }
       `}</style>
 
       <div className="iim-overlay" onClick={onClose}>
@@ -189,7 +189,7 @@ export function InstructorImportModal({ onClose, onSuccess }: InstructorImportMo
                       onClick={() => fileInputRef.current?.click()}
                     >
                       <div className="iim-drop-icon">
-                        <FileSpreadsheet size={26} color="#00563f" />
+                        <FileSpreadsheet size={26} color="#1A5632" />
                       </div>
                       <h3>Drop your file here</h3>
                       <p>
@@ -312,7 +312,7 @@ export function InstructorImportModal({ onClose, onSuccess }: InstructorImportMo
             {step === "done" && committedResult && (
               <div className="iim-success">
                 <div className="iim-success-icon">
-                  <CheckCircle size={28} color="#00563f" />
+                  <CheckCircle size={28} color="#1A5632" />
                 </div>
                 <h3>Import Successful</h3>
                 <p>

@@ -46,7 +46,7 @@ export function ScheduleViewer({
           right: 0;
           top: 50%;
           transform: translateY(-50%);
-          background: #00563f;
+          background: #1A5632;
           color: #ffffff;
           border: none;
           border-radius: 8px 0 0 8px;
@@ -61,7 +61,7 @@ export function ScheduleViewer({
           transition: background 0.15s;
         }
 
-        .sv-trigger:hover { background: #003d2a; }
+        .sv-trigger:hover { background: #144425; }
 
         .sv-trigger-label {
           font-family: 'Inter', sans-serif;
@@ -74,7 +74,7 @@ export function ScheduleViewer({
         }
 
         .sv-panel-header {
-          background: #00563f;
+          background: #1A5632;
           padding: 1.25rem 1.5rem;
           display: flex;
           align-items: center;
@@ -85,7 +85,7 @@ export function ScheduleViewer({
         .sv-panel-header-left { display: flex; align-items: center; gap: 0.6rem; }
 
         .sv-panel-header h3 {
-          font-family: 'Playfair Display', serif;
+          font-family: 'Montserrat', 'Inter', sans-serif;
           font-size: 1rem;
           font-weight: 600;
           color: #ffffff;
@@ -133,7 +133,7 @@ export function ScheduleViewer({
         }
 
         .sv-group-name {
-          font-family: 'Playfair Display', serif;
+          font-family: 'Montserrat', 'Inter', sans-serif;
           font-size: 0.9rem;
           font-weight: 600;
           color: #0a1f14;

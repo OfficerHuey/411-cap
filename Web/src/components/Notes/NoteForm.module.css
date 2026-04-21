@@ -27,7 +27,7 @@
 
 .textarea:focus {
   border-color: var(--green-600);
-  box-shadow: 0 0 0 3px rgba(0, 86, 63, 0.08);
+  box-shadow: 0 0 0 3px rgba(26, 86, 50, 0.08);
 }
 
 .textarea::placeholder {

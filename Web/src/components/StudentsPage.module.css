@@ -2,6 +2,15 @@
 
 .root {
   font-family: var(--font-body);
+  position: relative;
+  overflow: hidden;
+  background: transparent;
+  min-height: calc(100vh - 72px);
+}
+
+.root > * {
+  position: relative;
+  z-index: 1;
 }
 
 /* ── hero ── */
@@ -12,7 +21,7 @@
 .heroTitle {
   font-family: var(--font-display);
   font-size: clamp(2.5rem, 5vw, 3.5rem);
-  font-weight: 500;
+  font-weight: 700;
   color: var(--text-on-paper);
   letter-spacing: var(--tracking-tightest);
   line-height: 1.05;
@@ -42,12 +51,22 @@
 .statCard {
   background: var(--paper-raised);
   border: 1px solid var(--cream-300);
-  border-radius: 10px;
-  padding: 1rem;
-  box-shadow: var(--elevation-1);
-  border-left: 4px solid var(--gold-400);
+  border-radius: 22px;
+  padding: 1.25rem 1.5rem;
+  box-shadow:
+    0 1px 4px rgba(30, 24, 12, 0.03),
+    0 4px 16px rgba(30, 24, 12, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
   position: relative;
   overflow: hidden;
+  transition: all 250ms ease-out;
+}
+
+.statCard:hover {
+  transform: translateY(-3px);
+  box-shadow:
+    0 4px 12px rgba(30, 24, 12, 0.06),
+    0 8px 28px rgba(30, 24, 12, 0.06);
 }
 
 .statCard::after {
@@ -57,35 +76,58 @@
   right: 0;
   bottom: 0;
   width: 40%;
-  background: linear-gradient(90deg, transparent, rgba(200, 149, 44, 0.02));
+  background: linear-gradient(90deg, transparent, rgba(255, 198, 41, 0.02));
   pointer-events: none;
 }
 
-.statCard.total {
-  border-left-color: var(--green-700);
+/*top-edge gradient accents flowing from different directions per tile*/
+.statStrip > *:nth-child(1)::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; height: 4px;
+  background: linear-gradient(90deg, var(--gold-400) 0%, transparent 80%);
+  border-radius: 22px 22px 0 0;
 }
-
-.statCard.campus {
-  border-left-color: #2563eb;
+.statStrip > *:nth-child(2)::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; height: 4px;
+  background: linear-gradient(90deg, transparent 20%, var(--green-500) 100%);
+  border-radius: 22px 22px 0 0;
+}
+.statStrip > *:nth-child(3)::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; height: 4px;
+  background: linear-gradient(90deg, transparent 10%, var(--gold-400) 50%, transparent 90%);
+  border-radius: 22px 22px 0 0;
+}
+.statStrip > *:nth-child(4)::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; height: 4px;
+  background: linear-gradient(90deg, var(--green-500) 0%, transparent 70%);
+  border-radius: 22px 22px 0 0;
 }
 
 .statNumber {
   font-family: var(--font-display);
-  font-size: 1.75rem;
-  font-weight: 500;
+  font-size: 2.25rem;
+  font-weight: 800;
   color: var(--text-on-paper);
   line-height: 1;
   margin: 0;
+  letter-spacing: -0.03em;
 }
 
 .statLabel {
   font-family: var(--font-mono);
-  font-size: 0.62rem;
-  font-weight: 600;
-  letter-spacing: 0.1em;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--text-muted);
-  margin: 0.3rem 0 0;
+  margin: 0.35rem 0 0;
 }
 
 /* ── toolbar ── */
@@ -113,7 +155,7 @@
 .search {
   padding: 0.6rem 0.875rem 0.6rem 2.25rem;
   border: 1.5px solid var(--cream-300);
-  border-radius: 8px;
+  border-radius: 4px;
   font-family: var(--font-body);
   font-size: 0.85rem;
   outline: none;
@@ -126,7 +168,7 @@
 .search:focus {
   background: var(--paper-raised);
   border-color: var(--green-600);
-  box-shadow: 0 0 0 3px rgba(0, 86, 63, 0.08);
+  box-shadow: 0 0 0 3px rgba(26, 86, 50, 0.08);
 }
 
 .searchIcon {
@@ -152,9 +194,18 @@
 .tableCard {
   background: var(--paper-raised);
   border: 1px solid var(--cream-300);
-  border-radius: 12px;
+  border-radius: 22px;
   overflow: hidden;
-  box-shadow: var(--elevation-1);
+  box-shadow:
+    0 1px 4px rgba(30, 24, 12, 0.03),
+    0 6px 20px rgba(30, 24, 12, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+/*sharp header edges inside soft card*/
+.table thead th:first-child,
+.table thead th:last-child {
+  border-radius: 0;
 }
 
 .tableWrap {
@@ -169,25 +220,30 @@
 }
 
 .table thead th {
-  background: linear-gradient(180deg, var(--green-700) 0%, var(--green-800) 100%);
-  border-bottom: 2px solid var(--gold-500);
+  background: linear-gradient(180deg, #1a4a30 0%, #0e331a 100%);
+  border-bottom: 3px solid var(--gold-400);
   color: var(--paper-raised);
   font-family: var(--font-body);
-  font-size: 0.76rem;
-  font-weight: 600;
+  font-size: 0.78rem;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  padding: 0.8rem 1rem;
+  letter-spacing: 0.08em;
+  padding: 1rem 1.25rem;
   text-align: left;
 }
 
 .table tbody tr {
   border-bottom: 1px solid var(--cream-200);
-  transition: background 0.12s;
+  transition: all 200ms ease-out;
+}
+
+.table tbody tr:nth-child(even) {
+  background: rgba(26, 86, 50, 0.015);
 }
 
 .table tbody tr:hover {
-  background: var(--paper-sunk);
+  background: linear-gradient(90deg, rgba(255, 198, 41, 0.08) 0%, rgba(255, 198, 41, 0.03) 100%);
+  box-shadow: inset 4px 0 0 var(--gold-400);
 }
 
 .table tbody tr:last-child {
@@ -195,15 +251,17 @@
 }
 
 .table tbody td {
-  padding: 0.8rem 1rem;
-  font-size: 0.88rem;
+  padding: 0.9rem 1.25rem;
+  font-size: 0.9rem;
   border-bottom: 1px solid var(--cream-200);
   color: var(--text-on-paper);
   vertical-align: middle;
 }
 
 .nameCell {
-  font-weight: 500;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.95rem;
   color: var(--text-on-paper);
   cursor: pointer;
   transition: color 0.12s;
@@ -254,20 +312,20 @@
 .levelBadge {
   display: inline-block;
   padding: 0.15rem 0.55rem;
-  border-radius: 4px;
+  border-radius: 3px;
   font-family: var(--font-mono);
   font-size: 0.7rem;
   font-weight: 600;
   letter-spacing: 0.02em;
-  background: rgba(0, 86, 63, 0.08);
+  background: rgba(26, 86, 50, 0.08);
   color: var(--green-800);
-  border: 1px solid rgba(0, 86, 63, 0.15);
+  border: 1px solid rgba(26, 86, 50, 0.15);
 }
 
 .campusPill {
   display: inline-block;
   padding: 0.15rem 0.55rem;
-  border-radius: 999px;
+  border-radius: 3px;
   font-family: var(--font-mono);
   font-size: 0.7rem;
   font-weight: 600;
@@ -301,7 +359,7 @@
 
 .btnIcon.view:hover {
   color: var(--green-700);
-  background: rgba(0, 86, 63, 0.06);
+  background: rgba(26, 86, 50, 0.06);
 }
 
 .btnIcon.delete:hover {

@@ -53,3 +53,8 @@ export { Breadcrumbs } from "./Breadcrumbs";
 export type { BreadcrumbsProps } from "./Breadcrumbs";
 
 export { LoadingBar, loadingBar } from "./LoadingBar";
+
+//decorative accents
+export { SeluBars } from "./SeluBars";
+export { SeluArcs } from "./SeluArcs";
+export { PageDecor } from "./PageDecor";

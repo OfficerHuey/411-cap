@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { LogOut, DoorOpen, GraduationCap, Archive, Search, StickyNote, Menu, X, BookOpen } from "lucide-react";
+import { LogOut, DoorOpen, GraduationCap, Archive, Search, StickyNote, Menu, X, BookOpen, Users } from "lucide-react";
 import { useNavigate, useLocation, Outlet } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { authService } from "../Lib/Auth";
 import { useBreadcrumbs } from "../Lib/BreadcrumbContext";
+import { NavigationDirectionProvider } from "../Lib/NavigationDirection";
 import { useReducedMotion } from "../hooks/useReducedMotion";
 import { spring, reducedFade } from "../Lib/motion";
 import { Avatar } from "./ui/Avatar";
@@ -62,10 +63,31 @@ export function Layout() {
     return () => window.removeEventListener("keydown", handler);
   }, []);
 
-  const isActive = (path: string) => {
-    if (path === "/") return location.pathname === "/";
-    return location.pathname.startsWith(path);
+  //map any route to the nav link that owns it hierarchically
+  const getActiveNavPath = (pathname: string): string => {
+    if (pathname.startsWith("/semester/")) return "/";
+    if (pathname.startsWith("/schedule-builder/")) return "/";
+    if (pathname.startsWith("/changelog/")) return "/";
+    if (pathname.startsWith("/courses")) return "/courses";
+    if (pathname.startsWith("/students")) return "/students";
+    if (pathname.startsWith("/rooms")) return "/rooms";
+    if (pathname.startsWith("/instructors")) return "/instructors";
+    if (pathname.startsWith("/notes")) return "/notes";
+    if (pathname.startsWith("/archive")) return "/archive";
+    if (pathname.startsWith("/profile")) return "/profile";
+    return "/";
   };
+
+  const getDepthLevel = (pathname: string): number => {
+    if (pathname.startsWith("/schedule-builder/")) return 2;
+    if (pathname.startsWith("/changelog/")) return 2;
+    if (pathname.startsWith("/semester/")) return 1;
+    return 0;
+  };
+
+  const activeNavPath = getActiveNavPath(location.pathname);
+  const depthLevel = getDepthLevel(location.pathname);
+  const isActive = (path: string) => path === activeNavPath;
 
   //close drawer on route change
   useEffect(() => {
@@ -87,18 +109,19 @@ export function Layout() {
     { path: "/courses", label: "Courses", icon: BookOpen },
     { path: "/students", label: "Students", icon: GraduationCap },
     { path: "/rooms", label: "Rooms", icon: DoorOpen },
-    { path: "/instructors", label: "Instructors", icon: GraduationCap },
+    { path: "/instructors", label: "Instructors", icon: Users },
     { path: "/notes", label: "Notes", icon: StickyNote },
     { path: "/archive", label: "Archive", icon: Archive },
   ];
 
   return (
+    <NavigationDirectionProvider>
     <div className={styles.root}>
       <nav className={styles.nav}>
         <div className={styles.navInner}>
           {/* brand */}
           <div className={styles.brand} onClick={() => navigate("/")}>
-            <SeluLogo size={38} className={styles.brandLogo} />
+            <SeluLogo size={40} className={styles.brandLogo} />
             <div className={styles.brandType}>
               <span className={styles.brandName}>Nursing Scheduler</span>
               <span className={styles.brandSubtitle}>SELU &middot; School of Nursing</span>
@@ -113,6 +136,14 @@ export function Layout() {
                 className={`${styles.navLink} ${isActive(link.path) ? styles.navLinkActive : ""}`}
                 onClick={() => navigate(link.path)}
               >
+                {isActive(link.path) && depthLevel > 0 && (
+                  <span
+                    aria-hidden="true"
+                    style={{ fontSize: "0.6rem", opacity: 0.5, marginRight: "0.2rem" }}
+                  >
+                    &#x21A9;
+                  </span>
+                )}
                 {link.icon && <link.icon size={14} />}
                 {link.label}
               </button>
@@ -240,5 +271,6 @@ export function Layout() {
         )}
       </AnimatePresence>
     </div>
+    </NavigationDirectionProvider>
   );
 }

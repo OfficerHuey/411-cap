@@ -1,19 +1,48 @@
-/* schedule canvas — editorial redesign */
+/* schedule canvas — precision instrument redesign */
 
 .root {
+  position: relative;
   background: var(--paper-raised);
   border: 1px solid var(--cream-300);
-  border-radius: 12px;
-  box-shadow: var(--elevation-1);
+  border-radius: 22px;
+  box-shadow:
+    0 2px 8px rgba(30, 24, 12, 0.04),
+    0 8px 28px rgba(30, 24, 12, 0.05),
+    0 16px 48px rgba(30, 24, 12, 0.02),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    inset 0 0 60px rgba(255, 198, 41, 0.02);
   overflow: hidden;
   font-family: var(--font-body);
 }
 
-/* ── header ── */
+/*faint paper grain on the frame via diagonal radial gradients — pure css noise*/
+.root::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.5;
+  background-image:
+    radial-gradient(rgba(30, 24, 12, 0.018) 1px, transparent 1.2px),
+    radial-gradient(rgba(255, 198, 41, 0.02) 1px, transparent 1.4px);
+  background-size: 3px 3px, 7px 7px;
+  background-position: 0 0, 1px 1px;
+  mix-blend-mode: multiply;
+  border-radius: inherit;
+}
+
+/*everything inside must sit above the grain layer*/
+.root > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* header */
 .header {
-  padding: 1.25rem 1.5rem;
+  padding: 1.5rem 2rem;
   border-bottom: 1px solid var(--cream-300);
-  background: var(--paper-base);
+  background: linear-gradient(180deg, #fefdfb 0%, var(--paper-base) 100%);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -27,9 +56,10 @@
 
 .headerTitle {
   font-family: var(--font-display);
-  font-size: 1.1rem;
-  font-weight: 600;
+  font-size: 1.25rem;
+  font-weight: 700;
   color: var(--text-on-paper);
+  letter-spacing: -0.02em;
   margin: 0.25rem 0 0;
 }
 
@@ -39,30 +69,64 @@
   color: var(--text-muted);
 }
 
-/* ── grid body ── */
+/* body — grid fills the frame, no inset padding */
 .body {
-  padding: 0.75rem;
+  padding: 0;
   overflow-x: auto;
-  background: var(--paper-base);
+  background: transparent;
+  /*cream-tinted custom scrollbar to match the paper theme*/
+  scrollbar-width: thin;
+  scrollbar-color: var(--cream-400) transparent;
 }
 
-/* ── calendar grid ── */
+.body::-webkit-scrollbar {
+  height: 10px;
+  width: 10px;
+}
+
+.body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.body::-webkit-scrollbar-thumb {
+  background: var(--cream-400);
+  border-radius: 8px;
+  border: 2px solid var(--paper-raised);
+}
+
+.body::-webkit-scrollbar-thumb:hover {
+  background: var(--cream-500);
+}
+
+/* inset wrapper so stats/progress/banner float above the flush grid */
+.aboveGrid {
+  padding: 1rem 1.25rem 0.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+/* inset wrapper for elements above the grid so they dont touch the frame edge */
+.aboveGrid {
+  padding: 0.85rem 1rem 0;
+}
+
+/* sharp grid inside soft frame — mixed tension */
 .calGrid {
   display: grid;
   grid-template-columns: 96px repeat(5, minmax(140px, 1fr));
-  border: 1px solid var(--cream-400);
-  border-radius: 10px;
-  overflow: hidden;
+  border: none;
+  border-radius: 0;
+  overflow: visible;
   min-width: 780px;
-  box-shadow:
-    inset 0 1px 3px rgba(0, 0, 0, 0.04),
-    0 1px 2px rgba(0, 0, 0, 0.02);
+  box-shadow: none;
 }
 
+/* corner — dark brick matching day headers */
 .calCorner {
-  background: var(--green-900);
-  border-bottom: 2px solid var(--gold-500);
-  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(135deg, #0a1f12 0%, #061a0e 100%);
+  border-bottom: 3px solid var(--gold-400);
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
   position: sticky;
   left: 0;
   top: 0;
@@ -74,26 +138,26 @@
 
 .cornerLabel {
   font-family: var(--font-mono);
-  font-size: 0.55rem;
-  font-weight: 600;
-  letter-spacing: 0.14em;
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--gold-400);
-  opacity: 0.7;
 }
 
+/* day headers — bold, commanding, display font */
 .calDayHeader {
-  padding: 0.85rem 0.5rem;
+  padding: 1rem 0.5rem;
   text-align: center;
-  font-family: var(--font-body);
-  font-size: 0.82rem;
-  font-weight: 600;
-  letter-spacing: 0.12em;
+  font-family: var(--font-display);
+  font-size: 0.88rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--paper-raised);
-  background: linear-gradient(180deg, var(--green-700) 0%, var(--green-800) 100%);
-  border-bottom: 2px solid var(--gold-500);
-  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.9);
+  background: linear-gradient(180deg, #1a4a30 0%, #0e331a 100%);
+  border-bottom: 3px solid var(--gold-400);
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
   position: sticky;
   top: 0;
   z-index: 5;
@@ -103,10 +167,30 @@
   border-right: none;
 }
 
-/* ── time column ── */
+/* today indicator — brighter green and gold chip */
+.calDayToday {
+  background: linear-gradient(180deg, var(--green-600) 0%, #1a5632 100%) !important;
+  border-bottom: 3px solid var(--gold-300) !important;
+  color: #ffffff !important;
+}
+
+.todayBadge {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--gold-300);
+  margin-top: 0.2rem;
+  background: rgba(255, 198, 41, 0.15);
+  padding: 0.1rem 0.4rem;
+  border-radius: 3px;
+}
+
+/* time column — the ruler */
 .calTimeCol {
-  border-right: 1px solid var(--cream-400);
-  background: var(--paper-sunk);
+  border-right: 2px solid var(--cream-400);
+  background: linear-gradient(90deg, var(--paper-sunk) 0%, rgba(245, 242, 234, 0.6) 100%);
   position: sticky;
   left: 0;
   z-index: 4;
@@ -115,29 +199,43 @@
 .calTimeLabel {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-end;
+  padding: 0 0.75rem 0 0.5rem;
   font-family: var(--font-mono);
   font-size: 0.72rem;
   font-weight: 500;
   color: var(--text-faint);
   border-bottom: 1px solid var(--cream-200);
   white-space: nowrap;
-  padding: 0 0.5rem;
 }
 
 .calTimeLabel.hourMark {
   border-bottom-color: var(--cream-400);
-  color: var(--text-on-paper-muted);
-  font-weight: 600;
+  color: var(--text-on-paper);
+  font-weight: 700;
+  font-size: 0.76rem;
+  position: relative;
+}
+
+/* ruler tick mark at each hour */
+.calTimeLabel.hourMark::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 50%;
+  width: 8px;
+  height: 2px;
+  background: var(--cream-400);
+  transform: translateY(-50%);
 }
 
 .calTimeLabelHalf {
-  font-size: 0.6rem;
-  color: var(--cream-500);
+  font-size: 0.58rem;
+  color: var(--cream-400);
   font-weight: 400;
 }
 
-/* ── day columns ── */
+/* day columns */
 .calDayCol {
   position: relative;
   border-right: 1px solid var(--cream-200);
@@ -148,27 +246,30 @@
   border-right: none;
 }
 
-.calDayCol:nth-child(odd) {
-  background: var(--paper-raised);
-}
-
 .calDayCol:nth-child(even) {
-  background: rgba(0, 0, 0, 0.008);
+  background: rgba(26, 86, 50, 0.008);
 }
 
+.calDayColToday {
+  background:
+    linear-gradient(90deg, rgba(255, 198, 41, 0.1) 0%, rgba(255, 198, 41, 0.04) 8%, rgba(255, 198, 41, 0.035) 100%);
+  box-shadow: inset 1px 0 0 rgba(255, 198, 41, 0.25);
+}
+
+/* grid lines — hour strong, half-hour whisper */
 .calSlotLine {
   position: absolute;
   left: 0;
   right: 0;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.03);
   pointer-events: none;
 }
 
 .calSlotLine.hourMark {
-  border-bottom: 1px solid var(--cream-400);
+  border-bottom: 1px solid rgba(26, 86, 50, 0.12);
 }
 
-/* ── drop zones ── */
+/* drop zones */
 .calDropZone {
   position: absolute;
   left: 0;
@@ -189,23 +290,24 @@
 }
 
 .dropZoneInner.over {
-  background: rgba(200, 149, 44, 0.12);
-  border: 1px dashed var(--gold-400);
-  box-shadow: inset 0 0 0 1px rgba(200, 149, 44, 0.3);
-  animation: dropPulse 1.2s ease-in-out infinite;
+  background: rgba(255, 198, 41, 0.12);
+  border: 2px dashed var(--gold-400);
+  border-radius: 8px;
+  box-shadow: inset 0 0 20px rgba(255, 198, 41, 0.08);
+  animation: dropPulse 1.5s ease-in-out infinite;
 }
 
 @keyframes dropPulse {
-  0%, 100% { opacity: 0.4; }
-  50% { opacity: 0.7; }
+  0%, 100% { box-shadow: inset 0 0 20px rgba(255, 198, 41, 0.08); }
+  50% { box-shadow: inset 0 0 30px rgba(255, 198, 41, 0.15); }
 }
 
-/* ── course blocks ── */
+/* course blocks — the stars of the show */
 .courseBlock {
   position: absolute;
-  left: 4px;
-  right: 4px;
-  border-radius: 8px;
+  left: 5px;
+  right: 5px;
+  border-radius: 10px;
   color: #ffffff;
   font-size: 0.75rem;
   overflow: hidden;
@@ -214,64 +316,85 @@
   display: flex;
   flex-direction: column;
   box-shadow:
-    0 1px 3px rgba(0, 0, 0, 0.1),
-    0 4px 8px rgba(0, 0, 0, 0.06),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    0 2px 4px rgba(0, 0, 0, 0.12),
+    0 6px 16px rgba(0, 0, 0, 0.08),
+    0 12px 32px rgba(0, 0, 0, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25);
   transition:
-    box-shadow 200ms ease-out,
-    transform 200ms ease-out,
+    box-shadow 250ms cubic-bezier(0.32, 0.72, 0, 1),
+    transform 250ms cubic-bezier(0.32, 0.72, 0, 1),
     opacity 150ms ease-out;
 }
 
+/* top accent — gradient gold bar */
 .courseBlock::before {
   content: "";
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  height: 2px;
+  height: 3px;
   background: linear-gradient(
     90deg,
-    rgba(200, 149, 44, 0.6) 0%,
-    rgba(200, 149, 44, 0.2) 100%
+    rgba(255, 198, 41, 0.7) 0%,
+    rgba(255, 198, 41, 0.2) 100%
   );
   z-index: 2;
 }
 
+/* glass overlay — richer gradient */
 .courseBlock::after {
   content: "";
   position: absolute;
   inset: 0;
   background: linear-gradient(
-    165deg,
-    rgba(255, 255, 255, 0.15) 0%,
-    rgba(255, 255, 255, 0.03) 40%,
-    rgba(0, 0, 0, 0.05) 100%
+    160deg,
+    rgba(255, 255, 255, 0.2) 0%,
+    rgba(255, 255, 255, 0.05) 30%,
+    transparent 60%,
+    rgba(0, 0, 0, 0.08) 100%
   );
   pointer-events: none;
   border-radius: inherit;
   z-index: 1;
 }
 
+/* hover — lift with glow underneath colored by the course itself */
 .courseBlock:hover:not(.dragging) {
-  transform: translateY(-2px);
+  transform: translateY(-4px) scale(1.01);
   box-shadow:
-    0 2px 6px rgba(0, 0, 0, 0.12),
-    0 8px 20px rgba(0, 0, 0, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.25);
+    0 4px 8px rgba(0, 0, 0, 0.14),
+    0 12px 28px rgba(0, 0, 0, 0.1),
+    0 20px 48px rgba(0, 0, 0, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    0 10px 30px -4px var(--block-color, rgba(0, 0, 0, 0.15)),
+    0 0 0 1px rgba(255, 255, 255, 0.18);
+  z-index: 3;
 }
 
+/* sheen sweep on hover — a soft band of light crosses the block */
+.courseBlock:hover:not(.dragging)::after {
+  background: linear-gradient(
+    160deg,
+    rgba(255, 255, 255, 0.28) 0%,
+    rgba(255, 255, 255, 0.08) 30%,
+    transparent 60%,
+    rgba(0, 0, 0, 0.08) 100%
+  );
+}
+
+/* dragging — elevated ghost */
 .dragging {
-  opacity: 0.35;
+  opacity: 0.3;
   cursor: grabbing;
-  transform: scale(1.04) translateY(-3px);
+  transform: scale(1.06) translateY(-4px);
   box-shadow:
-    0 8px 24px rgba(0, 0, 0, 0.2),
-    0 2px 8px rgba(0, 0, 0, 0.15);
+    0 12px 32px rgba(0, 0, 0, 0.25),
+    0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .courseBlockInner {
-  padding: 0.55rem 0.7rem;
+  padding: 0.6rem 0.8rem;
   flex: 1;
   min-height: 0;
   overflow: hidden;
@@ -299,7 +422,7 @@
   height: 28px;
   background: rgba(0, 0, 0, 0.35);
   backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.25);
   border-radius: 6px;
   color: #ffffff;
   cursor: pointer;
@@ -307,15 +430,16 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 150ms, transform 150ms;
+  transition: all 150ms ease-out;
 }
 
 .courseBlockBtn:hover {
   transform: scale(1.1);
+  background: rgba(0, 0, 0, 0.5);
 }
 
 .courseBlockBtn.edit:hover {
-  background: rgba(0, 86, 63, 0.9);
+  background: rgba(26, 86, 50, 0.9);
 }
 
 .courseBlockBtn.delete:hover {
@@ -327,70 +451,82 @@
   outline-offset: 1px;
 }
 
+/* block typography — clear hierarchy */
+
+/* time = precision anchor */
 .blockTime {
   font-family: var(--font-mono);
-  font-size: 0.78rem;
+  font-size: 0.74rem;
   font-weight: 600;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.04em;
   font-variant-numeric: tabular-nums;
   opacity: 1;
-  margin-bottom: 3px;
+  margin-bottom: 4px;
   color: rgba(255, 255, 255, 0.95);
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
 }
 
+/* course code = headline */
 .blockCode {
   font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 1.1rem;
+  font-weight: 800;
+  font-size: 1.05rem;
   letter-spacing: -0.02em;
-  line-height: 1.15;
+  line-height: 1.1;
   color: #ffffff;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
+/* section = identifier chip */
 .blockSec {
   font-family: var(--font-mono);
-  font-size: 0.78rem;
-  font-weight: 500;
+  font-size: 0.72rem;
+  font-weight: 600;
   opacity: 0.9;
   margin-top: 3px;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.04em;
   color: rgba(255, 255, 255, 0.9);
+  background: rgba(0, 0, 0, 0.1);
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 3px;
 }
 
+/* room = context */
 .blockRoom {
   font-family: var(--font-body);
-  font-size: 0.78rem;
+  font-size: 0.74rem;
   font-weight: 500;
-  opacity: 0.9;
-  margin-top: 2px;
+  opacity: 0.88;
+  margin-top: 3px;
   display: flex;
   align-items: center;
   gap: 0.3rem;
   color: rgba(255, 255, 255, 0.88);
 }
 
+/* instructor = attribution */
 .blockInstructor {
   font-family: var(--font-body);
-  font-size: 0.74rem;
+  font-size: 0.7rem;
   font-weight: 400;
-  opacity: 0.85;
+  opacity: 0.8;
   font-style: italic;
   margin-top: 2px;
-  color: rgba(255, 255, 255, 0.85);
+  color: rgba(255, 255, 255, 0.8);
 }
 
+/* term = sharp chip */
 .blockTerm {
   font-family: var(--font-mono);
-  font-size: 0.68rem;
-  font-weight: 600;
-  background: rgba(255, 255, 255, 0.25);
+  font-size: 0.62rem;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.2);
   display: inline-block;
-  padding: 2px 7px;
-  border-radius: 4px;
+  padding: 2px 8px;
+  border-radius: 3px;
   margin-top: 3px;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
   color: #ffffff;
 }
 
@@ -432,24 +568,41 @@
   letter-spacing: 0.02em;
 }
 
-/* ── conflict styles ── */
+/* conflict — serious but beautiful glow rings */
 .conflictHard {
-  border: 2px solid var(--error);
-  border-left-width: 4px;
+  border: 2px solid rgba(220, 38, 38, 0.8);
   box-shadow:
-    0 1px 3px rgba(0, 0, 0, 0.1),
-    0 4px 8px rgba(0, 0, 0, 0.06),
-    0 0 0 1px rgba(220, 38, 38, 0.3),
+    0 2px 4px rgba(0, 0, 0, 0.12),
+    0 6px 16px rgba(0, 0, 0, 0.08),
+    0 0 0 3px rgba(220, 38, 38, 0.15),
     inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  animation: conflictHardPulse 2.4s ease-in-out infinite;
+}
+
+@keyframes conflictHardPulse {
+  0%, 100% {
+    box-shadow:
+      0 2px 4px rgba(0, 0, 0, 0.12),
+      0 6px 16px rgba(0, 0, 0, 0.08),
+      0 0 0 3px rgba(220, 38, 38, 0.15),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  }
+  50% {
+    box-shadow:
+      0 2px 4px rgba(0, 0, 0, 0.12),
+      0 6px 16px rgba(0, 0, 0, 0.08),
+      0 0 0 5px rgba(220, 38, 38, 0.22),
+      0 0 20px rgba(220, 38, 38, 0.15),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  }
 }
 
 .conflictSoft {
-  border: 2px dashed var(--warning);
-  border-left-width: 4px;
+  border: 2px dashed rgba(217, 119, 6, 0.7);
   box-shadow:
-    0 1px 3px rgba(0, 0, 0, 0.1),
-    0 4px 8px rgba(0, 0, 0, 0.06),
-    0 0 0 1px rgba(217, 119, 6, 0.2),
+    0 2px 4px rgba(0, 0, 0, 0.12),
+    0 6px 16px rgba(0, 0, 0, 0.08),
+    0 0 0 3px rgba(217, 119, 6, 0.1),
     inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
@@ -475,7 +628,7 @@
   padding-left: 26px;
 }
 
-/* ── tooltip ── */
+/* tooltip */
 .blockTooltip {
   position: fixed;
   z-index: 10000;
@@ -527,7 +680,7 @@
   margin-top: 0.3rem;
 }
 
-/* ── semester 5 cards ── */
+/* sem5 cards */
 .sem5Card {
   border-radius: 8px;
   padding: 1.25rem;
@@ -608,7 +761,7 @@
 
 .sem5ActionBtn.edit:hover {
   color: var(--green-700);
-  background: rgba(0, 86, 63, 0.06);
+  background: rgba(26, 86, 50, 0.06);
 }
 
 .sem5ActionBtn.delete:hover {
@@ -616,7 +769,6 @@
   background: rgba(220, 38, 38, 0.06);
 }
 
-/* ── sem5 drop zone ── */
 .sem5DropZone {
   border: 2px dashed var(--cream-400);
   border-radius: 12px;
@@ -627,7 +779,7 @@
 }
 
 .sem5DropZone.over {
-  background: rgba(200, 149, 44, 0.08);
+  background: rgba(255, 198, 41, 0.08);
   border-color: var(--gold-400);
 }
 
@@ -638,16 +790,236 @@
   margin: 0;
 }
 
-/* ── animation ── */
+/* conflict flash animation (used via inline style on jump-to) */
 @keyframes conflictFlash {
   0% { box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.5); }
   100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
 }
 
-/* ── responsive ── */
+/* today indicator column tint already handled above */
+
+/* semester progress bar — integrated, minimal chrome */
+.progressRow {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.6rem 1rem;
+  margin-bottom: 0.6rem;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+}
+
+.progressLabel {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.progressTrack {
+  flex: 1;
+  height: 4px;
+  background: var(--cream-300);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--gold-400) 0%, var(--gold-300) 100%);
+  border-radius: 2px;
+  transition: width 600ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.progressEnded {
+  background: var(--cream-400);
+}
+
+/* stats bar — precision instrument frame */
+.statsBar {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 0.85rem 1.25rem;
+  margin-bottom: 0.75rem;
+  background: linear-gradient(
+    135deg,
+    rgba(26, 86, 50, 0.04) 0%,
+    var(--paper-raised) 50%,
+    rgba(255, 198, 41, 0.03) 100%
+  );
+  border: 1px solid var(--cream-300);
+  border-radius: 22px;
+  box-shadow:
+    0 1px 4px rgba(30, 24, 12, 0.03),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.statsItem {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.statsValue {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--text-on-paper);
+  line-height: 1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.statsLabel {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.statsDivider {
+  width: 1px;
+  height: 22px;
+  background: var(--cream-300);
+}
+
+/* empty calendar overlay */
+.calGridWrap {
+  position: relative;
+}
+
+.emptyCalOverlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  z-index: 6;
+  pointer-events: none;
+  background: rgba(252, 250, 244, 0.78);
+  backdrop-filter: blur(2px);
+  padding: 1.5rem 2rem;
+  border-radius: 12px;
+}
+
+.emptyCalIcon {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  background: rgba(255, 198, 41, 0.12);
+  border: 1px solid rgba(255, 198, 41, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gold-600);
+  margin-bottom: 0.85rem;
+}
+
+.emptyCalTitle {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 500;
+  color: var(--text-on-paper);
+  margin: 0 0 0.25rem;
+  letter-spacing: -0.005em;
+}
+
+.emptyCalHint {
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin: 0;
+  font-weight: 400;
+}
+
+/* now-line — alive, pulsing heartbeat */
+.nowLine {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 0;
+  border-top: 2px solid var(--gold-400);
+  z-index: 6;
+  pointer-events: none;
+  box-shadow:
+    0 0 8px rgba(255, 198, 41, 0.4),
+    0 0 16px rgba(255, 198, 41, 0.2);
+  animation: nowLinePulse 3s ease-in-out infinite;
+}
+
+@keyframes nowLinePulse {
+  0%, 100% {
+    box-shadow:
+      0 0 8px rgba(255, 198, 41, 0.4),
+      0 0 16px rgba(255, 198, 41, 0.2);
+  }
+  50% {
+    box-shadow:
+      0 0 12px rgba(255, 198, 41, 0.6),
+      0 0 24px rgba(255, 198, 41, 0.3);
+  }
+}
+
+.nowDot {
+  position: absolute;
+  left: -6px;
+  top: -6px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--gold-400);
+  box-shadow:
+    0 0 0 4px rgba(255, 198, 41, 0.2),
+    0 0 8px rgba(255, 198, 41, 0.4);
+  animation: nowDotPulse 3s ease-in-out infinite;
+}
+
+@keyframes nowDotPulse {
+  0%, 100% {
+    box-shadow:
+      0 0 0 4px rgba(255, 198, 41, 0.2),
+      0 0 8px rgba(255, 198, 41, 0.4);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow:
+      0 0 0 6px rgba(255, 198, 41, 0.15),
+      0 0 12px rgba(255, 198, 41, 0.5);
+    transform: scale(1.15);
+  }
+}
+
+/* course-type icon on section blocks */
+.courseTypeIcon {
+  position: absolute;
+  top: 3px;
+  right: 4px;
+  z-index: 3;
+  color: rgba(255, 255, 255, 0.6);
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+  transition: opacity 150ms;
+}
+
+.courseBlock:hover .courseTypeIcon {
+  opacity: 0;
+}
+
+/* responsive */
 @media (max-width: 1024px) {
   .header {
-    padding: 1rem 1.25rem;
+    padding: 1.15rem 1.25rem;
   }
 
   .sem5Card {
@@ -658,7 +1030,7 @@
 
 @media (max-width: 768px) {
   .body {
-    padding: 0.25rem;
+    padding: 0;
   }
 
   .calGrid {
@@ -674,8 +1046,7 @@
   .courseBlock {
     left: 3px;
     right: 3px;
-    border-radius: 6px;
-    border-left-width: 3px;
+    border-radius: 8px;
   }
 
   .courseBlockInner {
@@ -723,17 +1094,17 @@
 
 @media (max-width: 480px) {
   .headerTitle {
-    font-size: 0.95rem;
+    font-size: 1.05rem;
   }
 
   .calDayHeader {
-    font-size: 0.68rem;
-    padding: 0.55rem 0.3rem;
+    font-size: 0.72rem;
+    padding: 0.7rem 0.3rem;
     letter-spacing: 0.06em;
   }
 }
 
-/* ── reduced motion ── */
+/* reduced motion */
 @media (prefers-reduced-motion: reduce) {
   .courseBlock {
     transition: none;
@@ -747,203 +1118,10 @@
     animation: none;
     opacity: 0.7;
   }
-}
 
-/* ── today indicator ── */
-.calDayToday {
-  background: linear-gradient(180deg, var(--green-600) 0%, var(--green-700) 100%) !important;
-  border-bottom: 2px solid var(--gold-300) !important;
-}
-
-.todayBadge {
-  display: block;
-  font-family: var(--font-mono);
-  font-size: 0.55rem;
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  color: var(--gold-300);
-  margin-top: 0.15rem;
-}
-
-.calDayColToday {
-  background: rgba(200, 149, 44, 0.03);
-}
-
-/* ── semester progress bar ── */
-.progressRow {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.5rem 0.75rem;
-  margin-bottom: 0.5rem;
-  background: var(--paper-raised);
-  border: 1px solid var(--cream-200);
-  border-radius: 6px;
-}
-
-.progressLabel {
-  font-family: var(--font-mono);
-  font-size: 0.68rem;
-  font-weight: 500;
-  letter-spacing: 0.06em;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
-.progressTrack {
-  flex: 1;
-  height: 3px;
-  background: var(--cream-300);
-  border-radius: 2px;
-  overflow: hidden;
-}
-
-.progressFill {
-  height: 100%;
-  background: var(--gold-400);
-  border-radius: 2px;
-  transition: width 600ms ease-out;
-}
-
-.progressEnded {
-  background: var(--cream-400);
-}
-
-/* ── stats bar (above grid) ── */
-.statsBar {
-  display: flex;
-  align-items: center;
-  gap: 1.25rem;
-  padding: 0.75rem 1rem;
-  margin-bottom: 0.6rem;
-  background: var(--paper-raised);
-  border: 1px solid var(--cream-300);
-  border-radius: 8px;
-  box-shadow: var(--elevation-1);
-}
-
-.statsItem {
-  display: flex;
-  align-items: baseline;
-  gap: 0.5rem;
-}
-
-.statsValue {
-  font-family: var(--font-display);
-  font-size: 1.35rem;
-  font-weight: 600;
-  color: var(--text-on-paper);
-  line-height: 1;
-  letter-spacing: -0.01em;
-  font-variant-numeric: tabular-nums;
-}
-
-.statsLabel {
-  font-family: var(--font-mono);
-  font-size: 0.65rem;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--text-faint);
-}
-
-.statsDivider {
-  width: 1px;
-  height: 22px;
-  background: var(--cream-300);
-}
-
-/* ── empty calendar overlay ── */
-.calGridWrap {
-  position: relative;
-}
-
-.emptyCalOverlay {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  z-index: 6;
-  pointer-events: none;
-  background: rgba(252, 250, 244, 0.78);
-  backdrop-filter: blur(2px);
-  padding: 1.5rem 2rem;
-  border-radius: 12px;
-}
-
-.emptyCalIcon {
-  width: 56px;
-  height: 56px;
-  border-radius: 14px;
-  background: rgba(200, 149, 44, 0.12);
-  border: 1px solid rgba(200, 149, 44, 0.3);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--gold-600);
-  margin-bottom: 0.85rem;
-}
-
-.emptyCalTitle {
-  font-family: var(--font-display);
-  font-size: 1.25rem;
-  font-weight: 500;
-  color: var(--text-on-paper);
-  margin: 0 0 0.25rem;
-  letter-spacing: -0.005em;
-}
-
-.emptyCalHint {
-  font-family: var(--font-body);
-  font-size: 0.85rem;
-  color: var(--text-muted);
-  margin: 0;
-  font-weight: 400;
-}
-
-/* ── now line ── */
-.nowLine {
-  position: absolute;
-  left: 0;
-  right: 0;
-  height: 0;
-  border-top: 1.5px solid var(--gold-500);
-  z-index: 6;
-  pointer-events: none;
-  box-shadow: 0 0 6px rgba(200, 149, 44, 0.35);
-}
-
-.nowDot {
-  position: absolute;
-  left: -5px;
-  top: -5px;
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: var(--gold-500);
-  box-shadow:
-    0 0 0 3px rgba(200, 149, 44, 0.2),
-    0 1px 2px rgba(0, 0, 0, 0.15);
-}
-
-/* ── course-type icon on section blocks ── */
-.courseTypeIcon {
-  position: absolute;
-  top: 3px;
-  right: 4px;
-  z-index: 3;
-  color: rgba(255, 255, 255, 0.6);
-  display: flex;
-  align-items: center;
-  pointer-events: none;
-  transition: opacity 150ms;
-}
-
-.courseBlock:hover .courseTypeIcon {
-  opacity: 0;
+  .nowLine,
+  .nowDot,
+  .conflictHard {
+    animation: none;
+  }
 }

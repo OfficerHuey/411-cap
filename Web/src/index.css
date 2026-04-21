@@ -1,26 +1,26 @@
 /* ===== design system tokens ===== */
 :root {
-  /* selu brand green scale */
-  --green-50: #f0faf5;
-  --green-100: #c6e8d8;
-  --green-200: #8fd4b5;
-  --green-300: #4dbd8a;
-  --green-400: #1a9e64;
-  --green-500: #00804a;
-  --green-600: #00563f;
-  --green-700: #003d2a;
-  --green-800: #002a1d;
-  --green-900: #001a12;
-  --green-950: #001a12;
-  --green-975: #000c08;
+  /* selu brand green scale — anchored on official #1A5632 (Pantone 357) */
+  --green-50: #f0f9f4;
+  --green-100: #c8e6d4;
+  --green-200: #91d0ac;
+  --green-300: #52b77f;
+  --green-400: #2d9a61;
+  --green-500: #1f7a4a;
+  --green-600: #1A5632;
+  --green-700: #144425;
+  --green-800: #0e331a;
+  --green-900: #0a2213;
+  --green-950: #06150c;
+  --green-975: #030a06;
 
-  /* selu gold accent */
-  --gold-200: #f5dfa4;
-  --gold-300: #e0b44c;
-  --gold-400: #C8952C;
-  --gold-500: #a67b1e;
-  --gold-600: #875f13;
-  --gold-700: #5e410a;
+  /* selu gold accent — anchored on official #FFC629 (Pantone 123) */
+  --gold-200: #fff0b3;
+  --gold-300: #ffdd66;
+  --gold-400: #FFC629;
+  --gold-500: #dba61e;
+  --gold-600: #a87c14;
+  --gold-700: #755508;
 
   /* warm cream neutrals */
   --cream-50: #fefdfb;
@@ -113,7 +113,7 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.95);
 
   /* typography — families */
-  --font-display: 'Playfair Display', Georgia, serif;
+  --font-display: 'Montserrat', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', Menlo, Consolas, monospace;
 
@@ -134,8 +134,8 @@
   --display-xl: 6.5rem;
   --display-2xl: 8rem;
 
-  /* typography — tracking */
-  --tracking-tightest: -0.04em;
+  /* typography — tracking (relaxed for geometric sans-serif display) */
+  --tracking-tightest: -0.025em;
   --tracking-tighter: -0.02em;
   --tracking-tight: -0.01em;
   --tracking-normal: 0;
@@ -203,41 +203,45 @@ html {
 
 body {
   margin: 0;
+  padding: 0;
   font-family: var(--font-body);
   font-size: var(--text-base);
-  line-height: 1.55;
-  color: var(--text-primary);
-  background-color: var(--paper-base);
+  line-height: var(--leading-normal);
+  color: var(--text-on-paper);
+  min-width: 320px;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  background-color: #f4f1e8;
   background-image:
+    /* bold warm gold zone top-left quadrant */
     radial-gradient(
-      ellipse at 15% 5%,
-      rgba(200, 149, 44, 0.04) 0%,
-      transparent 50%
+      ellipse at 15% 10%,
+      rgba(255, 198, 41, 0.14) 0%,
+      rgba(255, 198, 41, 0.06) 30%,
+      transparent 60%
     ),
+    /* bold cool green zone right side */
     radial-gradient(
-      ellipse at 85% 95%,
-      rgba(0, 86, 63, 0.03) 0%,
-      transparent 50%
+      ellipse at 85% 40%,
+      rgba(26, 86, 50, 0.10) 0%,
+      rgba(26, 86, 50, 0.04) 30%,
+      transparent 55%
+    ),
+    /* warm accent bottom center */
+    radial-gradient(
+      ellipse at 50% 90%,
+      rgba(255, 198, 41, 0.08) 0%,
+      transparent 45%
+    ),
+    /* subtle green ground bottom-left */
+    radial-gradient(
+      ellipse at 30% 100%,
+      rgba(26, 86, 50, 0.06) 0%,
+      transparent 40%
     );
   background-attachment: fixed;
-  min-width: 320px;
-}
-
-body::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  background-image: url('/paper-grain.svg');
-  background-size: 300px 300px;
-  opacity: 0.045;
-  pointer-events: none;
-  z-index: 0;
-  mix-blend-mode: multiply;
-}
-
-body > * {
-  position: relative;
-  z-index: 1;
 }
 
 h1, h2, h3, h4, h5, h6 {

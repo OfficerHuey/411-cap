@@ -25,6 +25,9 @@
   [class*="KeyboardShortcuts"],
   [class*="Toast"],
   [class*="Tooltip"],
+  [class*="StripeAccent"],
+  [class*="SeluBars"],
+  [class*="SeluArcs"],
   button[aria-label="Sign out"] {
     display: none !important;
   }
@@ -85,7 +88,7 @@
   main::before {
     content: "Nursing Scheduler — SELU School of Nursing";
     display: block;
-    font-family: "Playfair Display", Georgia, serif;
+    font-family: "Montserrat", "Inter", sans-serif;
     font-size: 14pt;
     font-weight: 600;
     margin-bottom: 0.75cm;
