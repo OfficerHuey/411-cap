@@ -9,7 +9,6 @@ import { useReducedMotion } from "../hooks/useReducedMotion";
 import { staggerContainer, cardVariants, heroStagger, heroChild } from "../Lib/motion";
 import { useToast } from "../Lib/ToastContext";
 import { useBreadcrumbs } from "../Lib/BreadcrumbContext";
-import { SeluBars } from "./ui/SeluBars";
 import { PageDecor } from "./ui/PageDecor";
 
 export function Archive() {
@@ -74,9 +73,10 @@ export function Archive() {
         .archive-root {
           font-family: 'Inter', sans-serif;
           position: relative;
-          overflow: hidden;
+          overflow-x: hidden;
+          overflow-y: visible;
           background: transparent;
-          min-height: calc(100vh - 72px);
+          min-height: 0;
         }
 
         .archive-root > * {
@@ -91,6 +91,48 @@ export function Archive() {
           margin-bottom: 2.5rem;
           flex-wrap: wrap;
           gap: 1rem;
+          position: relative;
+          margin-left: calc(-50vw + 50%);
+          margin-right: calc(-50vw + 50%);
+          width: 100vw;
+          padding: 2.75rem max(clamp(1rem, 4vw, 3rem), calc((100vw - 1440px) / 2 + 3rem)) 2.5rem;
+          margin-top: -1rem;
+          background:
+            repeating-linear-gradient(
+              -45deg,
+              transparent,
+              transparent 30px,
+              rgba(255, 198, 41, 0.035) 30px,
+              rgba(255, 198, 41, 0.035) 31px
+            ),
+            linear-gradient(170deg, #1a3a28 0%, #112a1c 55%, #0d2016 100%);
+          box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.05),
+            0 4px 20px rgba(0, 0, 0, 0.15);
+          overflow: hidden;
+        }
+
+        .archive-header::before {
+          content: '';
+          position: absolute;
+          top: 0; right: 0;
+          width: 45%; height: 100%;
+          background: radial-gradient(ellipse at top right, rgba(255, 198, 41, 0.1) 0%, transparent 60%);
+          pointer-events: none;
+        }
+
+        .archive-header::after {
+          content: '';
+          position: absolute;
+          bottom: 0; left: 0; right: 0;
+          height: 40px;
+          background: linear-gradient(180deg, transparent 0%, rgba(13, 32, 22, 0.55) 100%);
+          pointer-events: none;
+        }
+
+        .archive-header > * {
+          position: relative;
+          z-index: 1;
         }
 
         .archive-header-left {
@@ -102,29 +144,29 @@ export function Archive() {
         .archive-btn-back {
           width: 36px;
           height: 36px;
-          background: #ffffff;
-          border: 1.5px solid #e5e7eb;
+          background: rgba(255, 255, 255, 0.08);
+          border: 1.5px solid rgba(255, 255, 255, 0.15);
           border-radius: 10px;
           display: flex;
           align-items: center;
           justify-content: center;
           cursor: pointer;
-          color: #6b7280;
+          color: rgba(255, 255, 255, 0.85);
           transition: all 0.2s;
           flex-shrink: 0;
         }
 
         .archive-btn-back:hover {
-          background: #1A5632;
-          color: #ffffff;
-          border-color: #1A5632;
+          background: var(--gold-400);
+          color: var(--green-900);
+          border-color: var(--gold-400);
         }
 
         .archive-header-text h1 {
           font-family: var(--font-display);
           font-size: clamp(2.5rem, 5vw, 3.5rem);
-          font-weight: 500;
-          color: var(--text-on-paper);
+          font-weight: 700;
+          color: var(--paper-raised);
           margin: 0 0 0.3rem 0;
           letter-spacing: var(--tracking-tightest);
           line-height: var(--leading-tight);
@@ -132,12 +174,12 @@ export function Archive() {
 
         .archive-header-text h1 em {
           font-style: italic;
-          color: var(--gold-500);
+          color: var(--gold-400);
         }
 
         .archive-header-text p {
-          color: #9ca3af;
-          font-size: 0.88rem;
+          color: rgba(255, 255, 255, 0.7);
+          font-size: 0.9rem;
           margin: 0;
           font-weight: 400;
         }
@@ -367,8 +409,6 @@ export function Archive() {
         </motion.div>
 
         {error && <div className="error-banner">{error}</div>}
-
-        <SeluBars />
 
         {loading ? (
           <div className="loading-spinner"><span>Loading archived semesters…</span></div>

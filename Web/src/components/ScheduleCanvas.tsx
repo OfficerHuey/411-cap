@@ -32,6 +32,9 @@ interface ScheduleCanvasProps {
     timeSlot?: string,
     dateRange?: string,
   ) => void;
+  //optimistic handlers owned by the parent — when provided, canvas delegates instead of hitting the api itself
+  onDeleteSection?: (sectionId: number) => Promise<void>;
+  onMoveSection?: (sectionId: number, dayOfWeek: string, startTime: string, endTime: string) => Promise<void>;
   onInstructorClick?: (instructorId: number) => void;
 }
 
@@ -468,6 +471,8 @@ export function ScheduleCanvas({
   semesterEnd,
   onRefresh,
   onDrop,
+  onDeleteSection,
+  onMoveSection,
   onInstructorClick,
 }: ScheduleCanvasProps) {
   const { addToast } = useToast();
@@ -699,6 +704,12 @@ export function ScheduleCanvas({
   }, [scheduledSections]);
 
   const handleDelete = async (sectionId: number) => {
+    //when parent owns optimistic deletion, delegate and close the confirm
+    if (onDeleteSection) {
+      setDeleteConfirm(null);
+      await onDeleteSection(sectionId);
+      return;
+    }
     try {
       await sectionsApi.removeFromSchedule(sectionId, schedule.id);
       setDeleteConfirm(null);
@@ -747,6 +758,12 @@ export function ScheduleCanvas({
         return;
       }
 
+      //parent owns optimistic move — delegate and let it handle api + rollback
+      if (onMoveSection) {
+        await onMoveSection(sectionId, day, startTimeSpan, endTimeSpan);
+        return;
+      }
+
       try {
         await sectionsApi.move(sectionId, {
           dayOfWeek: day,
@@ -760,7 +777,7 @@ export function ScheduleCanvas({
         addToast("error", err.message || "Failed to move section");
       }
     },
-    [addToast, onRefresh, schedule.id, schedule.sections],
+    [addToast, onRefresh, onMoveSection, schedule.id, schedule.sections],
   );
 
   const getColor = (course: Course) => courseTypeColor(course.defaultType);

@@ -3,9 +3,10 @@
 .root {
   font-family: var(--font-body);
   position: relative;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: visible;
   background: transparent;
-  min-height: calc(100vh - 72px);
+  min-height: 0;
 }
 
 .root > * {
@@ -13,16 +14,58 @@
   z-index: 1;
 }
 
-/* ── hero ── */
+/* ── hero (full-bleed dark green band) ── */
 .hero {
-  padding: 1.5rem 0 0;
+  position: relative;
+  margin-left: calc(-50vw + 50%);
+  margin-right: calc(-50vw + 50%);
+  width: 100vw;
+  padding: 2.75rem max(clamp(1rem, 4vw, 3rem), calc((100vw - 1440px) / 2 + 3rem)) 2.5rem;
+  margin-top: -1rem;
+  margin-bottom: 2rem;
+  background:
+    repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 32px,
+      rgba(255, 198, 41, 0.035) 32px,
+      rgba(255, 198, 41, 0.035) 33px
+    ),
+    linear-gradient(170deg, #1a3a28 0%, #112a1c 55%, #0d2016 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 4px 20px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+}
+
+.hero::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 45%; height: 100%;
+  background: radial-gradient(ellipse at top left, rgba(255, 198, 41, 0.1) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+.hero::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 40px;
+  background: linear-gradient(180deg, transparent 0%, rgba(13, 32, 22, 0.55) 100%);
+  pointer-events: none;
+}
+
+.hero > * {
+  position: relative;
+  z-index: 1;
 }
 
 .heroTitle {
   font-family: var(--font-display);
   font-size: clamp(2.5rem, 5vw, 3.5rem);
   font-weight: 700;
-  color: var(--text-on-paper);
+  color: var(--paper-raised);
   letter-spacing: var(--tracking-tightest);
   line-height: 1.05;
   margin: 0;
@@ -30,14 +73,14 @@
 
 .heroTitle em {
   font-style: italic;
-  color: var(--gold-500);
+  color: var(--gold-400);
 }
 
 .heroSubtitle {
   font-family: var(--font-body);
-  font-size: 0.9rem;
-  color: var(--text-muted);
-  margin: 0.5rem 0 0;
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.72);
+  margin: 0.6rem 0 0;
 }
 
 /* ── stat strip ── */
@@ -46,6 +89,8 @@
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 0.75rem;
   margin: 1.5rem 0;
+  container-type: inline-size;
+  container-name: students-stat-strip;
 }
 
 .statCard {
@@ -210,6 +255,9 @@
 
 .tableWrap {
   overflow-x: auto;
+  overflow-y: visible;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
 }
 
 .table {

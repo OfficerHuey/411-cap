@@ -10,7 +10,6 @@ import { NumberBadge } from "./ui/NumberBadge";
 import { HairlineRule } from "./ui/HairlineRule";
 import { EmptyState } from "./ui/EmptyState";
 import { Skeleton } from "./ui/Skeleton";
-import { SeluBars } from "./ui/SeluBars";
 import { PageDecor } from "./ui/PageDecor";
 import styles from "./NotesPage.module.css";
 
@@ -160,8 +159,6 @@ export function NotesPage() {
           </div>
         </div>
       )}
-
-      <SeluBars />
 
       {/* ── filters ── */}
       <div className={styles.filters}>

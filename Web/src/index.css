@@ -1,5 +1,16 @@
 /* ===== design system tokens ===== */
 :root {
+  /* safe viewport height — browsers pick the last valid declaration */
+  /* mobile safari collapses 100vh when the address bar is visible; dvh tracks the dynamic viewport */
+  --vh-full: 100vh;
+  --vh-full: 100dvh;
+
+  /* safe area insets for notched devices (iphone x and up, pixel, etc) */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+
   /* selu brand green scale — anchored on official #1A5632 (Pantone 357) */
   --green-50: #f0f9f4;
   --green-100: #c8e6d4;
@@ -195,7 +206,9 @@
 }
 
 html {
+  height: 100%;
   font-size: 16px;
+  overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
@@ -209,6 +222,7 @@ body {
   line-height: var(--leading-normal);
   color: var(--text-on-paper);
   min-width: 320px;
+  min-height: var(--vh-full);
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;

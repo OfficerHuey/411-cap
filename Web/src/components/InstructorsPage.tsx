@@ -13,9 +13,9 @@ import type { SelectOption } from "./ui/Select";
 import { NumberBadge } from "./ui/NumberBadge";
 import { HairlineRule } from "./ui/HairlineRule";
 import { SectionHeading } from "./ui/SectionHeading";
-import { SeluBars } from "./ui/SeluBars";
 import { PageDecor } from "./ui/PageDecor";
 import { InstructorImportModal } from "./Imports/InstructorImportModal";
+import { Skeleton } from "./ui/Skeleton";
 import styles from "./InstructorsPage.module.css";
 
 const INSTRUCTOR_TYPES: InstructorType[] = ["FullTime", "Adjunct", "Overload"];
@@ -211,8 +211,6 @@ export function InstructorsPage() {
 
         {error && <div className={styles.errorBanner}>{error}</div>}
 
-        <SeluBars />
-
         <SectionHeading number="02" title="All instructors" level="section" />
 
         <div className={styles.toolbar}>
@@ -226,7 +224,7 @@ export function InstructorsPage() {
 
         <div className={styles.tableCard}>
           {loading ? (
-            <div className={styles.empty}><span>Loading instructors&hellip;</span></div>
+            <Skeleton variant="tableRow" count={8} />
           ) : filtered.length === 0 ? (
             <div className={styles.empty}>
               <div className={styles.emptyIcon}><GraduationCap size={22} color="var(--green-700)" /></div>
@@ -234,7 +232,8 @@ export function InstructorsPage() {
               <p>{list.length === 0 ? "Add your first instructor using the button above" : "No instructors match your search"}</p>
             </div>
           ) : (
-            <table className={styles.table}>
+            <div className={styles.tableWrap}>
+              <table className={styles.table}>
               <thead>
                 <tr>
                   {([["name","Name"],["email","Email"],["type","Type"]] as const).map(([col, label]) => (
@@ -271,6 +270,7 @@ export function InstructorsPage() {
                 ))}
               </tbody>
             </table>
+            </div>
           )}
         </div>
       </div>

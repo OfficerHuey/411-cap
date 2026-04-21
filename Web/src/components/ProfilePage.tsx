@@ -12,7 +12,6 @@ import { NumberBadge } from "./ui/NumberBadge";
 import { HairlineRule } from "./ui/HairlineRule";
 import { Skeleton } from "./ui/Skeleton";
 import { Card } from "./ui/Card";
-import { SeluBars } from "./ui/SeluBars";
 import { PageDecor } from "./ui/PageDecor";
 import styles from "./ProfilePage.module.css";
 
@@ -106,8 +105,6 @@ export function ProfilePage() {
         <h1 className={styles.heroTitle}><em>Profile</em></h1>
         <p className={styles.heroSubtitle}>Manage your account preferences</p>
       </div>
-
-      <SeluBars />
 
       <div className={styles.grid}>
         {/* ── identity card ── */}

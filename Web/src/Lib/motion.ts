@@ -1,4 +1,4 @@
-//shared motion presets — easings, spring configs, variants
+//shared motion presets — easings, physics tokens, variants
 //enforces the motion design philosophy across the app
 
 import type { Transition, Variants } from "framer-motion";
@@ -9,14 +9,49 @@ export const ease = {
   out: [0.16, 1, 0.3, 1] as [number, number, number, number],
 };
 
-//spring configs for physical interactions
+// ── PHYSICS TOKENS ──
+// every spring config represents a physical material
+// mass: how heavy the element feels (higher = more momentum)
+// stiffness: how snappy the spring is (higher = faster settle)
+// damping: how quickly oscillation dies (higher = less bounce)
+export const physics = {
+  //ui chrome — buttons, badges, tooltips
+  //feels: crisp, responsive, no bounce
+  instant: { type: "spring" as const, mass: 0.3, stiffness: 500, damping: 30 },
+
+  //cards, tiles — interactive content
+  //feels: solid, satisfying settle with tiny overshoot
+  standard: { type: "spring" as const, mass: 0.5, stiffness: 300, damping: 25 },
+
+  //modals, panels — large surfaces
+  //feels: weighty, deliberate entrance
+  heavy: { type: "spring" as const, mass: 0.8, stiffness: 250, damping: 28 },
+
+  //page transitions — full-screen movements
+  //feels: smooth, cinematic
+  cinematic: { type: "spring" as const, mass: 0.6, stiffness: 200, damping: 26 },
+
+  //magnetic hover — elements attracted to cursor
+  //low damping produces the overshoot+snap that reads as "magnetic"
+  magnetic: { type: "spring" as const, mass: 0.2, stiffness: 180, damping: 12 },
+
+  //bounce — celebratory moments (success, achievement)
+  //feels: energetic pop with visible bounce
+  bounce: { type: "spring" as const, mass: 0.4, stiffness: 400, damping: 15 },
+
+  //gentle — background elements, decorative motion
+  //feels: dreamy, slow, organic
+  gentle: { type: "spring" as const, mass: 1.0, stiffness: 80, damping: 20 },
+};
+
+/** @deprecated use `physics` tokens instead */
 export const spring = {
-  modal: { type: "spring" as const, stiffness: 320, damping: 32 },
-  panel: { type: "spring" as const, stiffness: 280, damping: 30 },
-  card: { type: "spring" as const, stiffness: 260, damping: 26 },
-  stat: { type: "spring" as const, stiffness: 260, damping: 26 },
-  snappy: { type: "spring" as const, stiffness: 400, damping: 35 },
-  drawer: { type: "spring" as const, stiffness: 300, damping: 30 },
+  modal: physics.heavy,
+  panel: physics.heavy,
+  card: physics.standard,
+  stat: physics.standard,
+  snappy: physics.instant,
+  drawer: physics.heavy,
 };
 
 //page transition
@@ -60,7 +95,7 @@ export const cardVariants: Variants = {
     opacity: 1,
     y: 0,
     scale: 1,
-    transition: spring.card,
+    transition: physics.standard,
   },
 };
 
@@ -76,7 +111,7 @@ export const statVariants: Variants = {
     opacity: 1,
     y: 0,
     scale: 1,
-    transition: spring.stat,
+    transition: physics.standard,
   },
 };
 
@@ -92,7 +127,7 @@ export const modalVariants: Variants = {
     opacity: 1,
     scale: 1,
     y: 0,
-    transition: spring.modal,
+    transition: physics.heavy,
   },
   exit: {
     opacity: 0,
@@ -111,7 +146,7 @@ export const panelVariants: Variants = {
   hidden: { x: "100%" },
   visible: {
     x: 0,
-    transition: spring.panel,
+    transition: physics.heavy,
   },
   exit: {
     x: "100%",
@@ -126,7 +161,7 @@ export const toastVariants: Variants = {
     opacity: 1,
     x: 0,
     scale: 1,
-    transition: spring.panel,
+    transition: physics.standard,
   },
   exit: {
     opacity: 0,
@@ -146,22 +181,32 @@ export const heroChild: Variants = {
   visible: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.28, ease: ease.ios },
+    transition: physics.standard,
   },
 };
 
 //button micro-interactions
-export const buttonHover = { scale: 1.015, y: -1 };
-export const buttonTap = { scale: 0.98 };
-export const buttonTransition: Transition = { duration: 0.2, ease: ease.ios };
+export const buttonHover = {
+  scale: 1.015,
+  y: -1,
+  transition: physics.instant,
+};
+export const buttonTap = {
+  scale: 0.98,
+  transition: physics.instant,
+};
+export const buttonTransition: Transition = physics.instant;
 
 //card hover/tap (interactive cards only)
 export const cardHover = {
   y: -4,
   scale: 1.01,
-  transition: { duration: 0.2, ease: ease.ios },
+  transition: physics.standard,
 };
-export const cardTap = { scale: 0.99 };
+export const cardTap = {
+  scale: 0.99,
+  transition: physics.instant,
+};
 
 //conflict badge pop-in
 export const badgePopVariants: Variants = {
@@ -169,7 +214,7 @@ export const badgePopVariants: Variants = {
   visible: {
     opacity: 1,
     scale: 1,
-    transition: { duration: 0.22, ease: ease.ios },
+    transition: physics.bounce,
   },
 };
 
@@ -179,7 +224,7 @@ export const dropInVariants: Variants = {
   visible: {
     opacity: 1,
     scale: 1,
-    transition: { duration: 0.24, ...spring.card },
+    transition: physics.standard,
   },
 };
 
@@ -197,7 +242,7 @@ export const fromLeft: Variants = {
   visible: {
     opacity: 1,
     x: 0,
-    transition: spring.card,
+    transition: physics.standard,
   },
 };
 
@@ -207,7 +252,7 @@ export const popIn: Variants = {
   visible: {
     opacity: 1,
     scale: 1,
-    transition: { type: "spring", stiffness: 350, damping: 20 },
+    transition: physics.bounce,
   },
 };
 
@@ -219,7 +264,7 @@ export const statStripVariants: Variants = {
     y: 0,
     scale: 1,
     transition: {
-      ...spring.card,
+      ...physics.standard,
       delayChildren: 0.15,
       staggerChildren: 0.08,
     },

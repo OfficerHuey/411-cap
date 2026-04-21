@@ -203,7 +203,7 @@ export function ScheduleViewer({
                 position: "fixed",
                 top: 0,
                 right: 0,
-                height: "100vh",
+                height: "var(--vh-full)",
                 width: 300,
                 background: "#ffffff",
                 zIndex: 201,

@@ -1,7 +1,7 @@
 /* login — editorial redesign */
 
 .root {
-  min-height: 100vh;
+  min-height: var(--vh-full);
   display: flex;
 }
 

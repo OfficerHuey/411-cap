@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
 import { Plus, Trash2, Lock, Unlock, Copy, Download, History, Upload, ChevronRight, MapPin, Calendar, StickyNote } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
 import { authService } from "../Lib/Auth";
@@ -13,7 +13,7 @@ import { CapacityMeter } from "./CapacityMeter";
 import { useBreadcrumbs } from "../Lib/BreadcrumbContext";
 import { useToast } from "../Lib/ToastContext";
 import { useReducedMotion } from "../hooks/useReducedMotion";
-import { heroStagger, heroChild, staggerContainer, cardVariants } from "../Lib/motion";
+import { heroStagger, heroChild, staggerContainer, cardVariants, physics } from "../Lib/motion";
 import { Button } from "./ui/Button";
 import { Card } from "./ui/Card";
 import { NumberBadge } from "./ui/NumberBadge";
@@ -23,7 +23,6 @@ import { Badge } from "./ui/Badge";
 import { EmptyState } from "./ui/EmptyState";
 import { Modal } from "./ui/Modal";
 import { Skeleton } from "./ui/Skeleton";
-import { SeluBars } from "./ui/SeluBars";
 import { PageDecor } from "./ui/PageDecor";
 import { NotesPanel } from "./Notes/NotesPanel";
 import { useNotes } from "../hooks/useNotes";
@@ -226,6 +225,7 @@ export function SemesterHub() {
       {/* ── hero ── */}
       <motion.div
         className={styles.hero}
+        layoutId={reduced || !semester ? undefined : `semester-hero-${semester.id}`}
         variants={reduced ? undefined : heroStagger}
         initial="hidden"
         animate="visible"
@@ -342,8 +342,6 @@ export function SemesterHub() {
 
       {error && <div className={styles.errorBanner}>{error}</div>}
 
-      <SeluBars />
-
       <HairlineRule color="muted" spacing="normal" />
 
       {/* ── tabs ── */}
@@ -364,31 +362,33 @@ export function SemesterHub() {
         })}
       </div>
 
-      {/* ── section heading + grid ── */}
+      {/* ── section heading + grid — heading and grid wrapper always rendered ── */}
+      <SectionHeading
+        number={String(activeLevelNum)}
+        title={loading ? "Loading schedule groups…" : `${scheduleList.length} schedule group${scheduleList.length !== 1 ? "s" : ""}`}
+        level="subsection"
+        action={
+          canEdit && !isLocked && !loading ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              iconLeft={<Plus size={14} />}
+              onClick={() => setShowCreateModal(true)}
+            >
+              Add Schedule Group
+            </Button>
+          ) : undefined
+        }
+      />
+
       {loading ? (
-        <div style={{ marginTop: "1rem" }}>
-          <Skeleton variant="card" height={200} />
+        <div className={styles.grid}>
+          {[1, 2, 3, 4].map((i) => (
+            <Skeleton key={i} variant="scheduleCard" />
+          ))}
         </div>
       ) : (
         <>
-          <SectionHeading
-            number={String(activeLevelNum)}
-            title={`${scheduleList.length} schedule group${scheduleList.length !== 1 ? "s" : ""}`}
-            level="subsection"
-            action={
-              canEdit && !isLocked ? (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  iconLeft={<Plus size={14} />}
-                  onClick={() => setShowCreateModal(true)}
-                >
-                  Add Schedule Group
-                </Button>
-              ) : undefined
-            }
-          />
-
           {scheduleList.length === 0 ? (
             <EmptyState
               icon={<Calendar size={32} />}
@@ -408,72 +408,87 @@ export function SemesterHub() {
               }
             />
           ) : (
-            <motion.div
-              className={styles.grid}
-              variants={reduced ? undefined : staggerContainer(0.05)}
-              initial="hidden"
-              animate="visible"
-            >
-              {scheduleList.map((schedule, idx) => {
-                const letter = String.fromCharCode(65 + idx);
-                return (
-                  <motion.div key={schedule.id} variants={reduced ? undefined : cardVariants}>
-                    <Card
-                      variant="raised"
-                      accentColor="gold"
-                      interactive
-                      onClick={() => navigate(`/schedule-builder/${schedule.id}`)}
-                    >
-                    <div className={styles.cardBody}>
-                      <div className={styles.cardTopRow}>
-                        <NumberBadge number={letter} size="sm" variant="gold" />
-                        {canEdit && !isLocked && (
-                          <div className={styles.cardActions} onClick={(e) => e.stopPropagation()}>
-                            <button
-                              className={styles.cardActionBtn}
-                              onClick={() => setCloneScheduleId(schedule.id)}
-                              title="Clone schedule"
-                            >
-                              <Copy size={14} />
-                            </button>
-                            <button
-                              className={`${styles.cardActionBtn} ${styles.cardActionBtnDanger}`}
-                              onClick={() => setDeleteConfirm(schedule.id)}
-                              title="Delete schedule"
-                            >
-                              <Trash2 size={14} />
-                            </button>
-                          </div>
-                        )}
-                      </div>
+            <LayoutGroup>
+              <motion.div
+                className={styles.grid}
+                variants={reduced ? undefined : staggerContainer(0.05)}
+                initial="hidden"
+                animate="visible"
+              >
+                <AnimatePresence mode="popLayout">
+                  {scheduleList.map((schedule, idx) => {
+                    const letter = String.fromCharCode(65 + idx);
+                    return (
+                      <motion.div
+                        key={schedule.id}
+                        layout={!reduced}
+                        layoutId={reduced ? undefined : `schedule-hero-${schedule.id}`}
+                        variants={reduced ? undefined : cardVariants}
+                        initial={reduced ? undefined : { opacity: 0, scale: 0.95 }}
+                        animate={reduced ? undefined : { opacity: 1, scale: 1 }}
+                        exit={reduced ? undefined : { opacity: 0, scale: 0.92 }}
+                        whileHover={reduced ? undefined : { y: -5, scale: 1.01, transition: physics.magnetic }}
+                        whileTap={reduced ? undefined : { scale: 0.995, transition: physics.instant }}
+                        transition={reduced ? undefined : physics.standard}
+                      >
+                        <Card
+                          variant="raised"
+                          accentColor="gold"
+                          interactive
+                          onClick={() => navigate(`/schedule-builder/${schedule.id}`)}
+                        >
+                      <div className={styles.cardBody}>
+                        <div className={styles.cardTopRow}>
+                          <NumberBadge number={letter} size="sm" variant="gold" />
+                          {canEdit && !isLocked && (
+                            <div className={styles.cardActions} onClick={(e) => e.stopPropagation()}>
+                              <button
+                                className={styles.cardActionBtn}
+                                onClick={() => setCloneScheduleId(schedule.id)}
+                                title="Clone schedule"
+                              >
+                                <Copy size={14} />
+                              </button>
+                              <button
+                                className={`${styles.cardActionBtn} ${styles.cardActionBtnDanger}`}
+                                onClick={() => setDeleteConfirm(schedule.id)}
+                                title="Delete schedule"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+                          )}
+                        </div>
 
-                      <h3 className={styles.cardTitle}>{schedule.name}</h3>
-                      <div className={styles.cardMeta}>
-                        <MapPin size={12} />
-                        <span>{schedule.locationDisplay}</span>
-                      </div>
+                        <h3 className={styles.cardTitle}>{schedule.name}</h3>
+                        <div className={styles.cardMeta}>
+                          <MapPin size={12} />
+                          <span>{schedule.locationDisplay}</span>
+                        </div>
 
-                      <div className={styles.cardCapacity}>
-                        <CapacityMeter
-                          currentCount={schedule.students.length}
-                          capacity={schedule.capacity}
-                        />
-                      </div>
+                        <div className={styles.cardCapacity}>
+                          <CapacityMeter
+                            currentCount={schedule.students.length}
+                            capacity={schedule.capacity}
+                          />
+                        </div>
 
-                      <HairlineRule color="muted" spacing="normal" />
-                      <div className={styles.cardCta}>
-                        <span className={styles.cardCtaText}>
-                          {schedule.sections?.length ?? 0} section{(schedule.sections?.length ?? 0) !== 1 ? "s" : ""} scheduled
-                        </span>
-                        <ChevronRight size={16} className={styles.cardCtaChevron} />
+                        <HairlineRule color="muted" spacing="normal" />
+                        <div className={styles.cardCta}>
+                          <span className={styles.cardCtaText}>
+                            {schedule.sections?.length ?? 0} section{(schedule.sections?.length ?? 0) !== 1 ? "s" : ""} scheduled
+                          </span>
+                          <ChevronRight size={16} className={styles.cardCtaChevron} />
+                        </div>
+                        <EditAttribution entityType="Schedule" entityId={schedule.id} />
                       </div>
-                      <EditAttribution entityType="Schedule" entityId={schedule.id} />
-                    </div>
-                  </Card>
-                  </motion.div>
-                );
-              })}
-            </motion.div>
+                    </Card>
+                      </motion.div>
+                    );
+                  })}
+                </AnimatePresence>
+              </motion.div>
+            </LayoutGroup>
           )}
         </>
       )}

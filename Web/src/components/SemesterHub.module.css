@@ -3,8 +3,10 @@
 .root {
   font-family: var(--font-body);
   position: relative;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: visible;
   background: transparent;
+  min-height: 0;
 }
 
 .root > * {
@@ -158,6 +160,8 @@
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 1.5rem;
   margin-top: 1rem;
+  container-type: inline-size;
+  container-name: schedule-grid;
 }
 
 .cardBody {

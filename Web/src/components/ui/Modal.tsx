@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
@@ -75,8 +75,18 @@ export function Modal({
   showCloseButton = true,
 }: ModalProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
   const reduced = useReducedMotion();
+  //only allow drag-to-dismiss when the scrollable body is at the top
+  //prevents accidental dismissal while the user is scrolling content
+  const [canDrag, setCanDrag] = useState(true);
   useFocusTrap(containerRef, open);
+
+  const handleBodyScroll = useCallback(() => {
+    if (bodyRef.current) {
+      setCanDrag(bodyRef.current.scrollTop <= 0);
+    }
+  }, []);
 
   //escape key handler
   const handleEscape = useCallback(
@@ -121,6 +131,16 @@ export function Modal({
             role="dialog"
             aria-modal="true"
             aria-label={title}
+            //drag-to-dismiss — disabled when body has been scrolled or reduced motion is on
+            drag={!reduced && canDrag ? "y" : false}
+            dragConstraints={{ top: 0, bottom: 0 }}
+            dragElastic={0.4}
+            onDragEnd={(_, info) => {
+              //close on pulled-down distance > 100px or a fast downward flick
+              if (info.offset.y > 100 || info.velocity.y > 500) {
+                onClose();
+              }
+            }}
             style={{ willChange: "opacity, transform" }}
           >
             {showCloseButton && (
@@ -146,7 +166,7 @@ export function Modal({
               <hr className={styles.goldRule} />
             </div>
 
-            <div className={styles.body}>{children}</div>
+            <div ref={bodyRef} className={styles.body} onScroll={handleBodyScroll}>{children}</div>
 
             {footer && <div className={styles.footer}>{footer}</div>}
           </motion.div>

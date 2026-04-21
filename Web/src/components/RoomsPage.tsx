@@ -13,9 +13,9 @@ import type { SelectOption } from "./ui/Select";
 import { NumberBadge } from "./ui/NumberBadge";
 import { HairlineRule } from "./ui/HairlineRule";
 import { SectionHeading } from "./ui/SectionHeading";
-import { SeluBars } from "./ui/SeluBars";
 import { PageDecor } from "./ui/PageDecor";
 import { RoomImportModal } from "./Imports/RoomImportModal";
+import { Skeleton } from "./ui/Skeleton";
 import styles from "./RoomsPage.module.css";
 
 const ROOM_TYPES: RoomType[] = ["Lecture", "Lab", "SimLab", "Clinical", "Online"];
@@ -224,8 +224,6 @@ export function RoomsPage() {
 
         {error && <div className={styles.errorBanner}>{error}</div>}
 
-        <SeluBars />
-
         <SectionHeading number="02" title="All rooms" level="section" />
 
         <div className={styles.toolbar}>
@@ -239,7 +237,7 @@ export function RoomsPage() {
 
         <div className={styles.tableCard}>
           {loading ? (
-            <div className={styles.empty}><span>Loading rooms&hellip;</span></div>
+            <Skeleton variant="tableRow" count={8} />
           ) : filtered.length === 0 ? (
             <div className={styles.empty}>
               <div className={styles.emptyIcon}><DoorOpen size={22} color="var(--green-700)" /></div>
@@ -247,45 +245,47 @@ export function RoomsPage() {
               <p>{roomList.length === 0 ? "Add your first room using the button above" : "No rooms match your search"}</p>
             </div>
           ) : (
-            <table className={styles.table}>
-              <thead>
-                <tr>
-                  {([["roomNumber","Room Number"],["building","Building"],["campus","Campus"],["type","Type"],["capacity","Capacity"]] as const).map(([col, label]) => (
-                    <th key={col} onClick={() => toggleSort(col)}>
-                      {label}
-                      <span className={`${styles.sortIcon} ${sortCol === col ? styles.sortIconActive : ""}`}>
-                        {sortCol === col ? (sortDir === "asc" ? <ArrowUp size={11} /> : <ArrowDown size={11} />) : <ArrowUpDown size={11} />}
-                      </span>
-                    </th>
+            <div className={styles.tableWrap}>
+              <table className={styles.table}>
+                <thead>
+                  <tr>
+                    {([["roomNumber","Room Number"],["building","Building"],["campus","Campus"],["type","Type"],["capacity","Capacity"]] as const).map(([col, label]) => (
+                      <th key={col} onClick={() => toggleSort(col)}>
+                        {label}
+                        <span className={`${styles.sortIcon} ${sortCol === col ? styles.sortIconActive : ""}`}>
+                          {sortCol === col ? (sortDir === "asc" ? <ArrowUp size={11} /> : <ArrowDown size={11} />) : <ArrowUpDown size={11} />}
+                        </span>
+                      </th>
+                    ))}
+                    <th style={{ textAlign: "right", cursor: "default" }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((room, idx) => (
+                    <motion.tr
+                      key={room.id}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: Math.min(idx * 0.03, 0.5), duration: 0.25, ease: [0.32, 0.72, 0, 1] }}
+                    >
+                      <td className={styles.roomNumber}>{room.roomNumber}</td>
+                      <td>{room.building}</td>
+                      <td>{room.campus}</td>
+                      <td><span className={`${styles.typeBadge} ${TYPE_CLASS[room.type] || ""}`}>{room.type}</span></td>
+                      <td className={styles.capacityCell}>{room.capacity}</td>
+                      <td style={{ textAlign: "right" }}>
+                        <button className={`${styles.btnIcon} ${styles.edit}`} onClick={() => openEditModal(room)}>
+                          <Pencil size={14} />
+                        </button>
+                        <button className={`${styles.btnIcon} ${styles.delete}`} onClick={() => setDeleteConfirm(room)}>
+                          <Trash2 size={14} />
+                        </button>
+                      </td>
+                    </motion.tr>
                   ))}
-                  <th style={{ textAlign: "right", cursor: "default" }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((room, idx) => (
-                  <motion.tr
-                    key={room.id}
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: Math.min(idx * 0.03, 0.5), duration: 0.25, ease: [0.32, 0.72, 0, 1] }}
-                  >
-                    <td className={styles.roomNumber}>{room.roomNumber}</td>
-                    <td>{room.building}</td>
-                    <td>{room.campus}</td>
-                    <td><span className={`${styles.typeBadge} ${TYPE_CLASS[room.type] || ""}`}>{room.type}</span></td>
-                    <td className={styles.capacityCell}>{room.capacity}</td>
-                    <td style={{ textAlign: "right" }}>
-                      <button className={`${styles.btnIcon} ${styles.edit}`} onClick={() => openEditModal(room)}>
-                        <Pencil size={14} />
-                      </button>
-                      <button className={`${styles.btnIcon} ${styles.delete}`} onClick={() => setDeleteConfirm(room)}>
-                        <Trash2 size={14} />
-                      </button>
-                    </td>
-                  </motion.tr>
-                ))}
-              </tbody>
-            </table>
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       </div>

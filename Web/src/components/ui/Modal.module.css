@@ -180,7 +180,7 @@
   }
 
   .container {
-    max-height: 100vh;
+    max-height: var(--vh-full);
     border-radius: 0;
   }
 

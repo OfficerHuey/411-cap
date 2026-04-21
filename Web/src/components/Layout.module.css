@@ -1,12 +1,15 @@
 /* layout shell — editorial design system */
 
 .root {
-  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  min-height: var(--vh-full);
 }
 
 /* ── navigation bar ── */
 .nav {
   height: 72px;
+  flex-shrink: 0;
   background:
     linear-gradient(
       180deg,
@@ -396,9 +399,14 @@
 
 /* ── main content ── */
 .main {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
   max-width: 1440px;
   margin: 0 auto;
   padding: 1rem clamp(1rem, 4vw, 3rem) 2rem;
+  padding-bottom: calc(2rem + var(--safe-bottom));
+  overflow: visible;
   animation: fadeInUp 0.4s ease both;
 }
 

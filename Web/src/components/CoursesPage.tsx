@@ -13,7 +13,6 @@ import type { SelectOption } from "./ui/Select";
 import { NumberBadge } from "./ui/NumberBadge";
 import { HairlineRule } from "./ui/HairlineRule";
 import { SectionHeading } from "./ui/SectionHeading";
-import { SeluBars } from "./ui/SeluBars";
 import { PageDecor } from "./ui/PageDecor";
 import { staggerContainer, cardVariants } from "../Lib/motion";
 import styles from "./CoursesPage.module.css";
@@ -230,8 +229,6 @@ export function CoursesPage() {
         )}
 
         {error && <div className={styles.errorBanner}>{error}</div>}
-
-        <SeluBars />
 
         <div className={styles.toolbar}>
           <input

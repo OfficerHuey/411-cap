@@ -13,8 +13,8 @@ import type { SelectOption } from "./ui/Select";
 import { NumberBadge } from "./ui/NumberBadge";
 import { HairlineRule } from "./ui/HairlineRule";
 import { EmptyState } from "./ui/EmptyState";
-import { SeluBars } from "./ui/SeluBars";
 import { PageDecor } from "./ui/PageDecor";
+import { Skeleton } from "./ui/Skeleton";
 import { StudentDetailPanel } from "./StudentDetailPanel";
 import styles from "./StudentsPage.module.css";
 
@@ -191,8 +191,6 @@ export function StudentsPage() {
 
         {error && <div className={styles.errorBanner}>{error}</div>}
 
-        <SeluBars />
-
         {/* toolbar */}
         <div className={styles.toolbar}>
           <div className={styles.searchWrap}>
@@ -234,7 +232,7 @@ export function StudentsPage() {
         {/* table */}
         <div className={styles.tableCard}>
           {loading ? (
-            <div className={styles.empty}>Loading students&hellip;</div>
+            <Skeleton variant="tableRow" count={8} />
           ) : filtered.length === 0 ? (
             <div style={{ padding: "1.5rem" }}>
               <EmptyState

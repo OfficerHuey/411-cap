@@ -8,9 +8,10 @@ import {
   schedules as schedulesApi,
   courses as coursesApi,
   semesters as semestersApi,
+  sections as sectionsApi,
   exports as exportsApi,
 } from "../Lib/api";
-import type { Schedule, Course, Semester } from "../Lib/Types";
+import type { Schedule, Course, Semester, Section, CreateSectionDto } from "../Lib/Types";
 import { numberToLevel } from "../Lib/Types";
 import { CoursePalette } from "./CoursePalette";
 import { ScheduleCanvas } from "./ScheduleCanvas";
@@ -26,7 +27,6 @@ import { NumberBadge } from "./ui/NumberBadge";
 import { HairlineRule } from "./ui/HairlineRule";
 import { Badge } from "./ui/Badge";
 import { Skeleton } from "./ui/Skeleton";
-import { SeluBars } from "./ui/SeluBars";
 import { NotesPanel } from "./Notes/NotesPanel";
 import { InstructorDetailPanel } from "./InstructorDetailPanel";
 import { useNotes } from "../hooks/useNotes";
@@ -116,12 +116,132 @@ export function ScheduleBuilder() {
     }
   };
 
+  //build a display-ready optimistic section from a create dto
+  //room/instructor names are unknown at this point — they fill in when the real response replaces the placeholder
+  const buildOptimisticSection = (dto: CreateSectionDto, tempId: number): Section => {
+    const course = courseList.find((c) => c.id === dto.courseId);
+    return {
+      id: tempId,
+      sectionNumber: dto.sectionNumber,
+      dayOfWeek: dto.dayOfWeek,
+      startTime: dto.startTime,
+      endTime: dto.endTime,
+      dateRange: dto.dateRange,
+      notes: dto.notes,
+      term: dto.term,
+      termStartDate: dto.termStartDate,
+      termEndDate: dto.termEndDate,
+      roomId: dto.roomId,
+      roomNumber: null,
+      roomBuilding: null,
+      instructorId: dto.instructorId,
+      instructorName: null,
+      courseId: dto.courseId,
+      courseCode: course?.code ?? "",
+      courseName: course?.name ?? "",
+      courseType: course?.defaultType ?? "Lecture",
+    };
+  };
+
+  //optimistic create — insert placeholder row, then reconcile with server response
+  const handleCreateSection = async (dto: CreateSectionDto) => {
+    const tempId = -Date.now();
+    const optimistic = buildOptimisticSection(dto, tempId);
+
+    setSchedule((prev) => prev ? { ...prev, sections: [...prev.sections, optimistic] } : prev);
+
+    try {
+      const result = await sectionsApi.createOrLink(dto);
+      //replace the placeholder with the server's authoritative section
+      setSchedule((prev) => prev
+        ? { ...prev, sections: prev.sections.map((s) => s.id === tempId ? result.section : s) }
+        : prev);
+
+      if (result.conflicts && result.conflicts.length > 0) {
+        if (result.conflicts.some((c) => c.severity === "Error")) {
+          addToast("error", `Section added with blocking conflict: ${result.conflicts.find((c) => c.severity === "Error")?.message ?? ""}`);
+        } else if (result.conflicts.some((c) => c.severity === "Warning")) {
+          addToast("warning", "Section added with warnings");
+        } else {
+          addToast("success", "Section added to schedule");
+        }
+      } else {
+        addToast("success", "Section added to schedule");
+      }
+    } catch (err: any) {
+      //rollback the optimistic row on failure
+      setSchedule((prev) => prev
+        ? { ...prev, sections: prev.sections.filter((s) => s.id !== tempId) }
+        : prev);
+      addToast("error", err.message || "Failed to add section");
+    }
+  };
+
+  //optimistic delete — remove locally, restore on failure
+  const handleDeleteSection = async (sectionId: number) => {
+    const prevSections = schedule?.sections ?? [];
+    const removed = prevSections.find((s) => s.id === sectionId);
+    if (!removed) return;
+
+    setSchedule((prev) => prev
+      ? { ...prev, sections: prev.sections.filter((s) => s.id !== sectionId) }
+      : prev);
+
+    try {
+      await sectionsApi.removeFromSchedule(sectionId, scheduleId);
+      addToast("success", "Section removed from schedule");
+    } catch (err: any) {
+      //rollback
+      setSchedule((prev) => prev
+        ? { ...prev, sections: [...prev.sections, removed] }
+        : prev);
+      addToast("error", err.message || "Failed to remove section");
+    }
+  };
+
+  //optimistic move — update day/time locally, revert on failure
+  const handleMoveSection = async (sectionId: number, dayOfWeek: string, startTime: string, endTime: string) => {
+    const prevSections = schedule?.sections ?? [];
+    const original = prevSections.find((s) => s.id === sectionId);
+    if (!original) return;
+
+    setSchedule((prev) => prev
+      ? {
+          ...prev,
+          sections: prev.sections.map((s) =>
+            s.id === sectionId
+              ? { ...s, dayOfWeek: dayOfWeek as Section["dayOfWeek"], startTime, endTime }
+              : s,
+          ),
+        }
+      : prev);
+
+    try {
+      await sectionsApi.move(sectionId, { dayOfWeek, startTime, endTime, scheduleId });
+      addToast("success", "Section moved");
+    } catch (err: any) {
+      //rollback to the pre-move state
+      setSchedule((prev) => prev
+        ? { ...prev, sections: prev.sections.map((s) => s.id === sectionId ? original : s) }
+        : prev);
+      addToast("error", err.message || "Failed to move section");
+    }
+  };
+
   if (loading) {
     return (
-      <div style={{ padding: "2rem" }}>
-        <Skeleton variant="text" count={2} />
-        <div style={{ marginTop: "1rem" }}>
+      <div className={styles.root}>
+        <Skeleton variant="heroSection" />
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "260px 1fr",
+            gap: "1.5rem",
+            padding: "0 clamp(1rem, 4vw, 3rem) 2rem",
+          }}
+        >
           <Skeleton variant="card" height={400} />
+          <Skeleton variant="calendarGrid" />
         </div>
       </div>
     );
@@ -150,6 +270,7 @@ export function ScheduleBuilder() {
         {/* ── hero (0-280ms) ── */}
         <motion.div
           className={styles.hero}
+          layoutId={reduced ? undefined : `schedule-hero-${scheduleId}`}
           variants={reduced ? undefined : heroStagger}
           initial="hidden"
           animate="visible"
@@ -246,8 +367,6 @@ export function ScheduleBuilder() {
           </div>
         </motion.div>
 
-        <SeluBars compact />
-
         {/* ── view toggle (200-350ms) ── */}
         <motion.div
           className={styles.viewToggle}
@@ -300,6 +419,8 @@ export function ScheduleBuilder() {
                 onDrop={(courseId, dayOfWeek, timeSlot, dateRange) =>
                   setDetailsModal({ courseId, dayOfWeek, timeSlot, dateRange })
                 }
+                onDeleteSection={handleDeleteSection}
+                onMoveSection={handleMoveSection}
                 onInstructorClick={(id) => setDetailInstructorId(id)}
               />
             </motion.div>
@@ -337,6 +458,7 @@ export function ScheduleBuilder() {
           semesterLevel={schedule.semesterLevel}
           courses={courseList}
           locationDisplay={schedule.locationDisplay}
+          onCreate={handleCreateSection}
           onClose={() => setDetailsModal(null)}
           onSuccess={() => {
             refreshSchedule();
