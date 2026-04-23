@@ -1,13 +1,18 @@
 .stripe {
   width: 100%;
-  overflow: hidden;
   flex-shrink: 0;
 }
 
 .full {
-  margin-left: calc(-50vw + 50%);
-  margin-right: calc(-50vw + 50%);
-  width: 100vw;
+  position: relative;
+  background: transparent;
+}
+
+.full::before {
+  content: '';
+  position: absolute;
+  top: 0; bottom: 0;
+  left: -9999px; right: -9999px;
   background: linear-gradient(
     90deg,
     var(--green-600) 0%,
@@ -15,6 +20,8 @@
     var(--gold-400) 60%,
     var(--gold-400) 100%
   );
+  pointer-events: none;
+  z-index: -1;
 }
 
 .contained {
