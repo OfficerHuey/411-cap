@@ -14,7 +14,6 @@ import { useAsyncData } from "../hooks/useAsyncData";
 import { heroStagger, heroChild, statStripVariants, statVariants, cardVariants, physics } from "../Lib/motion";
 import { Button } from "./ui/Button";
 import { Card } from "./ui/Card";
-import { NumberBadge } from "./ui/NumberBadge";
 import { HairlineRule } from "./ui/HairlineRule";
 import { StatTile } from "./ui/StatTile";
 import { SectionHeading } from "./ui/SectionHeading";
@@ -22,7 +21,6 @@ import { Badge } from "./ui/Badge";
 import { EmptyState } from "./ui/EmptyState";
 import { Modal } from "./ui/Modal";
 import { Skeleton } from "./ui/Skeleton";
-import { PageDecor } from "./ui/PageDecor";
 import styles from "./Dashboard.module.css";
 
 function getGreeting(): { text: string; accent: string } {
@@ -166,7 +164,6 @@ export function Dashboard() {
 
   return (
     <div className={styles.root}>
-      <PageDecor variant="dashboard" />
       {/* ── hero ── */}
       <motion.div
         className={styles.hero}
@@ -175,7 +172,6 @@ export function Dashboard() {
         animate="visible"
       >
         <div className={styles.heroText}>
-          <motion.div variants={reduced ? undefined : heroChild}><NumberBadge number="01" variant="gold" size="sm" /></motion.div>
           <motion.div variants={reduced ? undefined : heroChild}><HairlineRule width="48px" color="gold" spacing="normal" /></motion.div>
           <motion.h1 variants={reduced ? undefined : heroChild}>
             {greeting.text.replace(greeting.accent, "").trim()}{" "}
@@ -215,16 +211,38 @@ export function Dashboard() {
             </>
           ) : (
             <>
-              <motion.div variants={reduced ? undefined : statVariants}>
+              <motion.div
+                variants={reduced ? undefined : statVariants}
+                whileHover={reduced ? undefined : { y: -5, scale: 1.01, transition: physics.magnetic }}
+                whileTap={reduced ? undefined : { scale: 0.995, transition: physics.instant }}
+                onClick={() => navigate("/semesters-overview")}
+                className={styles.statTileClickable}
+                role="link"
+                aria-label="View all semesters"
+              >
                 <StatTile
-                  label="Active Semesters"
+                  label="Semesters"
                   value={activeSemesters.length}
                   accent="gold"
                   size="sm"
-                  trend={lockedCount > 0 ? { direction: "neutral", text: `${lockedCount} archived` } : undefined}
+                  trend={{
+                    direction: "neutral",
+                    text: lockedCount > 0
+                      ? `${activeSemesters.length} active · ${lockedCount} archived`
+                      : `${activeSemesters.length} active`,
+                  }}
                 />
+                <span className={styles.statTileHint} aria-hidden="true">View details &rarr;</span>
               </motion.div>
-              <motion.div variants={reduced ? undefined : statVariants}>
+              <motion.div
+                variants={reduced ? undefined : statVariants}
+                whileHover={reduced ? undefined : { y: -5, scale: 1.01, transition: physics.magnetic }}
+                whileTap={reduced ? undefined : { scale: 0.995, transition: physics.instant }}
+                onClick={() => navigate("/schedule-groups-overview")}
+                className={styles.statTileClickable}
+                role="link"
+                aria-label="View all schedule groups"
+              >
                 <StatTile
                   label="Schedule Groups"
                   value={totalSchedules}
@@ -232,8 +250,17 @@ export function Dashboard() {
                   size="sm"
                   trend={activeSemesters.length > 0 ? { direction: "neutral", text: `across ${activeSemesters.length} semester${activeSemesters.length !== 1 ? "s" : ""}` } : undefined}
                 />
+                <span className={styles.statTileHint} aria-hidden="true">View details &rarr;</span>
               </motion.div>
-              <motion.div variants={reduced ? undefined : statVariants}>
+              <motion.div
+                variants={reduced ? undefined : statVariants}
+                whileHover={reduced ? undefined : { y: -5, scale: 1.01, transition: physics.magnetic }}
+                whileTap={reduced ? undefined : { scale: 0.995, transition: physics.instant }}
+                onClick={() => navigate("/students")}
+                className={styles.statTileClickable}
+                role="link"
+                aria-label="View students directory"
+              >
                 <StatTile
                   label="Students Placed"
                   value={totalStudents ?? 0}
@@ -241,8 +268,17 @@ export function Dashboard() {
                   size="sm"
                   trend={totalStudents !== null && totalStudents > 0 ? { direction: "neutral", text: `across ${activeSemesters.length} semester${activeSemesters.length !== 1 ? "s" : ""}` } : undefined}
                 />
+                <span className={styles.statTileHint} aria-hidden="true">View details &rarr;</span>
               </motion.div>
-              <motion.div variants={reduced ? undefined : statVariants}>
+              <motion.div
+                variants={reduced ? undefined : statVariants}
+                whileHover={reduced ? undefined : { y: -5, scale: 1.01, transition: physics.magnetic }}
+                whileTap={reduced ? undefined : { scale: 0.995, transition: physics.instant }}
+                onClick={() => navigate("/attention")}
+                className={styles.statTileClickable}
+                role="link"
+                aria-label="View items that need attention"
+              >
                 <StatTile
                   label="Attention Needed"
                   value={attentionCount ?? 0}
@@ -257,13 +293,23 @@ export function Dashboard() {
                       : undefined
                   }
                 />
+                <span className={styles.statTileHint} aria-hidden="true">View details &rarr;</span>
               </motion.div>
             </>
           )}
         </div>
       </motion.div>
 
-      {/* ── featured semester ── */}
+      {/* ── featured semester — renders a skeleton at the same height while
+          loading so the space between stat banner and "All semesters"
+          section is reserved on first paint. without this the banner sat
+          flush against the SectionHeading until data arrived, then the
+          featured card popped in and shoved everything down ── */}
+      {loading && (
+        <div className={styles.featuredSkeleton} aria-hidden="true">
+          <Skeleton variant="custom" height="100%" />
+        </div>
+      )}
       {featured && !loading && (
         <motion.div
           layoutId={reduced ? undefined : `semester-hero-${featured.id}`}
@@ -274,7 +320,6 @@ export function Dashboard() {
         <Card variant="hero" className={styles.featured} onClick={() => navigate(`/semester/${featured.id}`)}>
           <div className={styles.featuredInner}>
             <div className={styles.featuredLeft}>
-              <NumberBadge number="NOW" variant="gold" size="md" />
               <h2 className={styles.featuredTitle}>
                 {(() => {
                   const parts = splitSeasonWord(featured.name);
@@ -370,7 +415,6 @@ export function Dashboard() {
                       >
                         <div className={styles.cardBody}>
                           <div className={styles.cardTopRow}>
-                            <NumberBadge number={semester.id} size="sm" variant="gold" />
                             {canEdit && (
                               <div className={styles.cardActions}>
                                 <button

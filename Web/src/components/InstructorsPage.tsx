@@ -10,10 +10,8 @@ import { Button } from "./ui/Button";
 import { Input } from "./ui/Input";
 import { Select } from "./ui/Select";
 import type { SelectOption } from "./ui/Select";
-import { NumberBadge } from "./ui/NumberBadge";
 import { HairlineRule } from "./ui/HairlineRule";
 import { SectionHeading } from "./ui/SectionHeading";
-import { PageDecor } from "./ui/PageDecor";
 import { InstructorImportModal } from "./Imports/InstructorImportModal";
 import { Skeleton } from "./ui/Skeleton";
 import styles from "./InstructorsPage.module.css";
@@ -159,10 +157,8 @@ export function InstructorsPage() {
   return (
     <>
       <div className={styles.root}>
-        <PageDecor variant="instructors" />
         {/* editorial hero */}
         <div className={styles.hero}>
-          <NumberBadge number="01" variant="gold" size="sm" />
           <HairlineRule width="48px" color="gold" spacing="tight" />
           <h1 className={styles.heroTitle}>
             Faculty & <em>Instructors</em>

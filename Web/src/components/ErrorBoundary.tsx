@@ -1,6 +1,5 @@
 import React from "react";
 import { RefreshCw, Home } from "lucide-react";
-import { NumberBadge } from "./ui/NumberBadge";
 import { HairlineRule } from "./ui/HairlineRule";
 import { Button } from "./ui/Button";
 import styles from "./ErrorBoundary.module.css";
@@ -60,7 +59,6 @@ function ErrorPage({
   return (
     <div className={styles.root}>
       <div className={styles.content}>
-        <NumberBadge number="500" variant="gold" size="lg" />
         <HairlineRule width="48px" color="gold" spacing="tight" />
 
         <h1 className={styles.heading}>

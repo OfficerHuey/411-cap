@@ -12,7 +12,7 @@ This document catalogs the current state of the Nursing Scheduler UI, identifies
 - The largest font size in the application is **2.8rem** (44.8px), used on the Login page hero (`Login.tsx`, class `.left-hero h2`).
 - Dashboard page title (`Dashboard.tsx`, class `.dash-header-text h1`) uses **1.85rem** (29.6px). Login card header (`Login.tsx`, class `.login-card-header h1`) also uses 1.85rem.
 - Most other headings (modal titles, card titles, page subtitles) land between **1.05rem and 1.25rem**.
-- Playfair Display is referenced 35 times across 19 component files but never exceeds 2.8rem. It is used primarily for card titles at 1.05rem and page titles at 1.5–1.85rem.
+- Montserrat is referenced 35 times across 19 component files but never exceeds 2.8rem. It is used primarily for card titles at 1.05rem and page titles at 1.5–1.85rem.
 - JetBrains Mono is not used anywhere in the current codebase — it was only just loaded in this prompt.
 - No component references any `--display-*` token. All font sizes are hardcoded rem values.
 
@@ -23,7 +23,7 @@ The display scale (32px–128px) exists in the tokens but nothing uses it. The L
 - Login hero: display-xl (6.5rem / 104px) with tracking-tightest and italic accent word
 - Dashboard welcome: display-md (3.75rem / 60px) minimum
 - SemesterHub page title: display-sm (2.75rem / 44px) with a JetBrains Mono semester count marker
-- Every page hero should use Playfair Display at display-sm or above
+- Every page hero should use Montserrat at display-sm or above
 - JetBrains Mono used for dates, W-numbers, section IDs, capacity counts, and editorial labels
 
 ### 2.2 Color Surface Usage
@@ -31,7 +31,7 @@ The display scale (32px–128px) exists in the tokens but nothing uses it. The L
 **Current state:**
 - Pure white (`#ffffff`) appears **134 times** across 19 component files. Used for: card backgrounds, modal backgrounds (`csm-box`, `delete-box`), form inputs, login panel right, buttons, quick-start box, and more.
 - CSS variable usage in inline `<style>` tags: **1 occurrence** total (in `Layout.tsx`, `background: var(--bg, #fafaf9)`). Every other color is a hardcoded hex value.
-- Gold (#C8952C) is used in exactly 5 contexts: the 3px schedule-card-accent gradient, the Login brand dot, the Login hero italic text color, the Login gold radial gradient, and the user avatar badge. It is absent from dividers, section markers, and surface accents.
+- Gold (#FFC629) is used in exactly 5 contexts: the 3px schedule-card-accent gradient, the Login brand dot, the Login hero italic text color, the Login gold radial gradient, and the user avatar badge. It is absent from dividers, section markers, and surface accents.
 
 **Why it feels timid:**
 Pure white cards on a near-white background create zero depth contrast. The warm editorial feel of the paper-base background is negated by clinical white surfaces floating above it. Gold is barely present — it should be a signature element visible on every page.
@@ -104,7 +104,7 @@ Every authenticated page follows the same pattern: narrow header, then an even a
 ### 2.6 Modal Design
 
 **Current state:**
-- All modals share a pattern: dark green header (`background: #00563f`) with Playfair title and close button, white body, bottom actions.
+- All modals share a pattern: dark green header (`background: #1A5632`) with Montserrat title and close button, white body, bottom actions.
 - Files: `CreateScheduleModal.tsx`, `CreateSemesterModal.tsx`, `CloneSemesterModal.tsx`, `CourseDetailsModal.tsx`, `StudentImportModal.tsx`.
 - Modal backgrounds are `#ffffff`. Modal overlays are `rgba(0,0,0,0.5)` with `backdrop-filter: blur(2px)`.
 - Each modal re-declares the entire CSS pattern from scratch (overlay, box, header, body, footer, inputs, buttons). Massive duplication.
@@ -131,7 +131,7 @@ The green header pattern is decent but repetitive. No modal stands out. The whit
 The empty states are structurally correct but visually generic. They could belong to any React app. There is no brand personality, no editorial voice, no warmth. A user's first impression of an empty page should still feel designed.
 
 **Target state:**
-- Empty states use Playfair Display at display-xs or display-sm for the title
+- Empty states use Montserrat at display-xs or display-sm for the title
 - Include a subtle gold accent element (a decorative rule, a small icon treatment)
 - Description text has editorial voice ("Your scheduling canvas is ready" vs "No schedules yet")
 - Background uses paper-sunk to create a recessed area that feels intentional
@@ -139,7 +139,7 @@ The empty states are structurally correct but visually generic. They could belon
 ### 2.8 Navigation
 
 **Current state:**
-- Top nav bar (`Layout.tsx`, `.layout-nav`): green gradient background, logo (Calendar icon + "Nursing Scheduler" in Playfair), three nav links (Rooms, Instructors, Archive), user pill (avatar + name + role badge), logout button.
+- Top nav bar (`Layout.tsx`, `.layout-nav`): green gradient background, logo (Calendar icon + "Nursing Scheduler" in Montserrat), three nav links (Rooms, Instructors, Archive), user pill (avatar + name + role badge), logout button.
 - Navigation links use 0.8rem font size with rgba white text.
 - No breadcrumbs on any page. Back buttons are simple `<ArrowLeft>` icon buttons on SemesterHub and ScheduleBuilder.
 - Active link state: `background: rgba(255,255,255,0.15)`.
@@ -152,7 +152,7 @@ The navigation is functional and brand-colored but flat. The links are small and
 - Navigation retains the green gradient but with more presence — slightly taller, with the paper-grain texture visible through transparent areas
 - Breadcrumb trail on SemesterHub and ScheduleBuilder pages
 - Active link state uses a gold-400 bottom indicator or stronger background
-- Logo area uses a more distinctive treatment (e.g., gold brand dot + tracked uppercase "SELU" + Playfair "Scheduler")
+- Logo area uses a more distinctive treatment (e.g., gold brand dot + tracked uppercase "SELU" + Montserrat "Scheduler")
 - Mobile: collapsible navigation with smooth Framer Motion reveal
 
 ### 2.9 Loading States
@@ -207,7 +207,7 @@ This is not a design issue — it is a maintainability issue that makes design i
 10. **Upgrade ScheduleBuilder** — Canvas as hero, elevated palette sidebar, refined block typography. (Prompt 4)
 11. **Add skeleton loading screens** — Dashboard card grid, SemesterHub card grid, Schedule Builder canvas. (Prompt 3)
 12. **Upgrade navigation** — Taller bar, breadcrumbs, gold active indicator, mobile collapse. (Prompt 3)
-13. **Upgrade empty states** — Editorial voice, Playfair titles, gold accents, personality. (Prompt 3)
+13. **Upgrade empty states** — Editorial voice, Montserrat titles, gold accents, personality. (Prompt 3)
 14. **Add Framer Motion page transitions** — fadeInUp entrance for each route, staggered card reveal on grids. (Prompt 3–4)
 15. **Upgrade Archive page** — Muted editorial hero, refined card treatment. (Prompt 4)
 16. **Upgrade form inputs** — paper-sunk backgrounds, refined focus states, consistent sizing. (Prompt 2)

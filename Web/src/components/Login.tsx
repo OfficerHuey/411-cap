@@ -8,7 +8,6 @@ import { heroStagger, heroChild, ease } from "../Lib/motion";
 import { Card } from "./ui/Card";
 import { Input } from "./ui/Input";
 import { Button } from "./ui/Button";
-import { NumberBadge } from "./ui/NumberBadge";
 import { HairlineRule } from "./ui/HairlineRule";
 import { SeluLogo } from "./ui/SeluLogo";
 import styles from "./Login.module.css";
@@ -73,7 +72,7 @@ export function Login() {
           animate={reduced ? undefined : { opacity: 1 }}
           transition={reduced ? undefined : { duration: 0.35, delay: 0.8, ease: ease.ios }}
         >
-          N&#186; 01&ensp;&middot;&ensp;Est. 1925
+          Est. 1925
         </motion.span>
 
         <motion.div
@@ -92,7 +91,6 @@ export function Login() {
           initial="hidden"
           animate="visible"
         >
-          <motion.div variants={reduced ? undefined : heroChild}><NumberBadge number="01" variant="gold" size="sm" /></motion.div>
           <motion.div variants={reduced ? undefined : heroChild}><HairlineRule width="64px" color="gold" spacing="normal" /></motion.div>
 
           <motion.h1 variants={reduced ? undefined : heroChild} className={styles.heroTitle}>
@@ -126,7 +124,6 @@ export function Login() {
           transition={reduced ? undefined : { duration: 0.4, delay: 0.6, ease: ease.ios }}
         >
         <Card variant="elevated" className={styles.loginCard}>
-          <NumberBadge number="02" variant="gold" size="sm" />
           <HairlineRule width="48px" color="gold" spacing="normal" />
 
           <h2 className={styles.cardTitle}>

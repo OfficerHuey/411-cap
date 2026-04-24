@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, lazy, Suspense } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { Eye, Trash2, Search, GraduationCap } from "lucide-react";
@@ -10,12 +10,15 @@ import { Modal } from "./ui/Modal";
 import { Button } from "./ui/Button";
 import { Select } from "./ui/Select";
 import type { SelectOption } from "./ui/Select";
-import { NumberBadge } from "./ui/NumberBadge";
 import { HairlineRule } from "./ui/HairlineRule";
 import { EmptyState } from "./ui/EmptyState";
-import { PageDecor } from "./ui/PageDecor";
 import { Skeleton } from "./ui/Skeleton";
 import { StudentDetailPanel } from "./StudentDetailPanel";
+//lazy-loaded so xlsx/papaparse (~370 KB gzipped) only download when the
+//user clicks into the Survey Placement tab
+const SurveyPlacementWorkspace = lazy(() =>
+  import("./SurveyPlacementWorkspace").then((m) => ({ default: m.SurveyPlacementWorkspace })),
+);
 import styles from "./StudentsPage.module.css";
 
 const ALL = "__all__";
@@ -44,6 +47,11 @@ export function StudentsPage() {
   const [semesterFilter, setSemesterFilter] = useState<string>(ALL);
   const [levelFilter, setLevelFilter] = useState<string>(ALL);
   const [campusFilter, setCampusFilter] = useState<string>(ALL);
+
+  //top-level view: browse the enrolled roster (directory) or use the
+  //client-side survey placement workspace (parse csv, make placements,
+  //export for the ScheduleBuilder import flow)
+  const [workspace, setWorkspace] = useState<"directory" | "survey">("directory");
 
   useEffect(() => {
     setBreadcrumbs([{ label: "Students" }]);
@@ -136,19 +144,55 @@ export function StudentsPage() {
   return (
     <>
       <div className={styles.root}>
-        <PageDecor variant="students" />
         {/* editorial hero */}
         <div className={styles.hero}>
-          <NumberBadge number="01" variant="gold" size="sm" />
           <HairlineRule width="48px" color="gold" spacing="tight" />
           <h1 className={styles.heroTitle}>
-            Student <em>Directory</em>
+            {workspace === "directory" ? (
+              <>
+                Student <em>Directory</em>
+              </>
+            ) : (
+              <>
+                Survey <em>Placement</em>
+              </>
+            )}
           </h1>
           <p className={styles.heroSubtitle}>
-            {total} student{total !== 1 ? "s" : ""} enrolled across {levelCount} semester level{levelCount !== 1 ? "s" : ""}
+            {workspace === "directory"
+              ? `${total} student${total !== 1 ? "s" : ""} enrolled across ${levelCount} semester level${levelCount !== 1 ? "s" : ""}`
+              : "Upload a Google Forms CSV, make clinical placements, and export a file ready for the Schedule Builder import."}
           </p>
         </div>
 
+        {/* workspace tab switcher */}
+        <div className={styles.workspaceTabs} role="tablist" aria-label="Students workspace">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={workspace === "directory"}
+            className={`${styles.workspaceTab} ${workspace === "directory" ? styles.workspaceTabActive : ""}`}
+            onClick={() => setWorkspace("directory")}
+          >
+            Directory
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={workspace === "survey"}
+            className={`${styles.workspaceTab} ${workspace === "survey" ? styles.workspaceTabActive : ""}`}
+            onClick={() => setWorkspace("survey")}
+          >
+            Survey Placement
+          </button>
+        </div>
+
+        {workspace === "survey" ? (
+          <Suspense fallback={<Skeleton variant="custom" height="320px" />}>
+            <SurveyPlacementWorkspace />
+          </Suspense>
+        ) : (
+          <>
         {/* stat strip */}
         {stats && total > 0 && (
           <motion.div
@@ -333,6 +377,8 @@ export function StudentsPage() {
             </div>
           )}
         </div>
+          </>
+        )}
       </div>
 
       <StudentDetailPanel

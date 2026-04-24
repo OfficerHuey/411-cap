@@ -23,8 +23,6 @@ import { useToast } from "../Lib/ToastContext";
 import { useReducedMotion } from "../hooks/useReducedMotion";
 import { heroStagger, heroChild, ease, spring } from "../Lib/motion";
 import { Button } from "./ui/Button";
-import { NumberBadge } from "./ui/NumberBadge";
-import { HairlineRule } from "./ui/HairlineRule";
 import { Badge } from "./ui/Badge";
 import { Skeleton } from "./ui/Skeleton";
 import { NotesPanel } from "./Notes/NotesPanel";
@@ -259,15 +257,13 @@ export function ScheduleBuilder() {
   const isLocked = semester?.isLocked ?? false;
   const levelLabel = numberToLevel(schedule.semesterLevel);
 
-  //schedule letter from position
-  const scheduleLetter = "A";
-
   return (
     <DndProvider backend={HTML5Backend}>
       <div className={styles.root}>
         {error && <div className={styles.errorBanner}>{error}</div>}
 
-        {/* ── hero (0-280ms) ── */}
+        {/* ── compact hero: back + title on one line, metadata on a single
+            thin subtitle, view toggle + notes + export all right-aligned ── */}
         <motion.div
           className={styles.hero}
           layoutId={reduced ? undefined : `schedule-hero-${scheduleId}`}
@@ -276,7 +272,10 @@ export function ScheduleBuilder() {
           animate="visible"
         >
           <div className={styles.heroLeft}>
-            <motion.div variants={reduced ? undefined : heroChild} className={styles.heroBackRow}>
+            <motion.div
+              variants={reduced ? undefined : heroChild}
+              className={styles.heroTitleRow}
+            >
               <Button
                 variant="ghost"
                 size="sm"
@@ -286,11 +285,7 @@ export function ScheduleBuilder() {
               >
                 Back
               </Button>
-            </motion.div>
-            <div className={styles.heroTitleGroup}>
-              <motion.div variants={reduced ? undefined : heroChild}><NumberBadge number={scheduleLetter} variant="gold" size="sm" /></motion.div>
-              <motion.div variants={reduced ? undefined : heroChild}><HairlineRule width="48px" color="gold" spacing="tight" /></motion.div>
-              <motion.h1 variants={reduced ? undefined : heroChild} className={styles.heroTitle}>
+              <h1 className={styles.heroTitle}>
                 {schedule.name}
                 {isLocked && (
                   <Badge variant="red" size="md">
@@ -300,18 +295,41 @@ export function ScheduleBuilder() {
                     </span>
                   </Badge>
                 )}
-              </motion.h1>
-              <motion.p variants={reduced ? undefined : heroChild} className={styles.heroSubtitle}>
-                <span>{semester?.name}</span>
-                <span className={styles.heroSubtitleSep}>&middot;</span>
-                <Badge variant="gold" size="sm">{schedule.locationDisplay}</Badge>
-                <span className={styles.heroSubtitleSep}>&middot;</span>
-                <span className={styles.heroSubtitleLevel}>{levelLabel}</span>
-              </motion.p>
-            </div>
+              </h1>
+            </motion.div>
+            <motion.p
+              variants={reduced ? undefined : heroChild}
+              className={styles.heroSubtitle}
+            >
+              <span>{semester?.name}</span>
+              <span className={styles.heroSubtitleSep}>&middot;</span>
+              <Badge variant="gold" size="sm">{schedule.locationDisplay}</Badge>
+              <span className={styles.heroSubtitleSep}>&middot;</span>
+              <span className={styles.heroSubtitleLevel}>{levelLabel}</span>
+            </motion.p>
           </div>
 
           <div className={styles.heroRight}>
+            <div className={styles.viewToggle} role="tablist" aria-label="View switcher">
+              <button
+                role="tab"
+                aria-selected={view === "calendar"}
+                className={`${styles.viewBtn} ${view === "calendar" ? styles.active : ""}`}
+                onClick={() => setView("calendar")}
+              >
+                <CalendarIcon size={14} />
+                Calendar
+              </button>
+              <button
+                role="tab"
+                aria-selected={view === "students"}
+                className={`${styles.viewBtn} ${view === "students" ? styles.active : ""}`}
+                onClick={() => setView("students")}
+              >
+                <Users size={14} />
+                Students
+              </button>
+            </div>
             <Button
               variant="ghost"
               size="md"
@@ -365,29 +383,6 @@ export function ScheduleBuilder() {
               )}
             </div>
           </div>
-        </motion.div>
-
-        {/* ── view toggle (200-350ms) ── */}
-        <motion.div
-          className={styles.viewToggle}
-          initial={reduced ? undefined : { opacity: 0, y: 8 }}
-          animate={reduced ? undefined : { opacity: 1, y: 0 }}
-          transition={reduced ? undefined : { duration: 0.25, delay: 0.2, ease: ease.ios }}
-        >
-          <button
-            className={`${styles.viewBtn} ${view === "calendar" ? styles.active : ""}`}
-            onClick={() => setView("calendar")}
-          >
-            <CalendarIcon size={14} />
-            Calendar View
-          </button>
-          <button
-            className={`${styles.viewBtn} ${view === "students" ? styles.active : ""}`}
-            onClick={() => setView("students")}
-          >
-            <Users size={14} />
-            Student View
-          </button>
         </motion.div>
 
         {/* ── content ── */}

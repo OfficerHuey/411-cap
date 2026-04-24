@@ -10,10 +10,8 @@ import { Button } from "./ui/Button";
 import { Input } from "./ui/Input";
 import { Select } from "./ui/Select";
 import type { SelectOption } from "./ui/Select";
-import { NumberBadge } from "./ui/NumberBadge";
 import { HairlineRule } from "./ui/HairlineRule";
 import { SectionHeading } from "./ui/SectionHeading";
-import { PageDecor } from "./ui/PageDecor";
 import { RoomImportModal } from "./Imports/RoomImportModal";
 import { Skeleton } from "./ui/Skeleton";
 import styles from "./RoomsPage.module.css";
@@ -168,10 +166,8 @@ export function RoomsPage() {
   return (
     <>
       <div className={styles.root}>
-        <PageDecor variant="rooms" />
         {/* editorial hero */}
         <div className={styles.hero}>
-          <NumberBadge number="01" variant="gold" size="sm" />
           <HairlineRule width="48px" color="gold" spacing="tight" />
           <h1 className={styles.heroTitle}>
             <em>Rooms</em> & Facilities

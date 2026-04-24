@@ -4,7 +4,6 @@ import { courseTypeColor } from "../Lib/Types";
 import { useDrag } from "react-dnd";
 import { useRef, useState } from "react";
 import { Search, GripVertical } from "lucide-react";
-import { NumberBadge } from "./ui/NumberBadge";
 import styles from "./CoursePalette.module.css";
 
 interface CoursePaletteProps {
@@ -80,7 +79,6 @@ export function CoursePalette({ courses }: CoursePaletteProps) {
     <div className={styles.root}>
       <div className={styles.header}>
         <div className={styles.headerTop}>
-          <NumberBadge number="01" variant="gold" size="sm" />
           <span className={styles.headerSummary}>
             <span className={styles.headerSummaryNum}>{filtered.length}</span>
             <span className={styles.headerSummaryLabel}>

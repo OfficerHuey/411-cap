@@ -10,11 +10,10 @@ import { Button } from "./ui/Button";
 import { Input } from "./ui/Input";
 import { Select } from "./ui/Select";
 import type { SelectOption } from "./ui/Select";
-import { NumberBadge } from "./ui/NumberBadge";
 import { HairlineRule } from "./ui/HairlineRule";
 import { SectionHeading } from "./ui/SectionHeading";
-import { PageDecor } from "./ui/PageDecor";
-import { staggerContainer, cardVariants } from "../Lib/motion";
+import { useReducedMotion } from "../hooks/useReducedMotion";
+import { staggerContainer, cardVariants, physics } from "../Lib/motion";
 import styles from "./CoursesPage.module.css";
 
 const COURSE_TYPES: CourseType[] = ["Lecture", "Lab", "Clinical"];
@@ -56,6 +55,7 @@ const emptyForm: CourseForm = {
 export function CoursesPage() {
   const { addToast } = useToast();
   const { setItems: setBreadcrumbs } = useBreadcrumbs();
+  const reduced = useReducedMotion();
   const [courseList, setCourseList] = useState<Course[]>([]);
   const [stats, setStats] = useState<CourseStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -191,10 +191,8 @@ export function CoursesPage() {
   return (
     <>
       <div className={styles.root}>
-        <PageDecor variant="courses" />
         {/* editorial hero */}
         <div className={styles.hero}>
-          <NumberBadge number="01" variant="gold" size="sm" />
           <HairlineRule width="48px" color="gold" spacing="tight" />
           <h1 className={styles.heroTitle}>
             BSN <em>Curriculum</em>
@@ -285,6 +283,8 @@ export function CoursesPage() {
                       key={course.id}
                       className={`${styles.courseCard} ${CARD_TYPE_CLASS[course.defaultType]}`}
                       variants={cardVariants}
+                      whileHover={reduced ? undefined : { y: -5, scale: 1.01, transition: physics.magnetic }}
+                      whileTap={reduced ? undefined : { scale: 0.995, transition: physics.instant }}
                     >
                       <div className={styles.cardMain}>
                         <p className={styles.courseCode}>{course.code}</p>

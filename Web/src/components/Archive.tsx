@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import "../App.css";
-import { ArrowLeft, Calendar, Lock, Unlock, ArrowRight, Archive as ArchiveIcon } from "lucide-react";
+import { ArrowLeft, Lock, Unlock, ArrowRight, Archive as ArchiveIcon } from "lucide-react";
 import { semesters as semestersApi } from "../Lib/api";
 import type { Semester } from "../Lib/Types";
 import { useNavigate } from "react-router-dom";
@@ -9,7 +9,7 @@ import { useReducedMotion } from "../hooks/useReducedMotion";
 import { staggerContainer, cardVariants, heroStagger, heroChild } from "../Lib/motion";
 import { useToast } from "../Lib/ToastContext";
 import { useBreadcrumbs } from "../Lib/BreadcrumbContext";
-import { PageDecor } from "./ui/PageDecor";
+import { SeluLogo } from "./ui/SeluLogo";
 
 export function Archive() {
   const navigate = useNavigate();
@@ -92,17 +92,20 @@ export function Archive() {
           position: relative;
           isolation: isolate;
           margin: 0 0 2.5rem;
-          padding: 2rem 0 1.5rem;
+          /*tight top padding + deep bottom padding keeps header content
+            close to the navbar and well above the 60px fade-to-white zone*/
+          padding: 1.25rem 0 4rem;
           box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
         }
 
         .archive-header::before {
           content: '';
           position: absolute;
-          top: 0; bottom: 0;
+          top: -1rem; bottom: 0;
           left: -9999px; right: -9999px;
-          background:
-            radial-gradient(ellipse at top right, rgba(255, 198, 41, 0.1) 0%, transparent 60%),
+          background-color: var(--green-900);
+          background-image:
+            radial-gradient(ellipse at top right, rgba(255, 198, 41, 0.08) 0%, transparent 60%),
             repeating-linear-gradient(
               -45deg,
               transparent,
@@ -110,18 +113,19 @@ export function Archive() {
               rgba(255, 198, 41, 0.035) 30px,
               rgba(255, 198, 41, 0.035) 31px
             ),
-            linear-gradient(170deg, #1a3a28 0%, #112a1c 55%, #0d2016 100%);
+            linear-gradient(180deg, var(--green-900) 0%, var(--green-800) 40%, var(--green-700) 100%);
           pointer-events: none;
           z-index: -1;
         }
 
+        /*smooth green-to-white transition at hero base — 60px fade*/
         .archive-header::after {
           content: '';
           position: absolute;
           bottom: 0;
           left: -9999px; right: -9999px;
-          height: 40px;
-          background: linear-gradient(180deg, transparent 0%, rgba(13, 32, 22, 0.55) 100%);
+          height: 60px;
+          background: linear-gradient(180deg, transparent 0%, var(--bg-primary) 100%);
           pointer-events: none;
           z-index: -1;
         }
@@ -160,11 +164,11 @@ export function Archive() {
 
         .archive-header-text h1 {
           font-family: var(--font-display);
-          font-size: clamp(2.5rem, 5vw, 3.5rem);
-          font-weight: 700;
+          font-size: var(--title-hero-size);
+          font-weight: var(--title-hero-weight);
           color: var(--paper-raised);
           margin: 0 0 0.3rem 0;
-          letter-spacing: var(--tracking-tightest);
+          letter-spacing: var(--title-hero-tracking);
           line-height: var(--leading-tight);
         }
 
@@ -382,7 +386,6 @@ export function Archive() {
       `}</style>
 
       <div className="archive-root">
-        <PageDecor variant="archive" />
         <motion.div
           className="archive-header"
           variants={reduced ? undefined : heroStagger}
@@ -422,7 +425,7 @@ export function Archive() {
                   <div className="archive-card-top">
                     <div className="archive-card-title-group">
                       <div className="archive-card-icon">
-                        <Calendar size={18} color="#6b7280" />
+                        <SeluLogo size={28} framed={false} />
                       </div>
                       <div>
                         <h3 className="archive-card-title">{semester.name}</h3>

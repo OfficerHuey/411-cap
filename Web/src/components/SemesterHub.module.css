@@ -23,16 +23,18 @@
   position: relative;
   isolation: isolate;
   margin: 0 0 1.5rem;
-  padding: 2rem 0 1.5rem;
+  /*content sits close to navbar at top, well above fade zone at bottom*/
+  padding: 1.25rem 0 4rem;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
 .hero::before {
   content: '';
   position: absolute;
-  top: 0; bottom: 0;
+  top: -1rem; bottom: 0;
   left: -9999px; right: -9999px;
-  background:
+  background-color: var(--green-900);
+  background-image:
     repeating-linear-gradient(
       -45deg,
       transparent,
@@ -40,7 +42,19 @@
       rgba(255, 198, 41, 0.035) 30px,
       rgba(255, 198, 41, 0.035) 31px
     ),
-    linear-gradient(170deg, var(--green-800) 0%, var(--green-900) 100%);
+    linear-gradient(180deg, var(--green-900) 0%, var(--green-800) 40%, var(--green-700) 100%);
+  pointer-events: none;
+  z-index: -1;
+}
+
+/*smooth green-to-white transition at hero base — 60px fade*/
+.hero::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: -9999px; right: -9999px;
+  height: 60px;
+  background: linear-gradient(180deg, transparent 0%, var(--bg-primary) 100%);
   pointer-events: none;
   z-index: -1;
 }
@@ -52,10 +66,10 @@
 
 .heroTitle {
   font-family: var(--font-display);
-  font-size: clamp(2.75rem, 5vw, 3.75rem);
-  font-weight: 700;
+  font-size: var(--title-hero-size);
+  font-weight: var(--title-hero-weight);
   color: var(--paper-raised);
-  letter-spacing: -0.02em;
+  letter-spacing: var(--title-hero-tracking);
   line-height: 1;
   margin: 0;
   display: flex;
@@ -178,9 +192,20 @@
 
 .cardTopRow {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   margin-bottom: var(--space-3);
+}
+
+/*schedule group letter — replaces the old N° badge marker with a clean
+  serif display char so each card still has a typographic anchor*/
+.cardLetter {
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--gold-600);
+  line-height: 1;
+  letter-spacing: -0.02em;
 }
 
 .cardActions {

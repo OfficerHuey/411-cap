@@ -6,12 +6,12 @@ import { sections as sectionsApi } from "../Lib/api";
 import type { Schedule, Course, Section } from "../Lib/Types";
 import { courseTypeColor, dayOfWeekName, timeSpanToDisplay } from "../Lib/Types";
 import { CourseDetailsModal } from "./CourseDetailsModal";
-import { ConflictBanner } from "./ConflictBanner";
+import { ConflictPanel } from "./ConflictPanel";
 import type { ConflictEntry } from "./ConflictBanner";
+import { Tooltip } from "./ui/Tooltip";
 import { useToast } from "../Lib/ToastContext";
 import { useReducedMotion } from "../hooks/useReducedMotion";
 import { badgePopVariants, ease } from "../Lib/motion";
-import { NumberBadge } from "./ui/NumberBadge";
 import { Modal } from "./ui/Modal";
 import { Button } from "./ui/Button";
 import { EditAttribution } from "./EditAttribution";
@@ -211,7 +211,7 @@ function DraggableCourseBlock({
   endDisplay,
   sectionConflicts,
   hasHard,
-  hasSoft: _hasSoft,
+  hasSoft,
   hasInfo,
   conflictClass,
   isLocked,
@@ -226,6 +226,7 @@ function DraggableCourseBlock({
   tooltipSection,
   tooltipPos,
   onInstructorClick,
+  onConflictIconClick,
 }: {
   section: Section;
   course: Course;
@@ -251,6 +252,7 @@ function DraggableCourseBlock({
   tooltipPos: { x: number; y: number };
   reduced?: boolean;
   onInstructorClick?: (instructorId: number) => void;
+  onConflictIconClick?: () => void;
 }) {
   const elementRef = useRef<HTMLDivElement>(null);
 
@@ -331,29 +333,65 @@ function DraggableCourseBlock({
       )}
       <AnimatePresence>
         {sectionConflicts.length > 0 && (
-          <motion.span
-            className={styles.conflictIcon}
-            tabIndex={0}
-            role="img"
-            aria-label={sectionConflicts.map((c) => `${c.type}: ${c.message}`).join("; ")}
-            variants={badgePopVariants}
-            initial="hidden"
-            animate="visible"
-            exit="hidden"
-            onFocus={(e) => {
-              e.stopPropagation();
-              if (!tooltipSuppressed) onTooltipEnter(section.id, e as unknown as React.MouseEvent);
-            }}
-            onBlur={onTooltipLeave}
+          <Tooltip
+            position="left"
+            delay={150}
+            content={
+              <div className={styles.triangleTooltip}>
+                <p className={styles.triangleTooltipTitle}>
+                  {sectionConflicts.length} Conflict{sectionConflicts.length !== 1 ? "s" : ""}:
+                </p>
+                <ul className={styles.triangleTooltipList}>
+                  {sectionConflicts.map((c, i) => (
+                    <li
+                      key={i}
+                      className={`${styles.triangleTooltipItem} ${
+                        c.severity === "Warning"
+                          ? styles.soft
+                          : c.severity === "Info"
+                            ? styles.info
+                            : ""
+                      }`}
+                    >
+                      <span>
+                        <strong>{c.type}:</strong> {c.message}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            }
           >
-            {hasHard ? (
-              <AlertTriangle size={10} color="#fca5a5" />
-            ) : hasInfo ? (
-              <Info size={10} color="#93c5fd" />
-            ) : (
-              <AlertTriangle size={10} color="#fcd34d" />
-            )}
-          </motion.span>
+            <motion.span
+              className={`${styles.conflictIcon}${!hasHard && hasSoft ? " " + styles.soft : ""}${!hasHard && !hasSoft && hasInfo ? " " + styles.info : ""}`}
+              tabIndex={0}
+              role="button"
+              aria-label={`${sectionConflicts.length} conflict${sectionConflicts.length !== 1 ? "s" : ""}. Press Enter to open the conflict panel.`}
+              variants={badgePopVariants}
+              initial="hidden"
+              animate="visible"
+              exit="hidden"
+              onClick={(e) => {
+                e.stopPropagation();
+                onConflictIconClick?.();
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onConflictIconClick?.();
+                }
+              }}
+            >
+              {hasHard ? (
+                <AlertTriangle size={22} strokeWidth={2.2} />
+              ) : hasInfo ? (
+                <Info size={22} strokeWidth={2.2} />
+              ) : (
+                <AlertTriangle size={22} strokeWidth={2.2} />
+              )}
+            </motion.span>
+          </Tooltip>
         )}
       </AnimatePresence>
       <div className={styles.courseTypeIcon}>
@@ -527,6 +565,8 @@ export function ScheduleCanvas({
 
   const [tooltipSection, setTooltipSection] = useState<number | null>(null);
   const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  //monotonically-increasing signal — ConflictPanel opens whenever it bumps
+  const [panelOpenSignal, setPanelOpenSignal] = useState(0);
 
   //build a fingerprint that changes whenever any section moves or is added/removed
   const sectionFingerprint = schedule.sections
@@ -807,7 +847,6 @@ export function ScheduleCanvas({
       <div className={styles.root}>
         <div className={styles.header}>
           <div className={styles.headerLeft}>
-            <NumberBadge number="02" variant="gold" size="sm" />
             <h3 className={styles.headerTitle}>{isSemester5 ? "Rotation Schedule" : "Weekly Calendar"}</h3>
             {!isSemester5 && (
               <span className={styles.headerCount}>
@@ -837,7 +876,6 @@ export function ScheduleCanvas({
               </div>
             </div>
               )}
-              <ConflictBanner conflicts={allConflicts} onJumpTo={handleJumpTo} />
               {/*stats bar in inset zone so the flush grid below can fill the frame*/}
               <div className={styles.statsBar}>
                 <div className={styles.statsItem}>
@@ -1099,6 +1137,7 @@ export function ScheduleCanvas({
                             tooltipSection={tooltipSection}
                             tooltipPos={tooltipPos}
                             onInstructorClick={onInstructorClick}
+                            onConflictIconClick={() => setPanelOpenSignal((s) => s + 1)}
                           />
                         </motion.div>
                       );
@@ -1112,6 +1151,17 @@ export function ScheduleCanvas({
           )}
         </div>
       </div>
+
+      {/*conflict side panel — createPortal'd to document.body, appears
+        whenever there are active conflicts and receives openSignal bumps
+        from any course block's triangle click*/}
+      {!isSemester5 && (
+        <ConflictPanel
+          conflicts={allConflicts}
+          onJumpTo={handleJumpTo}
+          openSignal={panelOpenSignal}
+        />
+      )}
 
       <Modal
         open={deleteConfirm != null}

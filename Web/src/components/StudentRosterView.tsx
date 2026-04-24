@@ -6,7 +6,6 @@ import type { Student } from "../Lib/Types";
 import { StudentImportModal } from "./StudentImportModal";
 import { useToast } from "../Lib/ToastContext";
 import { Card } from "./ui/Card";
-import { NumberBadge } from "./ui/NumberBadge";
 import { Button } from "./ui/Button";
 import { Input } from "./ui/Input";
 import { Avatar } from "./ui/Avatar";
@@ -156,7 +155,6 @@ export function StudentRosterView({ scheduleId, semesterId, isLocked, capacity =
         {/* ── header ── */}
         <div className={styles.header}>
           <div className={styles.headerLeft}>
-            <NumberBadge number="02" variant="gold" size="sm" />
             <h3 className={styles.headerTitle}>Student Roster</h3>
             <p className={styles.headerSubtitle}>
               {studentList.length} of {capacity} students
@@ -200,7 +198,7 @@ export function StudentRosterView({ scheduleId, semesterId, isLocked, capacity =
           <>
             {/* ── table header ── */}
             <div className={styles.tableHeader}>
-              <span className={styles.tableHeaderLabel}>N&#186;</span>
+              <span className={styles.tableHeaderLabel}>#</span>
               <span className={styles.tableHeaderLabel}>W#</span>
               <span className={styles.tableHeaderLabel}>Name</span>
               <span className={styles.tableHeaderLabel}>Email</span>

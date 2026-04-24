@@ -33,13 +33,15 @@
   --gold-600: #a87c14;
   --gold-700: #755508;
 
-  /* warm cream neutrals */
-  --cream-50: #fefdfb;
-  --cream-100: #faf8f3;
-  --cream-200: #f5f2ea;
-  --cream-300: #e8e4d9;
-  --cream-400: #d4cfc2;
-  --cream-500: #b8b2a2;
+  /* cool neutral scale — retained under --cream-* names so every existing
+     call site (~100 references across modules) swaps in place. values are
+     now cool grays that sit on top of the #F9FAFB page background */
+  --cream-50: #FFFFFF;
+  --cream-100: #F9FAFB;
+  --cream-200: #F3F4F6;
+  --cream-300: #E5E7EB;
+  --cream-400: #D1D5DB;
+  --cream-500: #9CA3AF;
 
   /* neutrals */
   --gray-50: #fafaf9;
@@ -60,17 +62,24 @@
   --text-faint: #9ca3af;
 
   /* text on paper and dark surfaces */
-  --text-on-paper: #2a2620;
-  --text-on-paper-muted: #6b6558;
-  --text-on-dark: #faf8f3;
-  --text-on-dark-muted: rgba(250, 248, 243, 0.72);
-  --text-on-dark-faint: rgba(250, 248, 243, 0.48);
+  --text-on-paper: #111827;
+  --text-on-paper-muted: #6B7280;
+  --text-on-dark: #FFFFFF;
+  --text-on-dark-muted: rgba(255, 255, 255, 0.82);
+  --text-on-dark-faint: rgba(255, 255, 255, 0.6);
+  --text-on-light: #111827;
 
   /* semantic */
   --success: #059669;
   --warning: #d97706;
   --error: #991b1b;
   --info: var(--green-700);
+
+  /* red accent scale — used for "attention" / destructive accents */
+  --red-400: #f87171;
+  --red-500: #ef4444;
+  --red-600: #dc2626;
+  --red-700: #b91c1c;
 
   /* course type colors */
   --course-lecture: #3b82f6;
@@ -79,17 +88,24 @@
   --course-simlab: #f59e0b;
 
   /* surfaces */
-  --surface: #ffffff;
-  --surface-raised: #fafaf9;
-  --bg: #fafaf9;
-  --border: #e5e7eb;
-  --border-light: #f3f4f6;
+  --surface: #FFFFFF;
+  --surface-raised: #FFFFFF;
+  --bg: #F9FAFB;
+  --border: #E5E7EB;
+  --border-light: #F3F4F6;
 
-  /* paper surfaces */
-  --paper-base: #faf8f3;
-  --paper-raised: #fefdfa;
-  --paper-sunk: #f3f0e8;
-  --paper-ink: #2a2620;
+  /* paper surfaces — retained under legacy names but now cool neutrals */
+  --paper-base: #F9FAFB;
+  --paper-raised: #FFFFFF;
+  --paper-sunk: #F3F4F6;
+  --paper-ink: #111827;
+
+  /* semantic background/surface tokens */
+  --bg-primary: #F9FAFB;
+  --bg-surface: #FFFFFF;
+  --bg-surface-hover: #F3F4F6;
+  --bg-banner: linear-gradient(180deg, var(--green-900) 0%, var(--green-800) 40%, var(--green-700) 100%);
+  --border-default: #E5E7EB;
 
   /* radii */
   --radius-sm: 6px;
@@ -99,11 +115,11 @@
 
   /* shadows — layered for depth */
   --shadow-xs: 0 1px 2px rgba(0,0,0,0.04);
-  --shadow-sm: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06);
-  --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -2px rgba(0,0,0,0.05);
-  --shadow-lg: 0 1px 3px rgba(0,0,0,0.04), 0 6px 24px rgba(0,0,0,0.06);
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+  --shadow-md: 0 4px 6px rgba(0,0,0,0.07);
+  --shadow-lg: 0 1px 3px rgba(0,0,0,0.05), 0 6px 24px rgba(0,0,0,0.07);
   --shadow-xl: 0 20px 50px -12px rgba(0,0,0,0.15);
-  --shadow-hover: 0 1px 3px rgba(0,0,0,0.04), 0 12px 36px rgba(0,0,0,0.1);
+  --shadow-hover: 0 1px 3px rgba(0,0,0,0.05), 0 12px 36px rgba(0,0,0,0.10);
 
   /* elevation system — layered shadows with inner highlights on every level */
   --elevation-1:
@@ -124,9 +140,25 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.95);
 
   /* typography — families */
-  --font-display: 'Montserrat', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  /* display is the SELU editorial headline font — Playfair Display carries
+     the brand's serif identity. Montserrat and Inter stay as fallbacks so
+     weight/character loss on slow connections is graceful */
+  --font-display: 'Playfair Display', 'Montserrat', Georgia, 'Times New Roman', serif;
   --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', Menlo, Consolas, monospace;
+
+  /* typography — semantic role tokens (prompt-03 hierarchy upgrade) */
+  --title-page-size: clamp(2rem, 4vw, 2.75rem);
+  --title-page-weight: 800;
+  --title-page-tracking: -0.02em;
+  --title-hero-size: clamp(2.25rem, 5vw, 3.25rem);
+  --title-hero-weight: 800;
+  --title-hero-tracking: -0.02em;
+  --label-size: clamp(0.875rem, 1.5vw, 1rem);
+  --label-weight: 600;
+  --label-tracking: 0.04em;
+  --stat-number-size: clamp(1.5rem, 3vw, 2.25rem);
+  --stat-number-weight: 700;
 
   /* typography — body scale */
   --text-xs: 0.8rem;
@@ -227,33 +259,19 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 
-  background-color: #f4f1e8;
+  background-color: var(--bg-primary);
   background-image:
-    /* bold warm gold zone top-left quadrant */
+    /* whisper-faint gold lift top-left for warmth without tint */
     radial-gradient(
-      ellipse at 15% 10%,
-      rgba(255, 198, 41, 0.14) 0%,
-      rgba(255, 198, 41, 0.06) 30%,
-      transparent 60%
-    ),
-    /* bold cool green zone right side */
-    radial-gradient(
-      ellipse at 85% 40%,
-      rgba(26, 86, 50, 0.10) 0%,
-      rgba(26, 86, 50, 0.04) 30%,
+      ellipse at 12% 8%,
+      rgba(255, 198, 41, 0.035) 0%,
       transparent 55%
     ),
-    /* warm accent bottom center */
+    /* whisper-faint green lift bottom-right for depth */
     radial-gradient(
-      ellipse at 50% 90%,
-      rgba(255, 198, 41, 0.08) 0%,
-      transparent 45%
-    ),
-    /* subtle green ground bottom-left */
-    radial-gradient(
-      ellipse at 30% 100%,
-      rgba(26, 86, 50, 0.06) 0%,
-      transparent 40%
+      ellipse at 88% 92%,
+      rgba(26, 86, 50, 0.028) 0%,
+      transparent 55%
     );
   background-attachment: fixed;
 }

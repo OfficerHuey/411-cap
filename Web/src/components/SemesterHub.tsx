@@ -16,14 +16,12 @@ import { useReducedMotion } from "../hooks/useReducedMotion";
 import { heroStagger, heroChild, staggerContainer, cardVariants, physics } from "../Lib/motion";
 import { Button } from "./ui/Button";
 import { Card } from "./ui/Card";
-import { NumberBadge } from "./ui/NumberBadge";
 import { HairlineRule } from "./ui/HairlineRule";
 import { SectionHeading } from "./ui/SectionHeading";
 import { Badge } from "./ui/Badge";
 import { EmptyState } from "./ui/EmptyState";
 import { Modal } from "./ui/Modal";
 import { Skeleton } from "./ui/Skeleton";
-import { PageDecor } from "./ui/PageDecor";
 import { NotesPanel } from "./Notes/NotesPanel";
 import { useNotes } from "../hooks/useNotes";
 import { EditAttribution } from "./EditAttribution";
@@ -221,7 +219,6 @@ export function SemesterHub() {
 
   return (
     <div className={styles.root}>
-      <PageDecor variant="semesterHub" />
       {/* ── hero ── */}
       <motion.div
         className={styles.hero}
@@ -231,7 +228,6 @@ export function SemesterHub() {
         animate="visible"
       >
         <div>
-          <motion.div variants={reduced ? undefined : heroChild}><NumberBadge number={semester?.id ?? "\u2014"} variant="gold" size="sm" /></motion.div>
           <motion.div variants={reduced ? undefined : heroChild}><HairlineRule width="48px" color="gold" spacing="normal" /></motion.div>
 
           <motion.h1 variants={reduced ? undefined : heroChild} className={styles.heroTitle}>
@@ -439,7 +435,7 @@ export function SemesterHub() {
                         >
                       <div className={styles.cardBody}>
                         <div className={styles.cardTopRow}>
-                          <NumberBadge number={letter} size="sm" variant="gold" />
+                          <span className={styles.cardLetter}>{letter}</span>
                           {canEdit && !isLocked && (
                             <div className={styles.cardActions} onClick={(e) => e.stopPropagation()}>
                               <button

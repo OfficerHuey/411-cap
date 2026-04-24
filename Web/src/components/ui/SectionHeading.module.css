@@ -23,26 +23,31 @@
 /* title base */
 .title {
   font-family: var(--font-display);
-  font-weight: 600;
+  font-weight: 800;
   color: var(--text-on-paper);
   margin: 0;
 }
 
-/* title by level */
+/* title by level — prompt-03 hierarchy: section titles like "All semesters"
+   carry 800 weight and tighter tracking so they read as commanding without
+   overwhelming the hero above them */
 .page {
-  font-size: var(--display-lg);
-  letter-spacing: var(--tracking-tightest);
+  font-size: clamp(2.5rem, 5.5vw, 4rem);
+  font-weight: 900;
+  letter-spacing: -0.025em;
   line-height: var(--leading-tight);
 }
 
 .section {
-  font-size: var(--display-sm);
-  letter-spacing: var(--tracking-tighter);
+  font-size: var(--title-page-size);
+  font-weight: 800;
+  letter-spacing: var(--title-page-tracking);
   line-height: var(--leading-tight);
 }
 
 .subsection {
   font-size: var(--display-xs);
+  font-weight: 700;
   letter-spacing: var(--tracking-tight);
   line-height: var(--leading-snug);
 }

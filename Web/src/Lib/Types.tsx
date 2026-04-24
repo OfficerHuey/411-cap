@@ -215,6 +215,127 @@ export interface CreateStudentDto {
   overrideReason?: string;
 }
 
+// ===== in-app messaging =====
+export interface ConversationParticipantDTO {
+  userId: number;
+  displayName: string;
+  initials: string;
+  role: string;
+}
+
+export interface ConversationDTO {
+  id: number;
+  title: string | null;
+  isGroupChat: boolean;
+  lastMessagePreview: string | null;
+  lastMessageAt: string;
+  unreadCount: number;
+  participants: ConversationParticipantDTO[];
+}
+
+export interface MessageDTO {
+  id: number;
+  conversationId: number;
+  senderId: number;
+  senderName: string;
+  senderInitials: string;
+  content: string;
+  sentAt: string;
+}
+
+export interface MessagesPageDTO {
+  items: MessageDTO[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+}
+
+export interface SendMessageRequest {
+  content: string;
+}
+
+export interface CreateConversationRequest {
+  participantUserIds: number[];
+  title?: string;
+  initialMessage?: string;
+}
+
+export interface UnreadCountDTO {
+  count: number;
+}
+
+export interface AvailableUserDTO {
+  id: number;
+  userName: string;
+  displayName: string;
+  initials: string;
+  role: string;
+}
+
+// ===== app files (central file catalog) =====
+export interface AppFileDTO {
+  id: number;
+  fileName: string;
+  originalFileName: string;
+  contentType: string;
+  fileSizeBytes: number;
+  title: string | null;
+  description: string | null;
+  uploadedByName: string;
+  uploadedAt: string;
+  lastAccessedAt: string | null;
+}
+
+export interface FileUploadRequest {
+  file: File;
+  title?: string;
+  description?: string;
+}
+
+export interface FilesPageResponse {
+  items: AppFileDTO[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+}
+
+export interface UpdateFileDto {
+  title?: string | null;
+  description?: string | null;
+}
+
+// ===== survey placement (client-side tool, no backend persistence) =====
+//dynamic columns from Google Forms CSV export — shape varies run-to-run.
+//keep a tight id + known common fields, then let any extra survey column
+//live alongside as string/number values indexed by original header.
+export type PlacementStatus = "unassigned" | "assigned" | "flagged";
+
+export interface SurveyResponse {
+  //uuid generated client-side so we can key rows and look up assignments
+  id: string;
+  timestamp?: string;
+  studentName?: string;
+  studentId?: string;
+  email?: string;
+  //any additional survey column lives here, keyed by the raw header text
+  [key: string]: string | number | undefined;
+}
+
+export interface PlacementAssignment {
+  surveyResponseId: string;
+  assignedFacility: string | null;
+  assignedGroup: string | null;
+  notes: string;
+  status: PlacementStatus;
+}
+
+export interface SurveyUploadState {
+  rawData: SurveyResponse[];
+  assignments: Map<string, PlacementAssignment>;
+  fileName: string;
+  uploadedAt: string;
+}
+
 // ===== helpers =====
 export function levelToNumber(level: SemesterLevel): number {
   const map: Record<SemesterLevel, number> = {

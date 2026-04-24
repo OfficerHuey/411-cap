@@ -40,7 +40,7 @@
 
 /* header */
 .header {
-  padding: 1.5rem 2rem;
+  padding: 0.65rem 1.25rem;
   border-bottom: 1px solid var(--cream-300);
   background: linear-gradient(180deg, #fefdfb 0%, var(--paper-base) 100%);
   display: flex;
@@ -56,11 +56,11 @@
 
 .headerTitle {
   font-family: var(--font-display);
-  font-size: 1.25rem;
-  font-weight: 700;
+  font-size: 1rem;
+  font-weight: 800;
   color: var(--text-on-paper);
-  letter-spacing: -0.02em;
-  margin: 0.25rem 0 0;
+  letter-spacing: -0.01em;
+  margin: 0;
 }
 
 .headerCount {
@@ -568,31 +568,39 @@
   letter-spacing: 0.02em;
 }
 
-/* conflict — serious but beautiful glow rings */
+/* conflict — single pulse on mount, then settle to a persistent subtle
+   red outline. infinite pulse was exhausting and drew the eye forever */
 .conflictHard {
-  border: 2px solid rgba(220, 38, 38, 0.8);
+  border: 2px solid #DC2626;
   box-shadow:
     0 2px 4px rgba(0, 0, 0, 0.12),
     0 6px 16px rgba(0, 0, 0, 0.08),
-    0 0 0 3px rgba(220, 38, 38, 0.15),
+    0 0 8px rgba(220, 38, 38, 0.2),
     inset 0 1px 0 rgba(255, 255, 255, 0.2);
-  animation: conflictHardPulse 2.4s ease-in-out infinite;
+  animation: errorPulse 1.5s ease-out forwards;
+  transition: border-color 300ms ease-out, box-shadow 300ms ease-out;
 }
 
-@keyframes conflictHardPulse {
-  0%, 100% {
+@keyframes errorPulse {
+  0% {
     box-shadow:
       0 2px 4px rgba(0, 0, 0, 0.12),
       0 6px 16px rgba(0, 0, 0, 0.08),
-      0 0 0 3px rgba(220, 38, 38, 0.15),
+      0 0 0 rgba(220, 38, 38, 0),
       inset 0 1px 0 rgba(255, 255, 255, 0.2);
   }
   50% {
     box-shadow:
       0 2px 4px rgba(0, 0, 0, 0.12),
       0 6px 16px rgba(0, 0, 0, 0.08),
-      0 0 0 5px rgba(220, 38, 38, 0.22),
-      0 0 20px rgba(220, 38, 38, 0.15),
+      0 0 20px rgba(220, 38, 38, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  }
+  100% {
+    box-shadow:
+      0 2px 4px rgba(0, 0, 0, 0.12),
+      0 6px 16px rgba(0, 0, 0, 0.08),
+      0 0 8px rgba(220, 38, 38, 0.2),
       inset 0 1px 0 rgba(255, 255, 255, 0.2);
   }
 }
@@ -604,19 +612,33 @@
     0 6px 16px rgba(0, 0, 0, 0.08),
     0 0 0 3px rgba(217, 119, 6, 0.1),
     inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  transition: border-color 300ms ease-out, box-shadow 300ms ease-out;
 }
 
+/* enlarged, clearly-visible conflict triangle */
 .conflictIcon {
   position: absolute;
-  top: 3px;
-  left: 4px;
+  top: 4px;
+  right: 4px;
   z-index: 3;
-  background: rgba(0, 0, 0, 0.25);
-  border-radius: 3px;
-  padding: 1px 2px;
-  display: flex;
+  background: rgba(255, 255, 255, 0.92);
+  border-radius: 6px;
+  padding: 3px 4px;
+  display: inline-flex;
   align-items: center;
   cursor: help;
+  color: #DC2626;
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.25),
+    0 1px 0 rgba(255, 255, 255, 0.4) inset;
+}
+
+.conflictIcon.soft { color: #B45309; }
+.conflictIcon.info { color: #1D4ED8; }
+
+.conflictIcon:hover {
+  background: #ffffff;
+  transform: scale(1.06);
 }
 
 .conflictIcon:focus {
@@ -625,8 +647,49 @@
 }
 
 .hasConflict {
-  padding-left: 26px;
+  padding-right: 34px;
 }
+
+/* content inside the tooltip (rendered by Tooltip component) */
+.triangleTooltip {
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  line-height: 1.45;
+  max-width: 280px;
+}
+
+.triangleTooltipTitle {
+  font-weight: 700;
+  color: #FFFFFF;
+  margin: 0 0 0.4rem;
+  font-size: 0.8rem;
+}
+
+.triangleTooltipList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.triangleTooltipItem {
+  display: flex;
+  gap: 0.35rem;
+  align-items: flex-start;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.triangleTooltipItem::before {
+  content: "•";
+  color: #FCA5A5;
+  flex-shrink: 0;
+  margin-top: -1px;
+}
+
+.triangleTooltipItem.soft::before { color: #FCD34D; }
+.triangleTooltipItem.info::before { color: #93C5FD; }
 
 /* tooltip */
 .blockTooltip {

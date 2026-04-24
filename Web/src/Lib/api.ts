@@ -3,7 +3,10 @@ import type {
   Semester, CreateSemesterDto,
   Schedule, CreateScheduleDto, Course, CourseStats, Section, CreateSectionDto,
   Student, StudentDetail, StudentListItem, StudentStats, CreateStudentDto, Room, Instructor, ConflictResult,
-  SectionWithConflicts
+  SectionWithConflicts,
+  AppFileDTO, FilesPageResponse, UpdateFileDto,
+  ConversationDTO, MessageDTO, MessagesPageDTO, SendMessageRequest,
+  CreateConversationRequest, UnreadCountDTO, AvailableUserDTO,
 } from "./Types";
 
 import { loadingBar } from "../components/ui/LoadingBar";
@@ -378,6 +381,77 @@ export const importRooms = {
     const blob = await apiDownload("/import/rooms/template");
     downloadBlob(blob, "Nursing_Room_Import_Template.xlsx");
   },
+};
+
+// ===== messaging api =====
+export const messagingApi = {
+  listConversations: () => apiFetch<ConversationDTO[]>("/conversations"),
+  getConversation: (id: number) => apiFetch<ConversationDTO>(`/conversations/${id}`),
+  getMessages: (id: number, page = 1, pageSize = 100) =>
+    apiFetch<MessagesPageDTO>(`/conversations/${id}/messages?page=${page}&pageSize=${pageSize}`),
+  sendMessage: (id: number, dto: SendMessageRequest) =>
+    apiFetch<MessageDTO>(`/conversations/${id}/messages`, {
+      method: "POST",
+      body: JSON.stringify(dto),
+    }),
+  markRead: (id: number) =>
+    apiFetch<void>(`/conversations/${id}/read`, { method: "PUT" }),
+  createConversation: (dto: CreateConversationRequest) =>
+    apiFetch<ConversationDTO>("/conversations", {
+      method: "POST",
+      body: JSON.stringify(dto),
+    }),
+  unreadCount: () => apiFetch<UnreadCountDTO>("/conversations/unread-count"),
+  availableUsers: (search?: string) => {
+    const q = search ? `?search=${encodeURIComponent(search)}` : "";
+    return apiFetch<AvailableUserDTO[]>(`/users/available${q}`);
+  },
+};
+
+// ===== centralized files api =====
+//interface that lets callers pass either a simple filename or advanced list options
+export interface FilesListOpts {
+  search?: string;
+  sortBy?: "uploadedAt" | "fileName" | "fileSize";
+  sortDir?: "asc" | "desc";
+  page?: number;
+  pageSize?: number;
+}
+
+export const filesApi = {
+  list: (opts: FilesListOpts = {}) => {
+    const params = new URLSearchParams();
+    if (opts.search) params.set("search", opts.search);
+    if (opts.sortBy) params.set("sortBy", opts.sortBy);
+    if (opts.sortDir) params.set("sortDir", opts.sortDir);
+    if (opts.page) params.set("page", String(opts.page));
+    if (opts.pageSize) params.set("pageSize", String(opts.pageSize));
+    const q = params.toString();
+    return apiFetch<FilesPageResponse>(`/files${q ? `?${q}` : ""}`);
+  },
+  get: (id: number) => apiFetch<AppFileDTO>(`/files/${id}`),
+  //returns a blob URL (createObjectURL) authenticated via our JWT fetch so
+  //iframe src / img src work for private file bytes
+  previewUrl: async (id: number): Promise<{ url: string; cleanup: () => void; blob: Blob }> => {
+    const blob = await apiDownload(`/files/${id}/preview`);
+    const url = URL.createObjectURL(blob);
+    return { url, cleanup: () => URL.revokeObjectURL(url), blob };
+  },
+  downloadToDisk: async (id: number, filename: string) => {
+    const blob = await apiDownload(`/files/${id}/download`);
+    downloadBlob(blob, filename);
+  },
+  upload: (file: File, title?: string, description?: string) => {
+    const fd = new FormData();
+    fd.append("file", file);
+    if (title) fd.append("title", title);
+    if (description) fd.append("description", description);
+    return apiUpload<AppFileDTO>("/files", fd);
+  },
+  update: (id: number, dto: UpdateFileDto) =>
+    apiFetch<AppFileDTO>(`/files/${id}`, { method: "PUT", body: JSON.stringify(dto) }),
+  delete: (id: number) =>
+    apiFetch<void>(`/files/${id}`, { method: "DELETE" }),
 };
 
 // ===== import types =====

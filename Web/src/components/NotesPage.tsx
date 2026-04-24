@@ -6,11 +6,9 @@ import { useToast } from "../Lib/ToastContext";
 import { notesApi } from "../services/Notes";
 import type { NoteDto, NoteAuthor } from "../services/Notes";
 import { NoteCard } from "./Notes/NoteCard";
-import { NumberBadge } from "./ui/NumberBadge";
 import { HairlineRule } from "./ui/HairlineRule";
 import { EmptyState } from "./ui/EmptyState";
 import { Skeleton } from "./ui/Skeleton";
-import { PageDecor } from "./ui/PageDecor";
 import styles from "./NotesPage.module.css";
 
 type StatusFilter = "all" | "open" | "done";
@@ -133,10 +131,8 @@ export function NotesPage() {
 
   return (
     <div className={styles.root}>
-      <PageDecor variant="notes" />
       {/* ── editorial hero ── */}
       <div className={styles.hero}>
-        <NumberBadge number="01" variant="gold" size="sm" />
         <HairlineRule width="48px" color="gold" spacing="tight" />
         <h1 className={styles.heroTitle}>
           Planning <em>Notes</em>

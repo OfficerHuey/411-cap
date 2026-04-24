@@ -1,6 +1,5 @@
 import { useNavigate } from "react-router-dom";
 import { Home, ArrowLeft } from "lucide-react";
-import { NumberBadge } from "./ui/NumberBadge";
 import { HairlineRule } from "./ui/HairlineRule";
 import { Button } from "./ui/Button";
 import styles from "./NotFound.module.css";
@@ -13,7 +12,6 @@ export function NotFound() {
       <span className={styles.bgText}>404</span>
 
       <div className={styles.content}>
-        <NumberBadge number="404" variant="gold" size="lg" />
         <HairlineRule width="48px" color="gold" spacing="tight" />
 
         <h1 className={styles.heading}>

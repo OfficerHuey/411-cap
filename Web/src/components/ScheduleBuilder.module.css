@@ -11,24 +11,27 @@
 /* ── hero (full-bleed dark green band) ── */
 .hero {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: 2rem;
+  gap: 1.25rem;
   flex-wrap: wrap;
   position: relative;
   isolation: isolate;
-  margin: 0 0 1.5rem;
-  padding: 2rem 0 1.5rem;
+  margin: 0 0 1rem;
+  /*tighter padding — total hero compresses to ~120-140px since back+title
+    now share a line and the old standalone view-toggle strip is gone*/
+  padding: 0.85rem 0 3rem;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
 .hero::before {
   content: '';
   position: absolute;
-  top: 0; bottom: 0;
+  top: -1rem; bottom: 0;
   left: -9999px; right: -9999px;
-  background:
-    radial-gradient(ellipse at top right, rgba(255, 198, 41, 0.09) 0%, transparent 60%),
+  background-color: var(--green-900);
+  background-image:
+    radial-gradient(ellipse at top right, rgba(255, 198, 41, 0.08) 0%, transparent 60%),
     repeating-linear-gradient(
       -45deg,
       transparent,
@@ -36,18 +39,19 @@
       rgba(255, 198, 41, 0.035) 30px,
       rgba(255, 198, 41, 0.035) 31px
     ),
-    linear-gradient(170deg, #1a3a28 0%, #112a1c 55%, #0d2016 100%);
+    linear-gradient(180deg, var(--green-900) 0%, var(--green-800) 40%, var(--green-700) 100%);
   pointer-events: none;
   z-index: -1;
 }
 
+/*smooth green-to-white transition at hero base — 60px fade*/
 .hero::after {
   content: '';
   position: absolute;
   bottom: 0;
   left: -9999px; right: -9999px;
-  height: 40px;
-  background: linear-gradient(180deg, transparent 0%, rgba(13, 32, 22, 0.55) 100%);
+  height: 60px;
+  background: linear-gradient(180deg, transparent 0%, var(--bg-primary) 100%);
   pointer-events: none;
   z-index: -1;
 }
@@ -60,35 +64,32 @@
 .heroLeft {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.25rem;
   min-width: 0;
   flex: 1 1 auto;
 }
 
-.heroBackRow {
+/*back + title on one line, keeps total header vertical footprint short*/
+.heroTitleRow {
   display: flex;
   align-items: center;
-  margin-bottom: 0.25rem;
+  gap: 0.75rem;
+  flex-wrap: wrap;
 }
 
 .backBtn {
   margin-left: -0.5rem;
-}
-
-.heroTitleGroup {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
+  flex-shrink: 0;
 }
 
 .heroTitle {
   font-family: var(--font-display);
-  font-size: clamp(2.5rem, 4.5vw, 3.25rem);
-  font-weight: 600;
+  font-size: var(--title-hero-size);
+  font-weight: var(--title-hero-weight);
   color: var(--paper-raised);
-  letter-spacing: var(--tracking-tightest);
-  line-height: 1.02;
-  margin: 0.35rem 0 0;
+  letter-spacing: var(--title-hero-tracking);
+  line-height: 1.05;
+  margin: 0;
   display: flex;
   align-items: center;
   gap: 0.65rem;
@@ -105,9 +106,9 @@
   align-items: center;
   gap: 0.6rem;
   font-family: var(--font-body);
-  font-size: 0.92rem;
+  font-size: 0.85rem;
   color: rgba(255, 255, 255, 0.7);
-  margin: 0.45rem 0 0;
+  margin: 0.15rem 0 0 2.25rem;
   flex-wrap: wrap;
 }
 
@@ -136,44 +137,39 @@
   flex-wrap: wrap;
 }
 
-/* ── view toggle (segmented control) ── */
+/* ── view toggle (segmented control) — now inline in heroRight on the
+     dark green banner, so it uses translucent-white styling instead of
+     the prior cream-on-white treatment ── */
 .viewToggle {
   display: inline-flex;
-  background: var(--paper-sunk);
-  border: 1px solid var(--cream-300);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 10px;
-  padding: 0.3rem;
-  margin-bottom: 1.75rem;
+  padding: 0.25rem;
   gap: 0.15rem;
-  box-shadow:
-    inset 0 1px 2px rgba(0, 0, 0, 0.04),
-    inset 0 0 0 1px rgba(0, 0, 0, 0.02);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
 .viewBtn {
   display: inline-flex;
   align-items: center;
-  gap: 0.45rem;
-  padding: 0.55rem 1.25rem;
+  gap: 0.4rem;
+  padding: 0.4rem 0.85rem;
   border-radius: 7px;
   border: 1px solid transparent;
   font-family: var(--font-body);
-  font-size: 0.88rem;
-  font-weight: 500;
+  font-size: 0.82rem;
+  font-weight: 600;
   cursor: pointer;
-  transition:
-    background 180ms ease,
-    color 180ms ease,
-    transform 120ms ease,
-    box-shadow 180ms ease;
-  color: var(--text-muted);
+  transition: background 180ms ease, color 180ms ease, transform 120ms ease;
+  color: rgba(255, 255, 255, 0.78);
   background: transparent;
   letter-spacing: 0.005em;
 }
 
 .viewBtn:hover:not(.active) {
-  background: rgba(0, 0, 0, 0.025);
-  color: var(--text-on-paper);
+  background: rgba(255, 255, 255, 0.08);
+  color: #FFFFFF;
 }
 
 .viewBtn:active:not(.active) {
@@ -181,21 +177,20 @@
 }
 
 .viewBtn.active {
-  background: linear-gradient(180deg, var(--green-700) 0%, var(--green-800) 100%);
-  color: var(--paper-raised);
+  background: var(--gold-400);
+  color: var(--green-900);
   border-color: rgba(0, 0, 0, 0.08);
   box-shadow:
     0 1px 2px rgba(0, 0, 0, 0.18),
-    0 2px 6px rgba(26, 86, 50, 0.18),
-    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
 }
 
 /* ── grid layout ── */
 .calendarGrid {
   display: grid;
   grid-template-columns: 260px 1fr;
-  gap: 1.75rem;
-  margin-top: 1.75rem;
+  gap: 1.25rem;
+  margin-top: 0.25rem;
   margin-bottom: 2rem;
   align-items: start;
   /* container queries — child grid responds to its own width, not the viewport */
@@ -304,9 +299,6 @@
   }
   .heroTitle {
     font-size: 1.75rem;
-  }
-  .viewToggle {
-    margin-bottom: 1rem;
   }
 }
 

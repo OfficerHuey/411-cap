@@ -18,17 +18,19 @@
   position: relative;
   isolation: isolate;
   margin: 0 0 1.5rem;
-  padding: 2rem 0 1.5rem;
+  /*content sits close to navbar at top, well above fade zone at bottom*/
+  padding: 1.25rem 0 4rem;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
 .hero::before {
   content: '';
   position: absolute;
-  top: 0; bottom: 0;
+  top: -1rem; bottom: 0;
   left: -9999px; right: -9999px;
-  background:
-    radial-gradient(ellipse at 82% 15%, rgba(255, 198, 41, 0.09) 0%, transparent 55%),
+  background-color: var(--green-900);
+  background-image:
+    radial-gradient(ellipse at 82% 15%, rgba(255, 198, 41, 0.08) 0%, transparent 55%),
     repeating-linear-gradient(
       -45deg,
       transparent,
@@ -36,18 +38,19 @@
       rgba(255, 198, 41, 0.035) 30px,
       rgba(255, 198, 41, 0.035) 31px
     ),
-    linear-gradient(170deg, #1a3a28 0%, #112a1c 55%, #0d2016 100%);
+    linear-gradient(180deg, var(--green-900) 0%, var(--green-800) 40%, var(--green-700) 100%);
   pointer-events: none;
   z-index: -1;
 }
 
+/*smooth green-to-white transition at hero base — 60px fade*/
 .hero::after {
   content: '';
   position: absolute;
   bottom: 0;
   left: -9999px; right: -9999px;
-  height: 40px;
-  background: linear-gradient(180deg, transparent 0%, rgba(13, 32, 22, 0.55) 100%);
+  height: 60px;
+  background: linear-gradient(180deg, transparent 0%, var(--bg-primary) 100%);
   pointer-events: none;
   z-index: -1;
 }
@@ -59,10 +62,10 @@
 
 .heroTitle {
   font-family: var(--font-display);
-  font-size: clamp(2.5rem, 5vw, 3.5rem);
-  font-weight: 700;
+  font-size: var(--title-hero-size);
+  font-weight: var(--title-hero-weight);
   color: var(--paper-raised);
-  letter-spacing: var(--tracking-tightest);
+  letter-spacing: var(--title-hero-tracking);
   line-height: 1.05;
   margin: 0;
 }
@@ -187,23 +190,31 @@
   flex-wrap: wrap;
 }
 
+/*search input — high-affordance white card with inline magnifier SVG*/
 .search {
-  padding: 0.6rem 0.875rem;
-  border: 1.5px solid var(--cream-300);
-  border-radius: 4px;
+  padding: 10px 14px 10px 40px;
+  border: 1.5px solid var(--border-default);
+  border-radius: 10px;
   font-family: var(--font-body);
-  font-size: 0.85rem;
+  font-size: 0.9375rem;
   outline: none;
   width: 260px;
-  background: var(--paper-sunk);
+  background-color: var(--bg-surface);
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%239CA3AF' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='11' cy='11' r='8'/><line x1='21' y1='21' x2='16.65' y2='16.65'/></svg>");
+  background-repeat: no-repeat;
+  background-position: left 14px center;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
   color: var(--text-on-paper);
-  transition: background 200ms, border-color 200ms, box-shadow 200ms;
+  transition: border-color 180ms, box-shadow 180ms;
 }
 
+.search::placeholder { color: #9CA3AF; }
+
+.search:hover:not(:focus) { border-color: #9CA3AF; }
+
 .search:focus {
-  background: var(--paper-raised);
-  border-color: var(--green-600);
-  box-shadow: 0 0 0 3px rgba(26, 86, 50, 0.08);
+  border-color: #00563f;
+  box-shadow: 0 0 0 3px rgba(0, 86, 63, 0.12);
 }
 
 /* ── table card ── */

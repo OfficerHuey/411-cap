@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { LogOut, DoorOpen, GraduationCap, Archive, Search, StickyNote, Menu, X, BookOpen, Users } from "lucide-react";
+import { LogOut, DoorOpen, GraduationCap, Archive, Search, StickyNote, Menu, X, BookOpen, Users, FolderOpen, MessageSquare } from "lucide-react";
 import { useNavigate, useLocation, Outlet } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { authService } from "../Lib/Auth";
@@ -7,6 +7,7 @@ import { useBreadcrumbs } from "../Lib/BreadcrumbContext";
 import { NavigationDirectionProvider } from "../Lib/NavigationDirection";
 import { useReducedMotion } from "../hooks/useReducedMotion";
 import { spring, reducedFade } from "../Lib/motion";
+import { messagingApi } from "../Lib/api";
 import { Avatar } from "./ui/Avatar";
 import { Tooltip } from "./ui/Tooltip";
 import { Breadcrumbs } from "./ui/Breadcrumbs";
@@ -27,6 +28,10 @@ export function Layout() {
   const [showPalette, setShowPalette] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  //unread-message count badge, refreshed every 15s via polling. skipped
+  //while the tab is hidden and while the user is on /messages (that page
+  //already polls and marks read as threads are opened)
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const handleLogout = () => {
     authService.logout();
@@ -73,6 +78,8 @@ export function Layout() {
     if (pathname.startsWith("/rooms")) return "/rooms";
     if (pathname.startsWith("/instructors")) return "/instructors";
     if (pathname.startsWith("/notes")) return "/notes";
+    if (pathname.startsWith("/files")) return "/files";
+    if (pathname.startsWith("/messages")) return "/messages";
     if (pathname.startsWith("/archive")) return "/archive";
     if (pathname.startsWith("/profile")) return "/profile";
     return "/";
@@ -104,13 +111,52 @@ export function Layout() {
     }
   }, [location.pathname]);
 
+  //scroll to top on route change so new pages always start at the top edge
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location.pathname]);
+
+  //poll unread message count for the nav badge. tick at mount + every 15s.
+  //skip polling while on /messages since that page drives its own reads
+  useEffect(() => {
+    let cancelled = false;
+    const tick = async () => {
+      if (document.visibilityState === "hidden") return;
+      if (location.pathname.startsWith("/messages")) {
+        //let the messages page drive state; still fetch a zero on entry so
+        //the badge clears for reads made on that page
+        try {
+          const res = await messagingApi.unreadCount();
+          if (!cancelled) setUnreadCount(res.count);
+        } catch {
+          //non-blocking
+        }
+        return;
+      }
+      try {
+        const res = await messagingApi.unreadCount();
+        if (!cancelled) setUnreadCount(res.count);
+      } catch {
+        //non-blocking; keep last known value
+      }
+    };
+    tick();
+    const handle = setInterval(tick, 15_000);
+    return () => {
+      cancelled = true;
+      clearInterval(handle);
+    };
+  }, [location.pathname]);
+
   const navLinks = [
     { path: "/", label: "Dashboard", icon: null },
     { path: "/courses", label: "Courses", icon: BookOpen },
     { path: "/students", label: "Students", icon: GraduationCap },
     { path: "/rooms", label: "Rooms", icon: DoorOpen },
     { path: "/instructors", label: "Instructors", icon: Users },
+    { path: "/messages", label: "Messages", icon: MessageSquare },
     { path: "/notes", label: "Notes", icon: StickyNote },
+    { path: "/files", label: "Files", icon: FolderOpen },
     { path: "/archive", label: "Archive", icon: Archive },
   ];
 
@@ -146,6 +192,14 @@ export function Layout() {
                 )}
                 {link.icon && <link.icon size={14} />}
                 {link.label}
+                {link.path === "/messages" && unreadCount > 0 && (
+                  <span
+                    className={styles.navBadge}
+                    aria-label={`${unreadCount} unread messages`}
+                  >
+                    {unreadCount > 9 ? "9+" : unreadCount}
+                  </span>
+                )}
               </button>
             ))}
           </div>
@@ -246,6 +300,11 @@ export function Layout() {
                   >
                     {link.icon && <link.icon size={18} />}
                     {link.label}
+                    {link.path === "/messages" && unreadCount > 0 && (
+                      <span className={styles.navBadge}>
+                        {unreadCount > 9 ? "9+" : unreadCount}
+                      </span>
+                    )}
                   </button>
                 ))}
               </nav>

@@ -4,9 +4,9 @@
 
 This application follows an **Editorial Institutional** design direction. The mental model: a world-class independent design studio — the kind that does work for Monocle, Stripe, or the Swiss Federal Railways — was hired to build an internal platform for an elite nursing program. The result is software that has a point of view. It is warm but authoritative, detailed but never cluttered, and unmistakably crafted.
 
-"Tasteful but timid" is the enemy. A previous design pass added smooth hover states, tightened spacing, and rounded some corners. That was refinement, not elevation. Refinement polishes what exists; elevation transforms the experience. A 32px heading with -0.01em tracking is refined. An 80px Playfair Display hero with tracked JetBrains Mono section markers, a gold hairline divider, and a paper-grain background is elevated. The difference is having a point of view versus playing it safe.
+"Tasteful but timid" is the enemy. A previous design pass added smooth hover states, tightened spacing, and rounded some corners. That was refinement, not elevation. Refinement polishes what exists; elevation transforms the experience. A 32px heading with -0.01em tracking is refined. An 80px Montserrat hero with tracked JetBrains Mono section markers, a gold hairline divider, and a paper-grain background is elevated. The difference is having a point of view versus playing it safe.
 
-Every page needs at least one **signature moment** — a single visual element that makes someone pause and think "this feels designed." On the Login page, it is the oversized italic Playfair hero. On the Dashboard, it is the editorial stat strip with monospace semester counts. On the Schedule Builder, it is the calendar grid itself, treated as a living document rather than a table. Without these moments, pages default to "generic React dashboard template with school colors." That is the failure state.
+Every page needs at least one **signature moment** — a single visual element that makes someone pause and think "this feels designed." On the Login page, it is the oversized italic Montserrat hero. On the Dashboard, it is the editorial stat strip with monospace semester counts. On the Schedule Builder, it is the calendar grid itself, treated as a living document rather than a table. Without these moments, pages default to "generic React dashboard template with school colors." That is the failure state.
 
 Depth is achieved through layers, not single drop shadows. A card that sits above the page has: a warm off-white surface (never pure white), a 1px inner top highlight where light catches the top edge, a subtle bottom ambient shadow, a deeper outer shadow, and optionally a gold or green accent on one edge. This layered approach makes surfaces feel physical — like thick cotton paper stock on a well-lit desk.
 
@@ -16,9 +16,9 @@ The design system is not decorative. Every token, every scale step, every motion
 
 These elements are the bedrock. They are never changed, only built upon:
 
-- **SELU Green (#00563f)** — Primary brand color. Used for navigation, primary buttons, focus rings, and interactive accents. The full scale runs from green-50 (#f0faf5) to green-975 (#000c08).
-- **SELU Gold (#C8952C)** — Accent color. Used for editorial highlights, section dividers, badge accents, and moments that need warmth. The full scale runs from gold-200 (#f5dfa4) to gold-700 (#5e410a).
-- **Playfair Display** — Display typeface. Used for all headings, hero text, page titles, and moments that carry weight. Loaded in regular and italic variants; italic is used for accent words in hero text.
+- **SELU Green (#1A5632)** — Primary brand color (Pantone 357). Used for navigation, primary buttons, focus rings, and interactive accents. The full scale runs from green-50 (#f0f9f4) to green-975 (#030a06).
+- **SELU Gold (#FFC629)** — Accent color (Pantone 123). Used for editorial highlights, section dividers, badge accents, and moments that need warmth. The full scale runs from gold-200 (#fff0b3) to gold-700 (#755508).
+- **Montserrat** — Display typeface. Used for all headings, hero text, page titles, and moments that carry weight. Loaded in weights 300 through 900 with italic variants; italic is used for accent words in hero text. As a geometric sans-serif, Montserrat carries one weight step heavier than a serif for equivalent visual impact — hero titles use 700 where Playfair would have used 500.
 - **Inter** — Body typeface. Used for all body text, labels, form inputs, buttons, and UI chrome. Loaded in weights 300 through 700.
 - **Warm cream background** — The application background is warm off-white (paper-base: #faf8f3), never cool gray or pure white. This warmth is the foundation of the editorial feel.
 - **Course type colors** — Lecture (blue #3b82f6), Lab (green #10b981), Clinical (purple #8b5cf6), SimLab (amber #f59e0b). These are functional colors tied to the scheduling domain and are not changed.
@@ -34,7 +34,7 @@ Every addition below serves a specific purpose in moving from "clean dashboard" 
 - **Display typography scale (display-xs through display-2xl)** — Editorial hero sizes from 32px to 128px. The existing text scale maxes out at 2rem (32px); the display scale picks up where body text ends. Used for page heroes, login splash, and signature moments.
 - **JetBrains Mono** — Technical yet editorial monospace typeface. Used for dates, W-numbers, section IDs, semester counts, and editorial section markers (e.g., "01" next to a page title). It signals precision without feeling cold.
 - **Paper grain texture overlay** — A subtle SVG noise pattern (3.5% opacity) applied to the body background via ::before pseudo-element. It gives the warm cream background a physical, printed feel — like looking at a well-made editorial publication.
-- **Tracking and leading tokens** — Precise typographic control. Tight tracking (-0.04em) for oversized display text, wide tracking (0.14em) for uppercase editorial labels. These are the details that separate designed typography from default typography.
+- **Tracking and leading tokens** — Precise typographic control. Tight tracking (-0.025em) for oversized display text in Montserrat, wide tracking (0.14em) for uppercase editorial labels. Geometric sans-serif needs less negative tracking than serif — Playfair's -0.04em display tracking is relaxed to -0.025em for Montserrat to prevent collision of round letterforms. These are the details that separate designed typography from default typography.
 - **Motion tokens** — Foundation for Framer Motion animations. Four speed tiers (fast 150ms, base 250ms, slow 400ms, editorial 600ms) and two editorial easing curves. Motion must serve a purpose — entrance, emphasis, or feedback — never decoration.
 - **Space scale (space-0 through space-13)** — Consistent spacing from 0 to 128px. Eliminates magic numbers in padding and margin declarations.
 
@@ -50,7 +50,7 @@ These are explicit failure modes. If you catch yourself doing any of the followi
 - **Do not use the inline `<style>` tag pattern for new components.** Existing components use this pattern as technical debt from Phase 0. New components from Prompt 2 onward use the component library pattern.
 - **Do not add motion that loops forever.** Motion must serve a purpose: entrance, emphasis, state change, or user feedback. Pulsing borders, bouncing icons, and infinite animations are banned.
 - **Do not use emojis as icons.** Use Lucide React icons exclusively.
-- **Do not introduce font families beyond Playfair Display, Inter, and JetBrains Mono.** Three families is the maximum. More dilutes the typographic identity.
+- **Do not introduce font families beyond Montserrat, Inter, and JetBrains Mono.** Three families is the maximum. More dilutes the typographic identity.
 - **Do not add colors outside the green/gold/cream/semantic-status palette.** No purples (except course-clinical), teals, pinks, or other brand-foreign colors. If a new shade is needed, derive it from the existing scales.
 
 ## 5. Token Cheat Sheet
@@ -59,11 +59,11 @@ These are explicit failure modes. If you catch yourself doing any of the followi
 
 | Token | Value | Use |
 |---|---|---|
-| `--green-950` | #001a12 | Deep hero backgrounds |
-| `--green-975` | #000c08 | Deepest hero backgrounds, near-black green |
-| `--gold-200` | #f5dfa4 | Subtle gold background tints |
-| `--gold-600` | #875f13 | Text on gold surfaces |
-| `--gold-700` | #5e410a | Dark text on gold surfaces |
+| `--green-950` | #06150c | Deep hero backgrounds |
+| `--green-975` | #030a06 | Deepest hero backgrounds, near-black green |
+| `--gold-200` | #fff0b3 | Subtle gold background tints |
+| `--gold-600` | #a87c14 | Text on gold surfaces |
+| `--gold-700` | #755508 | Dark text on gold surfaces |
 | `--paper-base` | #faf8f3 | Main application background |
 | `--paper-raised` | #fefdfa | Card and modal surfaces |
 | `--paper-sunk` | #f3f0e8 | Recessed surfaces, insets, code blocks |
@@ -98,7 +98,7 @@ These are explicit failure modes. If you catch yourself doing any of the followi
 
 | Token | Value | Use |
 |---|---|---|
-| `--tracking-tightest` | -0.04em | display-lg and display-xl text |
+| `--tracking-tightest` | -0.025em | display-lg and display-xl text (Montserrat — relaxed from serif -0.04em) |
 | `--tracking-tighter` | -0.02em | display-sm and display-md text |
 | `--tracking-tight` | -0.01em | Standard heading text |
 | `--tracking-normal` | 0 | Body text |
@@ -115,7 +115,7 @@ These are explicit failure modes. If you catch yourself doing any of the followi
 
 | Token | Value | Use |
 |---|---|---|
-| `--font-display` | Playfair Display, serif | Headings, heroes, page titles |
+| `--font-display` | Montserrat, sans-serif | Headings, heroes, page titles |
 | `--font-body` | Inter, system stack | Body text, labels, UI chrome |
 | `--font-mono` | JetBrains Mono, monospace | Dates, IDs, counts, section markers |
 

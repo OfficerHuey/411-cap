@@ -8,11 +8,9 @@ import { Avatar } from "./ui/Avatar";
 import { Input } from "./ui/Input";
 import { Button } from "./ui/Button";
 import { Select } from "./ui/Select";
-import { NumberBadge } from "./ui/NumberBadge";
 import { HairlineRule } from "./ui/HairlineRule";
 import { Skeleton } from "./ui/Skeleton";
 import { Card } from "./ui/Card";
-import { PageDecor } from "./ui/PageDecor";
 import styles from "./ProfilePage.module.css";
 
 const landingOptions = [
@@ -97,10 +95,8 @@ export function ProfilePage() {
 
   return (
     <div className={styles.root}>
-      <PageDecor variant="profile" />
       {/* ── hero ── */}
       <div className={styles.hero}>
-        <NumberBadge number="01" variant="gold" size="sm" />
         <HairlineRule width="48px" color="gold" spacing="normal" />
         <h1 className={styles.heroTitle}><em>Profile</em></h1>
         <p className={styles.heroSubtitle}>Manage your account preferences</p>

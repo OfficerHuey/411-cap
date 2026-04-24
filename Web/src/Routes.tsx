@@ -12,6 +12,11 @@ import { ChangeLogPage } from "./components/ChangeLogPage";
 import { Archive } from "./components/Archive";
 import { NotesPage } from "./components/NotesPage";
 import { ProfilePage } from "./components/ProfilePage";
+import { SemestersOverviewPage } from "./components/SemestersOverviewPage";
+import { ScheduleGroupsOverviewPage } from "./components/ScheduleGroupsOverviewPage";
+import { AttentionPage } from "./components/AttentionPage";
+import { FilesPage } from "./components/FilesPage";
+import { MessagesPage } from "./components/MessagesPage";
 import { Login } from "./components/Login";
 import { ForgotPassword } from "./components/ForgotPassword";
 import { ResetPassword } from "./components/ResetPassword";
@@ -48,8 +53,14 @@ export const router = createBrowserRouter([
       { path: "instructors", Component: InstructorsPage },
       { path: "changelog/:semesterId", Component: ChangeLogPage },
       { path: "notes", Component: NotesPage },
+      { path: "files", Component: FilesPage },
+      { path: "messages", Component: MessagesPage },
+      { path: "messages/:conversationId", Component: MessagesPage },
       { path: "archive", Component: Archive },
       { path: "profile", Component: ProfilePage },
+      { path: "semesters-overview", Component: SemestersOverviewPage },
+      { path: "schedule-groups-overview", Component: ScheduleGroupsOverviewPage },
+      { path: "attention", Component: AttentionPage },
       { path: "*", Component: NotFound },
     ],
   },

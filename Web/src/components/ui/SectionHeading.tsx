@@ -1,8 +1,10 @@
-import { NumberBadge } from "./NumberBadge";
 import { HairlineRule } from "./HairlineRule";
 import styles from "./SectionHeading.module.css";
 
 export interface SectionHeadingProps {
+  //number kept in the prop signature for backwards compatibility with
+  //existing call sites, but no longer rendered — the "N° XX" marker was
+  //removed app-wide per brand direction
   number?: string | number;
   title: string;
   italicWord?: string;
@@ -27,27 +29,20 @@ function renderTitle(title: string, italicWord?: string) {
 
 const levelConfig = {
   page: {
-    badgeVariant: "gold" as const,
-    badgeSize: "lg" as const,
     ruleColor: "gold" as const,
     ruleSpacing: "loose" as const,
   },
   section: {
-    badgeVariant: "default" as const,
-    badgeSize: "md" as const,
     ruleColor: "gold" as const,
     ruleSpacing: "normal" as const,
   },
   subsection: {
-    badgeVariant: "default" as const,
-    badgeSize: "sm" as const,
     ruleColor: "muted" as const,
     ruleSpacing: "tight" as const,
   },
 } as const;
 
 export function SectionHeading({
-  number,
   title,
   italicWord,
   subtitle,
@@ -61,13 +56,6 @@ export function SectionHeading({
     <div className={styles.wrapper}>
       <div className={styles.top}>
         <div className={styles.text}>
-          {number != null && level !== "subsection" && (
-            <NumberBadge
-              number={number}
-              variant={config.badgeVariant}
-              size={config.badgeSize}
-            />
-          )}
           <Tag className={`${styles.title} ${styles[level]}`}>
             {renderTitle(title, italicWord)}
           </Tag>
