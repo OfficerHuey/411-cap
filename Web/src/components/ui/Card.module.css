@@ -54,7 +54,21 @@
   box-shadow: var(--elevation-3), inset 0 0 80px rgba(255, 198, 41, 0.04);
 }
 
-/*interactive hover/tap handled by framer motion (whileHover/whileTap on Card.tsx)*/
+/*interactive hover/tap handled by framer motion (whileHover/whileTap on Card.tsx)
+  transform is owned by framer; box-shadow stays css so we can ease it on the
+  editorial bezier without fighting the spring*/
 .interactive {
   cursor: pointer;
+  transition: box-shadow 280ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.interactive:hover {
+  box-shadow:
+    0 4px 12px rgba(30, 24, 12, 0.06),
+    0 12px 36px rgba(30, 24, 12, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .interactive { transition: none; }
 }

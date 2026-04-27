@@ -21,7 +21,7 @@ export function Tooltip({
   content,
   children,
   position = "top",
-  delay = 400,
+  delay = 300,
 }: TooltipProps) {
   const [visible, setVisible] = useState(false);
   const [coords, setCoords] = useState({ top: 0, left: 0 });
@@ -104,9 +104,9 @@ export function Tooltip({
                 left: coords.left,
                 transformOrigin: anchorMap[position],
               }}
-              initial={{ opacity: 0, x: offset.x * -1, y: offset.y * -1 }}
-              animate={{ opacity: 1, x: 0, y: 0 }}
-              exit={{ opacity: 0, x: offset.x * -1, y: offset.y * -1 }}
+              initial={{ opacity: 0, scale: 0.95, x: offset.x * -1, y: offset.y * -1 }}
+              animate={{ opacity: 1, scale: 1, x: 0, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, x: offset.x * -1, y: offset.y * -1 }}
               transition={{ duration: 0.15, ease: "easeOut" }}
             >
               {content}

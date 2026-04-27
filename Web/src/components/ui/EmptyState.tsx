@@ -7,6 +7,8 @@
  * - description should offer a helpful next step, not just describe the emptiness
  *   good: "create your first semester to begin building schedules for the upcoming term"
  */
+import { motion } from "framer-motion";
+import { useReducedMotion } from "../../hooks/useReducedMotion";
 import styles from "./EmptyState.module.css";
 
 export interface EmptyStateProps {
@@ -27,9 +29,10 @@ export function EmptyState({
   size = "md",
 }: EmptyStateProps) {
   const circleSize = iconSizePx[size] * 1.6;
+  const reduced = useReducedMotion();
 
-  return (
-    <div className={`${styles.wrapper} ${styles[size]}`}>
+  const inner = (
+    <>
       {icon && (
         <div
           className={styles.iconCircle}
@@ -41,6 +44,21 @@ export function EmptyState({
       <h3 className={`${styles.title} ${styles[`title-${size}`]}`}>{title}</h3>
       {description && <p className={styles.description}>{description}</p>}
       {action && <div className={styles.action}>{action}</div>}
-    </div>
+    </>
+  );
+
+  if (reduced) {
+    return <div className={`${styles.wrapper} ${styles[size]}`}>{inner}</div>;
+  }
+
+  return (
+    <motion.div
+      className={`${styles.wrapper} ${styles[size]}`}
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1], delay: 0.15 }}
+    >
+      {inner}
+    </motion.div>
   );
 }

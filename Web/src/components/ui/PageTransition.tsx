@@ -1,42 +1,52 @@
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import type { Variants } from "framer-motion";
 import { useLocation } from "react-router-dom";
 import { useReducedMotion } from "../../hooks/useReducedMotion";
 
-//opacity-only page transitions
-//rationale: any transform on this wrapper becomes the containing block for
-//position:fixed descendants, which breaks viewport layout on route change
-//opacity creates no containing block
-const EASE: [number, number, number, number] = [0.32, 0.72, 0, 1];
-
+//page transitions — opacity + tiny translateY only
+//rationale: scale/translateX/rotate on this wrapper would create a CSS containing
+//block that breaks position:fixed descendants. all our fixed surfaces (Modal,
+//Toast, Tooltip, CommandPalette, DetailPanel, Select dropdowns) portal to
+//document.body, so they escape this wrapper regardless. opacity + small
+//translateY is safe so long as nothing inside relies on this element NOT being
+//a containing block
 const variants: Variants = {
-  initial: { opacity: 0 },
-  animate: { opacity: 1, transition: { duration: 0.25, ease: EASE } },
-  exit: { opacity: 0, transition: { duration: 0.15, ease: EASE } },
-};
-
-const reducedVariants: Variants = {
-  initial: { opacity: 0 },
-  animate: { opacity: 1, transition: { duration: 0.15 } },
-  exit: { opacity: 0, transition: { duration: 0.1 } },
+  initial: { opacity: 0, y: 8 },
+  enter: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.35,
+      ease: [0.16, 1, 0.3, 1],
+      staggerChildren: 0.06,
+    },
+  },
+  exit: {
+    opacity: 0,
+    y: -4,
+    transition: {
+      duration: 0.15,
+      ease: [0.4, 0, 1, 1],
+    },
+  },
 };
 
 export function PageTransition({ children }: { children: React.ReactNode }) {
-  const location = useLocation();
   const reduced = useReducedMotion();
+  const location = useLocation();
+
+  if (reduced) return <>{children}</>;
 
   return (
-    <AnimatePresence mode="wait" initial={false}>
-      <motion.div
-        key={location.pathname}
-        initial="initial"
-        animate="animate"
-        exit="exit"
-        variants={reduced ? reducedVariants : variants}
-        style={{ willChange: "opacity" }}
-      >
-        {children}
-      </motion.div>
-    </AnimatePresence>
+    <motion.div
+      key={location.pathname}
+      variants={variants}
+      initial="initial"
+      animate="enter"
+      exit="exit"
+      style={{ width: "100%" }}
+    >
+      {children}
+    </motion.div>
   );
 }

@@ -7,10 +7,11 @@ interface AnimatedNumberProps {
   formatFn?: (n: number) => string;
 }
 
-export function AnimatedNumber({ value, duration = 600, formatFn }: AnimatedNumberProps) {
+export function AnimatedNumber({ value, duration = 800, formatFn }: AnimatedNumberProps) {
   const reduced = useReducedMotion();
-  const [display, setDisplay] = useState(value);
-  const prevRef = useRef(value);
+  //start at 0 so first mount animates from 0 to value (count-up effect)
+  const [display, setDisplay] = useState(reduced ? value : 0);
+  const prevRef = useRef(reduced ? value : 0);
   const rafRef = useRef(0);
 
   useEffect(() => {

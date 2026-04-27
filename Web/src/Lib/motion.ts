@@ -271,6 +271,32 @@ export const statStripVariants: Variants = {
   },
 };
 
+//generic stagger pair — apply container variants to a flex/grid wrapper and
+//item variants to each child. ease: ease-out-editorial. spacing tuned so
+//4-tile rows complete in ~350ms total
+export const stagger = {
+  container: {
+    hidden: {},
+    show: {
+      transition: {
+        staggerChildren: 0.05,
+        delayChildren: 0.1,
+      },
+    },
+  } as Variants,
+  item: {
+    hidden: { opacity: 0, y: 12 },
+    show: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: 0.4,
+        ease: ease.out,
+      },
+    },
+  } as Variants,
+} as const;
+
 //reduced motion overrides
 export const reducedPageVariants: Variants = {
   initial: { opacity: 0 },

@@ -230,6 +230,10 @@
   /* --bp-wide: 1536px */
 }
 
+/* CONTRAST RULE: On dark green backgrounds (--green-700 through --green-975),
+   all text must be at minimum rgba(255,255,255,0.88).
+   Semi-transparent white below 0.85 fails readability on textured green. */
+
 /* ===== reset ===== */
 *, *::before, *::after {
   box-sizing: border-box;
@@ -241,6 +245,7 @@ html {
   height: 100%;
   font-size: 16px;
   overflow-x: hidden;
+  scroll-behavior: smooth;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
@@ -299,16 +304,21 @@ a:hover {
   text-decoration: underline;
 }
 
-/* ===== focus rings for accessibility ===== */
+/* ===== focus rings for accessibility — keyboard-only via :focus-visible ===== */
 :focus-visible {
-  outline: 2px solid var(--green-600);
+  outline: 2px solid var(--gold-400);
   outline-offset: 2px;
+  border-radius: var(--radius-sm);
 }
 
-button:focus:not(:focus-visible),
-input:focus:not(:focus-visible),
-select:focus:not(:focus-visible) {
+:focus:not(:focus-visible) {
   outline: none;
+}
+
+/* ===== branded text selection ===== */
+::selection {
+  background: rgba(255, 198, 41, 0.25);
+  color: var(--green-900);
 }
 
 /* ===== scrollbar styling ===== */

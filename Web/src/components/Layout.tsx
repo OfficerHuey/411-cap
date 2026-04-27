@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { LogOut, DoorOpen, GraduationCap, Archive, Search, StickyNote, Menu, X, BookOpen, Users, FolderOpen, MessageSquare } from "lucide-react";
 import { useNavigate, useLocation, Outlet } from "react-router-dom";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, LayoutGroup } from "framer-motion";
 import { authService } from "../Lib/Auth";
 import { useBreadcrumbs } from "../Lib/BreadcrumbContext";
 import { NavigationDirectionProvider } from "../Lib/NavigationDirection";
@@ -112,8 +112,10 @@ export function Layout() {
   }, [location.pathname]);
 
   //scroll to top on route change so new pages always start at the top edge
+  //'instant' overrides the global scroll-behavior:smooth — smooth scroll-to-top
+  //on route change feels sluggish vs. an immediate reset
   useEffect(() => {
-    window.scrollTo(0, 0);
+    window.scrollTo({ top: 0, behavior: "instant" });
   }, [location.pathname]);
 
   //poll unread message count for the nav badge. tick at mount + every 15s.
@@ -176,32 +178,45 @@ export function Layout() {
 
           {/* center nav */}
           <div className={styles.navCenter}>
-            {navLinks.map((link) => (
-              <button
-                key={link.path}
-                className={`${styles.navLink} ${isActive(link.path) ? styles.navLinkActive : ""}`}
-                onClick={() => navigate(link.path)}
-              >
-                {isActive(link.path) && depthLevel > 0 && (
-                  <span
-                    aria-hidden="true"
-                    style={{ fontSize: "0.6rem", opacity: 0.5, marginRight: "0.2rem" }}
+            <LayoutGroup id="nav-active">
+              {navLinks.map((link) => {
+                const active = isActive(link.path);
+                return (
+                  <button
+                    key={link.path}
+                    className={`${styles.navLink} ${active ? styles.navLinkActive : ""}`}
+                    onClick={() => navigate(link.path)}
                   >
-                    &#x21A9;
-                  </span>
-                )}
-                {link.icon && <link.icon size={14} />}
-                {link.label}
-                {link.path === "/messages" && unreadCount > 0 && (
-                  <span
-                    className={styles.navBadge}
-                    aria-label={`${unreadCount} unread messages`}
-                  >
-                    {unreadCount > 9 ? "9+" : unreadCount}
-                  </span>
-                )}
-              </button>
-            ))}
+                    {active && depthLevel > 0 && (
+                      <span
+                        aria-hidden="true"
+                        style={{ fontSize: "0.6rem", opacity: 0.5, marginRight: "0.2rem" }}
+                      >
+                        &#x21A9;
+                      </span>
+                    )}
+                    {link.icon && <link.icon size={14} />}
+                    {link.label}
+                    {link.path === "/messages" && unreadCount > 0 && (
+                      <span
+                        className={styles.navBadge}
+                        aria-label={`${unreadCount} unread messages`}
+                      >
+                        {unreadCount > 9 ? "9+" : unreadCount}
+                      </span>
+                    )}
+                    {active && !reduced && (
+                      <motion.span
+                        layoutId="nav-active-indicator"
+                        className={styles.navActiveIndicator}
+                        transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                        aria-hidden="true"
+                      />
+                    )}
+                  </button>
+                );
+              })}
+            </LayoutGroup>
           </div>
 
           {/* right section */}
@@ -246,9 +261,11 @@ export function Layout() {
       {breadcrumbItems.length > 0 && <Breadcrumbs items={breadcrumbItems} />}
 
       <main className={styles.main}>
-        <PageTransition>
-          <Outlet />
-        </PageTransition>
+        <AnimatePresence mode="wait">
+          <PageTransition key={location.pathname}>
+            <Outlet />
+          </PageTransition>
+        </AnimatePresence>
       </main>
       <CommandPalette
         isOpen={showPalette}

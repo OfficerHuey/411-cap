@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
 import { CreateSemesterModal } from "./CreateSemesterModal";
 import { CloneSemesterModal } from "./CloneSemesterModal";
-import { Plus, Calendar, Trash2, Unlock, Copy, ChevronRight } from "lucide-react";
+import { Plus, Calendar, Trash2, Unlock, Copy, ChevronRight, ArrowRight } from "lucide-react";
 import { authService } from "../Lib/Auth";
 import { semesters as semestersApi, schedules as schedulesApi } from "../Lib/api";
 import type { Semester } from "../Lib/Types";
@@ -21,6 +21,7 @@ import { Badge } from "./ui/Badge";
 import { EmptyState } from "./ui/EmptyState";
 import { Modal } from "./ui/Modal";
 import { Skeleton } from "./ui/Skeleton";
+import { FadeInWhenVisible } from "./ui/FadeInWhenVisible";
 import styles from "./Dashboard.module.css";
 
 function getGreeting(): { text: string; accent: string } {
@@ -67,6 +68,7 @@ function splitSeasonWord(name: string): { before: string; season: string; after:
 interface DashboardData {
   semesterList: Semester[];
   scheduleCountMap: Record<number, number>;
+  studentCountMap: Record<number, number>;
   totalStudents: number;
   attentionCount: number;
 }
@@ -94,6 +96,7 @@ export function Dashboard() {
   const { state, reload: loadSemesters } = useAsyncData<DashboardData>(async () => {
     const data = await semestersApi.getAll();
     const counts: Record<number, number> = {};
+    const studentCounts: Record<number, number> = {};
     const active = data.filter((s) => !s.isLocked);
     let studentSum = 0;
     let attention = 0;
@@ -102,22 +105,26 @@ export function Dashboard() {
         try {
           const schedules = await schedulesApi.getBySemester(sem.id);
           counts[sem.id] = schedules.length;
-          studentSum += schedules.reduce((acc, s) => acc + (s.students?.length || 0), 0);
+          const semStudents = schedules.reduce((acc, s) => acc + (s.students?.length || 0), 0);
+          studentCounts[sem.id] = semStudents;
+          studentSum += semStudents;
           attention += schedules.filter(
             (s) => s.students && s.capacity && s.students.length >= s.capacity,
           ).length;
         } catch {
           counts[sem.id] = 0;
+          studentCounts[sem.id] = 0;
         }
       }),
     );
-    return { semesterList: data, scheduleCountMap: counts, totalStudents: studentSum, attentionCount: attention };
+    return { semesterList: data, scheduleCountMap: counts, studentCountMap: studentCounts, totalStudents: studentSum, attentionCount: attention };
   }, []);
 
   const loading = state.status === "loading" || state.status === "idle";
   const error = state.status === "error" ? state.error : "";
   const semesterList = state.status === "success" ? state.data.semesterList : [];
   const scheduleCountMap = state.status === "success" ? state.data.scheduleCountMap : {};
+  const studentCountMap = state.status === "success" ? state.data.studentCountMap : {};
   const totalStudents = state.status === "success" ? state.data.totalStudents : null;
   const attentionCount = state.status === "success" ? state.data.attentionCount : null;
 
@@ -148,17 +155,13 @@ export function Dashboard() {
   const lockedCount = semesterList.filter((s) => s.isLocked).length;
   const totalSchedules = Object.values(scheduleCountMap).reduce((a, b) => a + b, 0);
 
-  //featured = most recent active semester (latest startDate)
+  //"Jump Back In" semester — currently uses the most recently created/modified active semester.
+  //Future enhancement: track last-viewed semester via localStorage or user preferences.
   const featured = activeSemesters.length > 0
     ? [...activeSemesters].sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime())[0]
     : null;
 
   const featuredProgress = featured ? weekProgress(featured.startDate, featured.endDate) : null;
-
-  //subtitle text
-  const subtitleText = featured
-    ? `You're building schedules for ${featured.name}. ${totalSchedules} schedule group${totalSchedules !== 1 ? "s" : ""} across ${activeSemesters.length} active semester${activeSemesters.length !== 1 ? "s" : ""}.`
-    : "You have no active semesters. Create one to begin building schedules.";
 
   const reduced = useReducedMotion();
 
@@ -177,7 +180,16 @@ export function Dashboard() {
             {greeting.text.replace(greeting.accent, "").trim()}{" "}
             <em>{greeting.accent}</em>, {firstName}.
           </motion.h1>
-          <motion.p variants={reduced ? undefined : heroChild} className={styles.heroSubtitle}>{subtitleText}</motion.p>
+          <motion.p variants={reduced ? undefined : heroChild} className={styles.heroSubtitle}>
+            {featured ? (
+              <>
+                Currently working on <strong style={{ color: 'var(--gold-400)', fontWeight: 600 }}>{featured.name}</strong>
+                {' · '}{totalSchedules} schedule group{totalSchedules !== 1 ? 's' : ''} across {activeSemesters.length} active semester{activeSemesters.length !== 1 ? 's' : ''}
+              </>
+            ) : (
+              "You have no active semesters. Create one to begin building schedules."
+            )}
+          </motion.p>
         </div>
         {canEdit && (
           <motion.div variants={reduced ? undefined : heroChild}>
@@ -275,7 +287,7 @@ export function Dashboard() {
                 whileHover={reduced ? undefined : { y: -5, scale: 1.01, transition: physics.magnetic }}
                 whileTap={reduced ? undefined : { scale: 0.995, transition: physics.instant }}
                 onClick={() => navigate("/attention")}
-                className={styles.statTileClickable}
+                className={`${styles.statTileClickable} ${attentionCount && attentionCount > 0 ? styles.attentionPulse : ""}`}
                 role="link"
                 aria-label="View items that need attention"
               >
@@ -305,49 +317,63 @@ export function Dashboard() {
           section is reserved on first paint. without this the banner sat
           flush against the SectionHeading until data arrived, then the
           featured card popped in and shoved everything down ── */}
-      {loading && (
+      {!featured && loading && (
         <div className={styles.featuredSkeleton} aria-hidden="true">
           <Skeleton variant="custom" height="100%" />
         </div>
       )}
-      {featured && !loading && (
-        <motion.div
-          layoutId={reduced ? undefined : `semester-hero-${featured.id}`}
-          whileHover={reduced ? undefined : { y: -6, scale: 1.008, transition: physics.magnetic }}
-          whileTap={reduced ? undefined : { scale: 0.995, transition: physics.instant }}
-          style={{ cursor: "pointer" }}
-        >
-        <Card variant="hero" className={styles.featured} onClick={() => navigate(`/semester/${featured.id}`)}>
-          <div className={styles.featuredInner}>
-            <div className={styles.featuredLeft}>
-              <h2 className={styles.featuredTitle}>
-                {(() => {
-                  const parts = splitSeasonWord(featured.name);
-                  if (!parts) return featured.name;
-                  return <>{parts.before}<em>{parts.season}</em>{parts.after}</>;
-                })()}
-              </h2>
-              {featuredProgress && (
-                <>
-                  <span className={styles.featuredMeta}>
-                    Week {featuredProgress.week} of {featuredProgress.total} &middot; Ends{" "}
-                    {new Date(featured.endDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-                  </span>
-                  <div className={styles.progressTrack}>
-                    <div className={styles.progressFill} style={{ width: `${featuredProgress.pct}%` }} />
+      {featured && (
+        <>
+          <p className={styles.jumpBackInLabel}>
+            <ArrowRight size={14} /> Jump back in
+          </p>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+            whileHover={reduced ? undefined : { y: -6, scale: 1.008, transition: physics.magnetic }}
+            whileTap={reduced ? undefined : { scale: 0.995, transition: physics.instant }}
+            style={{ cursor: "pointer" }}
+          >
+            <Card variant="hero" className={styles.featured} onClick={() => navigate(`/semester/${featured.id}`)}>
+              <div className={styles.featuredInner}>
+                <div className={styles.featuredLeft}>
+                  <span className={styles.featuredContext}>Last edited semester</span>
+                  <h2 className={styles.featuredTitle}>
+                    {(() => {
+                      const parts = splitSeasonWord(featured.name);
+                      if (!parts) return featured.name;
+                      return <>{parts.before}<em>{parts.season}</em>{parts.after}</>;
+                    })()}
+                  </h2>
+                  {featuredProgress && (
+                    <>
+                      <span className={styles.featuredMeta}>
+                        Week {featuredProgress.week} of {featuredProgress.total} &middot; Ends{" "}
+                        {new Date(featured.endDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                      </span>
+                      <div className={styles.progressTrack}>
+                        <div className={styles.progressFill} style={{ width: `${featuredProgress.pct}%` }} />
+                      </div>
+                    </>
+                  )}
+                  <div className={styles.featuredStats}>
+                    <span>{scheduleCountMap[featured.id] ?? 0} schedule group{(scheduleCountMap[featured.id] ?? 0) !== 1 ? "s" : ""}</span>
+                    <span className={styles.featuredStatsDot}>&middot;</span>
+                    <span>{studentCountMap[featured.id] ?? 0} student{(studentCountMap[featured.id] ?? 0) !== 1 ? "s" : ""}</span>
                   </div>
-                </>
-              )}
-            </div>
-            <Button variant="secondary" size="lg" onClick={(e) => { e.stopPropagation(); navigate(`/semester/${featured.id}`); }}>
-              Open Semester
-            </Button>
-          </div>
-        </Card>
-        </motion.div>
+                </div>
+                <Button variant="secondary" size="lg" onClick={(e) => { e.stopPropagation(); navigate(`/semester/${featured.id}`); }}>
+                  Continue
+                </Button>
+              </div>
+            </Card>
+          </motion.div>
+        </>
       )}
 
       {/* ── semester grid — heading + wrapper always rendered during/after load ── */}
+      <FadeInWhenVisible>
       <SectionHeading number="02" title="All semesters" level="section" />
 
       {loading ? (
@@ -467,6 +493,7 @@ export function Dashboard() {
           </motion.div>
         </LayoutGroup>
       )}
+      </FadeInWhenVisible>
 
       {/* ── modals ── */}
       {showCreateModal && (
