@@ -5,7 +5,6 @@ import { resetPassword } from "../Lib/api";
 import { Card } from "./ui/Card";
 import { Input } from "./ui/Input";
 import { Button } from "./ui/Button";
-import { NumberBadge } from "./ui/NumberBadge";
 import { HairlineRule } from "./ui/HairlineRule";
 import styles from "./ResetPassword.module.css";
 
@@ -53,7 +52,6 @@ export function ResetPassword() {
   return (
     <div className={styles.root}>
       <Card variant="elevated" className={styles.card}>
-        <NumberBadge number="01" variant="gold" size="sm" />
         <HairlineRule width="48px" color="gold" spacing="normal" />
 
         {done ? (

@@ -4,6 +4,7 @@ import { ArrowLeft, Clock, User } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
 import { changelog as changelogApi, semesters as semestersApi } from "../Lib/api";
 import type { Semester } from "../Lib/Types";
+import { useBreadcrumbs } from "../Lib/BreadcrumbContext";
 
 interface LogEntry {
   id: number;
@@ -19,6 +20,7 @@ interface LogEntry {
 export function ChangeLogPage() {
   const { semesterId } = useParams<{ semesterId: string }>();
   const navigate = useNavigate();
+  const { setItems: setBreadcrumbs } = useBreadcrumbs();
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [semester, setSemester] = useState<Semester | null>(null);
   const [loading, setLoading] = useState(true);
@@ -27,6 +29,15 @@ export function ChangeLogPage() {
   const semIdNum = parseInt(semesterId || "0");
 
   useEffect(() => { loadData(); }, [semesterId]);
+
+  useEffect(() => {
+    setBreadcrumbs([
+      { label: "Dashboard", href: "/" },
+      { label: semester?.name || "Semester", href: semesterId ? `/semester/${semesterId}` : undefined },
+      { label: "Change Log" },
+    ]);
+    return () => setBreadcrumbs([]);
+  }, [setBreadcrumbs, semester, semesterId]);
 
   const loadData = async () => {
     try {
@@ -66,22 +77,22 @@ export function ChangeLogPage() {
         .cl-root { font-family: 'Inter', sans-serif; }
         .cl-header { display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 1px solid #e5e2db; }
         .cl-btn-back { height: 36px; padding: 0 1rem; gap: 0.4rem; background: #ffffff; border: 1.5px solid #e5e2db; border-radius: 8px; display: flex; align-items: center; cursor: pointer; color: #6b7280; font-family: 'Inter', sans-serif; font-size: 0.88rem; font-weight: 500; transition: background 0.15s, color 0.15s; }
-        .cl-btn-back:hover { background: #00563f; color: #ffffff; border-color: #00563f; }
-        .cl-header h1 { font-family: 'Playfair Display', serif; font-size: 1.75rem; font-weight: 600; color: #0a1f14; margin: 0; }
-        .cl-header p { font-size: 0.85rem; color: #9ca3af; margin: 0.2rem 0 0; font-weight: 300; }
+        .cl-btn-back:hover { background: #1A5632; color: #ffffff; border-color: #1A5632; }
+        .cl-header h1 { font-family: 'Montserrat', 'Inter', sans-serif; font-size: 1.75rem; font-weight: 600; color: #0a1f14; margin: 0; }
+        .cl-header p { font-size: 0.92rem; color: #9ca3af; margin: 0.2rem 0 0; font-weight: 300; }
         .cl-card { background: #ffffff; border: 1px solid #e5e2db; border-radius: 10px; overflow: hidden; }
         .cl-timeline { padding: 1.5rem; }
         .cl-entry { display: flex; gap: 1rem; padding: 1rem 0; border-bottom: 1px solid #f3f4f6; }
         .cl-entry:last-child { border-bottom: none; }
         .cl-entry-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 0.4rem; flex-shrink: 0; }
         .cl-entry-body { flex: 1; min-width: 0; }
-        .cl-entry-action { font-size: 0.88rem; font-weight: 500; color: #0a1f14; margin: 0 0 0.3rem 0; }
-        .cl-entry-entity { display: inline-block; padding: 0.1rem 0.4rem; border-radius: 4px; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; margin-right: 0.5rem; }
-        .cl-entry-changes { font-size: 0.82rem; color: #6b7280; margin: 0.25rem 0 0; line-height: 1.5; }
-        .cl-entry-meta { display: flex; align-items: center; gap: 1rem; margin-top: 0.4rem; font-size: 0.75rem; color: #9ca3af; }
+        .cl-entry-action { font-size: 0.95rem; font-weight: 500; color: #0a1f14; margin: 0 0 0.3rem 0; }
+        .cl-entry-entity { display: inline-block; padding: 0.1rem 0.4rem; border-radius: 4px; font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; margin-right: 0.5rem; }
+        .cl-entry-changes { font-size: 0.88rem; color: #6b7280; margin: 0.25rem 0 0; line-height: 1.5; }
+        .cl-entry-meta { display: flex; align-items: center; gap: 1rem; margin-top: 0.4rem; font-size: 0.8rem; color: #9ca3af; }
         .cl-entry-meta span { display: inline-flex; align-items: center; gap: 0.3rem; }
-        .cl-empty { text-align: center; padding: 3rem 2rem; color: #9ca3af; font-size: 0.88rem; }
-        .error-banner { background: #fef2f2; border: 1px solid #fecaca; border-left: 3px solid #dc2626; border-radius: 6px; padding: 0.75rem 1rem; margin-bottom: 1.5rem; font-size: 0.85rem; color: #991b1b; }
+        .cl-empty { text-align: center; padding: 3rem 2rem; color: #9ca3af; font-size: 0.95rem; }
+        .error-banner { background: #fef2f2; border: 1px solid #fecaca; border-left: 3px solid #dc2626; border-radius: 6px; padding: 0.75rem 1rem; margin-bottom: 1.5rem; font-size: 0.92rem; color: #991b1b; }
       `}</style>
 
       <div className="cl-root">

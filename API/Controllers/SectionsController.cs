@@ -298,6 +298,11 @@ namespace NursingScheduler.API.Controllers
         [HttpDelete("{sectionId}/schedule/{scheduleId}")]
         public async Task<ActionResult> RemoveSectionFromSchedule(int sectionId, int scheduleId)
         {
+            //check semester lock via the schedule
+            var schedule = await _context.Schedules.FindAsync(scheduleId);
+            if (schedule != null && await IsSemesterLocked(schedule.SemesterId))
+                return BadRequest("This semester is locked and cannot be modified");
+
             var link = await _context.ScheduleSections
                 .FirstOrDefaultAsync(ss => ss.SectionId == sectionId && ss.ScheduleId == scheduleId);
 

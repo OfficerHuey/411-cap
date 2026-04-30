@@ -1,14 +1,17 @@
 import { useRef, useEffect, useState, useMemo, useCallback } from "react";
-import { Plus, Trash2, Pencil, Building2, AlertTriangle, Info } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Plus, Trash2, Pencil, Building2, AlertTriangle, Info, BookOpen, FlaskConical, Stethoscope, CalendarPlus } from "lucide-react";
 import { useDrop, useDrag } from "react-dnd";
 import { sections as sectionsApi } from "../Lib/api";
 import type { Schedule, Course, Section } from "../Lib/Types";
 import { courseTypeColor, dayOfWeekName, timeSpanToDisplay } from "../Lib/Types";
 import { CourseDetailsModal } from "./CourseDetailsModal";
-import { ConflictBanner } from "./ConflictBanner";
+import { ConflictPanel } from "./ConflictPanel";
 import type { ConflictEntry } from "./ConflictBanner";
+import { Tooltip } from "./ui/Tooltip";
 import { useToast } from "../Lib/ToastContext";
-import { NumberBadge } from "./ui/NumberBadge";
+import { useReducedMotion } from "../hooks/useReducedMotion";
+import { badgePopVariants, ease } from "../Lib/motion";
 import { Modal } from "./ui/Modal";
 import { Button } from "./ui/Button";
 import { EditAttribution } from "./EditAttribution";
@@ -20,6 +23,8 @@ interface ScheduleCanvasProps {
   isSemester5: boolean;
   courses: Course[];
   isLocked: boolean;
+  semesterStart?: string;
+  semesterEnd?: string;
   onRefresh: () => void;
   onDrop: (
     courseId: number,
@@ -27,7 +32,30 @@ interface ScheduleCanvasProps {
     timeSlot?: string,
     dateRange?: string,
   ) => void;
+  //optimistic handlers owned by the parent — when provided, canvas delegates instead of hitting the api itself
+  onDeleteSection?: (sectionId: number) => Promise<void>;
+  onMoveSection?: (sectionId: number, dayOfWeek: string, startTime: string, endTime: string) => Promise<void>;
   onInstructorClick?: (instructorId: number) => void;
+}
+
+//darken a hex color by a flat rgb amount for the left accent stripe
+function darkenColor(hex: string, amount: number): string {
+  const normalized = hex.replace("#", "");
+  if (normalized.length !== 6) return hex;
+  const num = parseInt(normalized, 16);
+  const r = Math.max(0, (num >> 16) - amount);
+  const g = Math.max(0, ((num >> 8) & 0x00ff) - amount);
+  const b = Math.max(0, (num & 0x0000ff) - amount);
+  return `rgb(${r}, ${g}, ${b})`;
+}
+
+function courseTypeIcon(type: string) {
+  switch (type) {
+    case "Lecture": return <BookOpen size={11} />;
+    case "Lab": return <FlaskConical size={11} />;
+    case "Clinical": return <Stethoscope size={11} />;
+    default: return null;
+  }
 }
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
@@ -35,7 +63,7 @@ const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
 //30-min slots from 7:00am to 7:00pm
 const SLOT_START_HOUR = 7;
 const SLOT_END_HOUR = 19;
-const SLOT_HEIGHT = 32;
+const SLOT_HEIGHT = 44;
 const SLOTS: string[] = [];
 for (let h = SLOT_START_HOUR; h < SLOT_END_HOUR; h++) {
   for (let m = 0; m < 60; m += 30) {
@@ -183,12 +211,14 @@ function DraggableCourseBlock({
   endDisplay,
   sectionConflicts,
   hasHard,
-  hasSoft: _hasSoft,
+  hasSoft,
   hasInfo,
   conflictClass,
   isLocked,
   day,
   bannerVisible,
+  isNewlyPlaced,
+  reduced,
   onEdit,
   onDelete,
   onTooltipEnter,
@@ -196,6 +226,7 @@ function DraggableCourseBlock({
   tooltipSection,
   tooltipPos,
   onInstructorClick,
+  onConflictIconClick,
 }: {
   section: Section;
   course: Course;
@@ -212,13 +243,16 @@ function DraggableCourseBlock({
   isLocked: boolean;
   day: string;
   bannerVisible: boolean;
+  isNewlyPlaced: boolean;
   onEdit: () => void;
   onDelete: () => void;
   onTooltipEnter: (sectionId: number, e: React.MouseEvent) => void;
   onTooltipLeave: () => void;
   tooltipSection: number | null;
   tooltipPos: { x: number; y: number };
+  reduced?: boolean;
   onInstructorClick?: (instructorId: number) => void;
+  onConflictIconClick?: () => void;
 }) {
   const elementRef = useRef<HTMLDivElement>(null);
 
@@ -266,10 +300,12 @@ function DraggableCourseBlock({
       style={{
         top,
         height: Math.max(height - 2, SLOT_HEIGHT - 2),
-        background: `linear-gradient(135deg, ${color}d9, ${color})`,
-        borderLeft: `3px solid ${color}`,
+        backgroundColor: color,
+        borderLeft: `4px solid ${darkenColor(color, 30)}`,
         cursor: isLocked ? "default" : "grab",
-      }}
+        //exposed as a css variable so hover glow can use the actual course color
+        ["--block-color" as string]: color,
+      } as React.CSSProperties}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       onFocus={(e) => {
@@ -280,27 +316,87 @@ function DraggableCourseBlock({
       }}
       aria-describedby={sectionConflicts.length > 0 ? tooltipId : undefined}
     >
-      {sectionConflicts.length > 0 && (
-        <span
-          className={styles.conflictIcon}
-          tabIndex={0}
-          role="img"
-          aria-label={sectionConflicts.map((c) => `${c.type}: ${c.message}`).join("; ")}
-          onFocus={(e) => {
-            e.stopPropagation();
-            if (!tooltipSuppressed) onTooltipEnter(section.id, e as unknown as React.MouseEvent);
+      {isNewlyPlaced && !reduced && (
+        <motion.div
+          style={{
+            position: "absolute",
+            inset: 0,
+            borderRadius: 10,
+            border: "2px solid var(--gold-400)",
+            pointerEvents: "none",
+            zIndex: 4,
           }}
-          onBlur={onTooltipLeave}
-        >
-          {hasHard ? (
-            <AlertTriangle size={10} color="#fca5a5" />
-          ) : hasInfo ? (
-            <Info size={10} color="#93c5fd" />
-          ) : (
-            <AlertTriangle size={10} color="#fcd34d" />
-          )}
-        </span>
+          initial={{ opacity: 1 }}
+          animate={{ opacity: 0 }}
+          transition={{ duration: 0.5, delay: 0.15, ease: "easeOut" }}
+        />
       )}
+      <AnimatePresence>
+        {sectionConflicts.length > 0 && (
+          <Tooltip
+            position="left"
+            delay={150}
+            content={
+              <div className={styles.triangleTooltip}>
+                <p className={styles.triangleTooltipTitle}>
+                  {sectionConflicts.length} Conflict{sectionConflicts.length !== 1 ? "s" : ""}:
+                </p>
+                <ul className={styles.triangleTooltipList}>
+                  {sectionConflicts.map((c, i) => (
+                    <li
+                      key={i}
+                      className={`${styles.triangleTooltipItem} ${
+                        c.severity === "Warning"
+                          ? styles.soft
+                          : c.severity === "Info"
+                            ? styles.info
+                            : ""
+                      }`}
+                    >
+                      <span>
+                        <strong>{c.type}:</strong> {c.message}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            }
+          >
+            <motion.span
+              className={`${styles.conflictIcon}${!hasHard && hasSoft ? " " + styles.soft : ""}${!hasHard && !hasSoft && hasInfo ? " " + styles.info : ""}`}
+              tabIndex={0}
+              role="button"
+              aria-label={`${sectionConflicts.length} conflict${sectionConflicts.length !== 1 ? "s" : ""}. Press Enter to open the conflict panel.`}
+              variants={badgePopVariants}
+              initial="hidden"
+              animate="visible"
+              exit="hidden"
+              onClick={(e) => {
+                e.stopPropagation();
+                onConflictIconClick?.();
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onConflictIconClick?.();
+                }
+              }}
+            >
+              {hasHard ? (
+                <AlertTriangle size={22} strokeWidth={2.2} />
+              ) : hasInfo ? (
+                <Info size={22} strokeWidth={2.2} />
+              ) : (
+                <AlertTriangle size={22} strokeWidth={2.2} />
+              )}
+            </motion.span>
+          </Tooltip>
+        )}
+      </AnimatePresence>
+      <div className={styles.courseTypeIcon}>
+        {courseTypeIcon(course.defaultType)}
+      </div>
       <div className={`${styles.courseBlockInner}${sectionConflicts.length > 0 ? " " + styles.hasConflict : ""}`}>
         {!isLocked && (
           <div className={styles.courseBlockActions}>
@@ -409,24 +505,80 @@ export function ScheduleCanvas({
   isSemester5,
   courses,
   isLocked,
+  semesterStart,
+  semesterEnd,
   onRefresh,
   onDrop,
+  onDeleteSection,
+  onMoveSection,
   onInstructorClick,
 }: ScheduleCanvasProps) {
   const { addToast } = useToast();
+  const reduced = useReducedMotion();
   const [deleteConfirm, setDeleteConfirm] = useState<DeleteConfirm | null>(null);
   const [editModal, setEditModal] = useState<EditModal | null>(null);
   const [allSemesterSections, setAllSemesterSections] = useState<Section[]>([]);
 
+  //track which section ids were present on first render so newly placed ones animate differently
+  const initialIdsRef = useRef<Set<number> | null>(null);
+  if (initialIdsRef.current === null) {
+    initialIdsRef.current = new Set(schedule.sections.map((s) => s.id));
+  }
+
+  const todayName = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][new Date().getDay()];
+
+  //live now-line — recompute every minute so the gold marker walks down today's column
+  const [nowTick, setNowTick] = useState(() => Date.now());
+  useEffect(() => {
+    if (isSemester5) return;
+    const id = setInterval(() => setNowTick(Date.now()), 60_000);
+    return () => clearInterval(id);
+  }, [isSemester5]);
+
+  const nowLine = useMemo(() => {
+    if (isSemester5) return null;
+    if (!DAYS.includes(todayName)) return null;
+    const now = new Date(nowTick);
+    const minutesFromMidnight = now.getHours() * 60 + now.getMinutes();
+    const originMins = SLOT_START_HOUR * 60;
+    const endMins = SLOT_END_HOUR * 60;
+    if (minutesFromMidnight < originMins || minutesFromMidnight > endMins) return null;
+    const top = ((minutesFromMidnight - originMins) / 30) * SLOT_HEIGHT;
+    return { dayName: todayName, top };
+  }, [nowTick, isSemester5, todayName]);
+
+  const semesterProgress = useMemo(() => {
+    if (!semesterStart || !semesterEnd || isSemester5) return null;
+    const now = Date.now();
+    const start = new Date(semesterStart).getTime();
+    const end = new Date(semesterEnd).getTime();
+    const totalWeeks = Math.max(1, Math.round((end - start) / (7 * 86400000)));
+    const elapsed = Math.max(0, Math.round((now - start) / (7 * 86400000)));
+    const week = Math.min(elapsed + 1, totalWeeks);
+    const pct = Math.min(100, Math.round((week / totalWeeks) * 100));
+    const daysLeft = Math.max(0, Math.ceil((end - now) / 86400000));
+
+    if (now < start) return { status: "upcoming" as const, week: 0, totalWeeks, pct: 0, daysLeft: Math.ceil((start - now) / 86400000) };
+    if (now > end) return { status: "ended" as const, week: totalWeeks, totalWeeks, pct: 100, daysLeft: 0 };
+    return { status: "active" as const, week, totalWeeks, pct, daysLeft };
+  }, [semesterStart, semesterEnd, isSemester5]);
+
   const [tooltipSection, setTooltipSection] = useState<number | null>(null);
   const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  //monotonically-increasing signal — ConflictPanel opens whenever it bumps
+  const [panelOpenSignal, setPanelOpenSignal] = useState(0);
+
+  //build a fingerprint that changes whenever any section moves or is added/removed
+  const sectionFingerprint = schedule.sections
+    .map(s => `${s.id}:${s.dayOfWeek}:${s.startTime}:${s.endTime}:${s.roomId}:${s.instructorId}`)
+    .join("|");
 
   //fetch all semester sections for cross-schedule conflict detection
   useEffect(() => {
     sectionsApi.getAllForSemester(semesterId)
       .then(setAllSemesterSections)
       .catch(() => {});
-  }, [semesterId, schedule.sections.length]);
+  }, [semesterId, sectionFingerprint]);
 
   //map sections to display data
   const scheduledSections = schedule.sections.map((section) => {
@@ -460,12 +612,14 @@ export function ScheduleCanvas({
         if (aStart < bEnd && bStart < aEnd) {
           addConflict(a.id, {
             sectionId: a.id,
+            conflictingSectionId: b.id,
             type: "Schedule overlap",
             severity: "Warning",
             message: `${a.courseCode} overlaps with ${b.courseCode} on ${a.dayOfWeek}`,
           });
           addConflict(b.id, {
             sectionId: b.id,
+            conflictingSectionId: a.id,
             type: "Schedule overlap",
             severity: "Warning",
             message: `${b.courseCode} overlaps with ${a.courseCode} on ${b.dayOfWeek}`,
@@ -488,10 +642,30 @@ export function ScheduleCanvas({
         const bEnd = timeSpanToMinutes(other.endTime);
         if (!(aStart < bEnd && bStart < aEnd)) continue;
 
+        //skip shared lectures — same course/section/time is an intentional link not a conflict
+        if (
+          section.courseCode === other.courseCode &&
+          section.sectionNumber === other.sectionNumber &&
+          section.startTime === other.startTime &&
+          section.endTime === other.endTime
+        ) {
+          continue;
+        }
+
+        //skip non-overlapping terms (Term1 vs Term2 cannot conflict)
+        if (
+          section.term && other.term &&
+          section.term !== other.term &&
+          section.term !== "Full" && other.term !== "Full"
+        ) {
+          continue;
+        }
+
         //room conflict
         if (section.roomId && section.roomId === other.roomId) {
           addConflict(section.id, {
             sectionId: section.id,
+            conflictingSectionId: other.id,
             type: "Room double-booking",
             severity: "Error",
             message: `${section.roomBuilding} ${section.roomNumber} is also booked by ${other.courseCode}-${other.sectionNumber} on ${other.dayOfWeek}`,
@@ -502,6 +676,7 @@ export function ScheduleCanvas({
         if (section.instructorId && section.instructorId === other.instructorId) {
           addConflict(section.id, {
             sectionId: section.id,
+            conflictingSectionId: other.id,
             type: "Instructor overlap",
             severity: "Error",
             message: `${section.instructorName} is also teaching ${other.courseCode}-${other.sectionNumber} on ${other.dayOfWeek}`,
@@ -513,13 +688,16 @@ export function ScheduleCanvas({
     return map;
   }, [scheduledSections, allSemesterSections, schedule.sections]);
 
-  //flat list for the banner
+  //flat list for the banner — pair-aware dedup so A→B and B→A collapse to one entry
   const allConflicts = useMemo(() => {
     const list: ConflictEntry[] = [];
     const seen = new Set<string>();
     sectionConflictMap.forEach((entries) => {
       entries.forEach((e) => {
-        const key = `${e.sectionId}-${e.type}-${e.message}`;
+        const pairKey = e.conflictingSectionId != null
+          ? [e.sectionId, e.conflictingSectionId].sort((a, b) => a - b).join("-")
+          : `${e.sectionId}`;
+        const key = `${e.type}-${pairKey}`;
         if (!seen.has(key)) {
           seen.add(key);
           list.push(e);
@@ -566,6 +744,12 @@ export function ScheduleCanvas({
   }, [scheduledSections]);
 
   const handleDelete = async (sectionId: number) => {
+    //when parent owns optimistic deletion, delegate and close the confirm
+    if (onDeleteSection) {
+      setDeleteConfirm(null);
+      await onDeleteSection(sectionId);
+      return;
+    }
     try {
       await sectionsApi.removeFromSchedule(sectionId, schedule.id);
       setDeleteConfirm(null);
@@ -589,6 +773,13 @@ export function ScheduleCanvas({
       const [h, m] = startTimeSpan.split(":").map(Number);
       const startMinutes = h * 60 + m;
       const endMinutes = startMinutes + durationMinutes;
+
+      //reject moves that extend past the calendar boundary
+      if (endMinutes > SLOT_END_HOUR * 60) {
+        addToast("error", "Cannot move section here \u2014 it would extend past the end of the calendar");
+        return;
+      }
+
       const endH = Math.floor(endMinutes / 60);
       const endM = endMinutes % 60;
       const endTimeSpan = `${String(endH).padStart(2, "0")}:${String(endM).padStart(2, "0")}:00`;
@@ -607,6 +798,12 @@ export function ScheduleCanvas({
         return;
       }
 
+      //parent owns optimistic move — delegate and let it handle api + rollback
+      if (onMoveSection) {
+        await onMoveSection(sectionId, day, startTimeSpan, endTimeSpan);
+        return;
+      }
+
       try {
         await sectionsApi.move(sectionId, {
           dayOfWeek: day,
@@ -620,19 +817,36 @@ export function ScheduleCanvas({
         addToast("error", err.message || "Failed to move section");
       }
     },
-    [addToast, onRefresh, schedule.id, schedule.sections],
+    [addToast, onRefresh, onMoveSection, schedule.id, schedule.sections],
   );
 
   const getColor = (course: Course) => courseTypeColor(course.defaultType);
 
   const totalHeight = SLOTS.length * SLOT_HEIGHT;
 
+  //compact stats above the grid — sections, teaching hours/week, distinct days touched
+  const scheduleStats = useMemo(() => {
+    const placed = scheduledSections.filter(({ section }) =>
+      section.dayOfWeek != null && section.startTime && section.endTime,
+    );
+    const minutes = placed.reduce((sum, { section }) => {
+      return sum + (timeSpanToMinutes(section.endTime) - timeSpanToMinutes(section.startTime));
+    }, 0);
+    const days = new Set(placed.map(({ section }) => section.dayOfWeek)).size;
+    return {
+      sections: scheduledSections.length,
+      hours: Math.round((minutes / 60) * 10) / 10,
+      days,
+    };
+  }, [scheduledSections]);
+
+  const calendarIsEmpty = !isSemester5 && schedule.sections.length === 0;
+
   return (
     <>
       <div className={styles.root}>
         <div className={styles.header}>
           <div className={styles.headerLeft}>
-            <NumberBadge number="02" variant="gold" size="sm" />
             <h3 className={styles.headerTitle}>{isSemester5 ? "Rotation Schedule" : "Weekly Calendar"}</h3>
             {!isSemester5 && (
               <span className={styles.headerCount}>
@@ -644,7 +858,42 @@ export function ScheduleCanvas({
 
         <div className={styles.body}>
           {!isSemester5 && (
-            <ConflictBanner conflicts={allConflicts} onJumpTo={handleJumpTo} />
+            <div className={styles.aboveGrid}>
+              {semesterProgress && (
+            <div className={styles.progressRow}>
+              <span className={styles.progressLabel}>
+                {semesterProgress.status === "upcoming"
+                  ? `Starts in ${semesterProgress.daysLeft} days`
+                  : semesterProgress.status === "ended"
+                  ? `Ended ${Math.abs(semesterProgress.daysLeft)} days ago`
+                  : `Week ${semesterProgress.week} of ${semesterProgress.totalWeeks} \u00B7 ${semesterProgress.daysLeft} days remaining`}
+              </span>
+              <div className={styles.progressTrack}>
+                <div
+                  className={`${styles.progressFill} ${semesterProgress.status === "ended" ? styles.progressEnded : ""}`}
+                  style={{ width: `${semesterProgress.pct}%` }}
+                />
+              </div>
+            </div>
+              )}
+              {/*stats bar in inset zone so the flush grid below can fill the frame*/}
+              <div className={styles.statsBar}>
+                <div className={styles.statsItem}>
+                  <span className={styles.statsValue}>{scheduleStats.sections}</span>
+                  <span className={styles.statsLabel}>Sections</span>
+                </div>
+                <div className={styles.statsDivider} />
+                <div className={styles.statsItem}>
+                  <span className={styles.statsValue}>{scheduleStats.hours}</span>
+                  <span className={styles.statsLabel}>Hours / Week</span>
+                </div>
+                <div className={styles.statsDivider} />
+                <div className={styles.statsItem}>
+                  <span className={styles.statsValue}>{scheduleStats.days}</span>
+                  <span className={styles.statsLabel}>Days Active</span>
+                </div>
+              </div>
+            </div>
           )}
           {isSemester5 ? (
             <div style={{ padding: "1.5rem", display: "flex", flexDirection: "column", gap: "1rem" }}>
@@ -727,12 +976,36 @@ export function ScheduleCanvas({
               )}
             </div>
           ) : (
+            <>
+              <div className={styles.calGridWrap}>
+                {calendarIsEmpty && (
+                  <div className={styles.emptyCalOverlay}>
+                    <div className={styles.emptyCalIcon}>
+                      <CalendarPlus size={28} />
+                    </div>
+                    <h4 className={styles.emptyCalTitle}>Ready to build</h4>
+                    <p className={styles.emptyCalHint}>
+                      Drag courses from the palette onto the grid
+                    </p>
+                  </div>
+                )}
             <div className={styles.calGrid}>
               {/* header row */}
-              <div className={styles.calCorner} />
-              {DAYS.map((day) => (
-                <div key={day} className={styles.calDayHeader}>{day}</div>
-              ))}
+              <div className={styles.calCorner}>
+                <span className={styles.cornerLabel}>TIME</span>
+              </div>
+              {DAYS.map((day) => {
+                const isToday = day === todayName;
+                return (
+                  <div
+                    key={day}
+                    className={`${styles.calDayHeader} ${isToday ? styles.calDayToday : ""}`}
+                  >
+                    {day}
+                    {isToday && <span className={styles.todayBadge}>TODAY</span>}
+                  </div>
+                );
+              })}
 
               {/* time column */}
               <div className={styles.calTimeCol}>
@@ -742,7 +1015,7 @@ export function ScheduleCanvas({
                     className={`${styles.calTimeLabel} ${i % 2 === 0 ? styles.hourMark : ""}`}
                     style={{ height: SLOT_HEIGHT }}
                   >
-                    {i % 2 === 0 ? slot : ""}
+                    {i % 2 === 0 ? slot : <span className={styles.calTimeLabelHalf}>:30</span>}
                   </div>
                 ))}
               </div>
@@ -754,13 +1027,20 @@ export function ScheduleCanvas({
                 });
 
                 const originMins = SLOT_START_HOUR * 60;
+                const isToday = day === todayName;
+                const showNowLine = isToday && nowLine != null;
 
                 return (
                   <div
                     key={day}
-                    className={styles.calDayCol}
+                    className={`${styles.calDayCol} ${isToday ? styles.calDayColToday : ""}`}
                     style={{ height: totalHeight }}
                   >
+                    {showNowLine && (
+                      <div className={styles.nowLine} style={{ top: nowLine!.top }} aria-hidden>
+                        <span className={styles.nowDot} />
+                      </div>
+                    )}
                     {/* slot grid lines */}
                     {SLOTS.map((_, i) => (
                       <div
@@ -795,8 +1075,8 @@ export function ScheduleCanvas({
                       );
                     })}
 
-                    {/* course blocks */}
-                    {daySections.map(({ section, course }) => {
+                    {/* course blocks — staggered pop-in */}
+                    {daySections.map(({ section, course }, blockIdx) => {
                       const startMins = timeSpanToMinutes(section.startTime);
                       const endMins = timeSpanToMinutes(section.endTime);
                       const top = ((startMins - originMins) / 30) * SLOT_HEIGHT;
@@ -809,49 +1089,79 @@ export function ScheduleCanvas({
                       const hasSoft = sectionConflicts.some((c) => c.severity === "Warning");
                       const hasInfo = sectionConflicts.some((c) => c.severity === "Info");
                       const conflictClass = hasHard ? ` ${styles.conflictHard}` : hasSoft ? ` ${styles.conflictSoft}` : "";
+                      const isNewlyPlaced = !initialIdsRef.current!.has(section.id);
 
                       return (
-                        <DraggableCourseBlock
+                        <motion.div
                           key={section.id}
-                          section={section}
-                          course={course}
-                          top={top}
-                          height={height}
-                          color={color}
-                          startDisplay={startDisplay}
-                          endDisplay={endDisplay}
-                          sectionConflicts={sectionConflicts}
-                          hasHard={hasHard}
-                          hasSoft={hasSoft}
-                          hasInfo={hasInfo}
-                          conflictClass={conflictClass}
-                          isLocked={isLocked}
-                          day={day}
-                          bannerVisible={bannerVisible}
-                          onEdit={() => setEditModal({ section, course })}
-                          onDelete={() =>
-                            setDeleteConfirm({
-                              sectionId: section.id,
-                              courseCode: section.courseCode,
-                              dayOfWeek: day,
-                              timeSlot: startDisplay,
-                            })
+                          initial={reduced ? undefined : { opacity: 0, scale: isNewlyPlaced ? 0.85 : 0.9 }}
+                          animate={reduced ? undefined : { opacity: 1, scale: 1 }}
+                          transition={
+                            reduced
+                              ? undefined
+                              : isNewlyPlaced
+                                ? { type: "spring", stiffness: 350, damping: 20 }
+                                : { duration: 0.24, delay: 0.55 + blockIdx * 0.03, ease: ease.ios }
                           }
-                          onTooltipEnter={handleTooltipEnter}
-                          onTooltipLeave={() => setTooltipSection(null)}
-                          tooltipSection={tooltipSection}
-                          tooltipPos={tooltipPos}
-                          onInstructorClick={onInstructorClick}
-                        />
+                          style={{ position: "absolute", top, left: 0, right: 0 }}
+                        >
+                          <DraggableCourseBlock
+                            section={section}
+                            course={course}
+                            top={0}
+                            height={height}
+                            color={color}
+                            startDisplay={startDisplay}
+                            endDisplay={endDisplay}
+                            sectionConflicts={sectionConflicts}
+                            hasHard={hasHard}
+                            hasSoft={hasSoft}
+                            hasInfo={hasInfo}
+                            conflictClass={conflictClass}
+                            isLocked={isLocked}
+                            day={day}
+                            bannerVisible={bannerVisible}
+                            isNewlyPlaced={isNewlyPlaced}
+                            reduced={reduced}
+                            onEdit={() => setEditModal({ section, course })}
+                            onDelete={() =>
+                              setDeleteConfirm({
+                                sectionId: section.id,
+                                courseCode: section.courseCode,
+                                dayOfWeek: day,
+                                timeSlot: startDisplay,
+                              })
+                            }
+                            onTooltipEnter={handleTooltipEnter}
+                            onTooltipLeave={() => setTooltipSection(null)}
+                            tooltipSection={tooltipSection}
+                            tooltipPos={tooltipPos}
+                            onInstructorClick={onInstructorClick}
+                            onConflictIconClick={() => setPanelOpenSignal((s) => s + 1)}
+                          />
+                        </motion.div>
                       );
                     })}
                   </div>
                 );
               })}
             </div>
+              </div>
+            </>
           )}
         </div>
       </div>
+
+      {/*conflict side panel — createPortal'd to document.body, appears
+        whenever there are active conflicts and receives openSignal bumps
+        from any course block's triangle click*/}
+      {!isSemester5 && (
+        <ConflictPanel
+          conflicts={allConflicts}
+          onJumpTo={handleJumpTo}
+          openSignal={panelOpenSignal}
+        />
+      )}
 
       <Modal
         open={deleteConfirm != null}

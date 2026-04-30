@@ -30,6 +30,24 @@ builder.Services.AddScoped<IAuditService, AuditService>();
 //email service (console logger for dev, swap to smtp for prod)
 builder.Services.AddScoped<IEmailService, ConsoleEmailService>();
 
+//file storage options — bound from appsettings "FileStorage" section
+builder.Services.Configure<FileStorageOptions>(
+    builder.Configuration.GetSection(FileStorageOptions.SectionName));
+
+//raise multipart body limit to match configured MaxFileSizeMB so uploads
+//larger than Kestrel's ~30MB default can succeed up to the app's cap
+var fileStorageMax = builder.Configuration
+    .GetSection(FileStorageOptions.SectionName)
+    .Get<FileStorageOptions>()?.MaxFileSizeBytes ?? 50L * 1024 * 1024;
+builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(o =>
+{
+    o.MultipartBodyLengthLimit = fileStorageMax;
+});
+builder.WebHost.ConfigureKestrel(o =>
+{
+    o.Limits.MaxRequestBodySize = fileStorageMax;
+});
+
 //cors policy, now allows react frontend
 builder.Services.AddCors(options =>
 {

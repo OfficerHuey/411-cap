@@ -11,7 +11,6 @@ import { EmptyState } from "./EmptyState";
 import { Badge } from "./Badge";
 import { Avatar } from "./Avatar";
 import { Select } from "./Select";
-import { NumberBadge } from "./NumberBadge";
 import { HairlineRule } from "./HairlineRule";
 import { StatTile } from "./StatTile";
 import { SectionHeading } from "./SectionHeading";
@@ -79,24 +78,6 @@ export function UIDemo() {
             level="subsection"
             subtitle="Individual student placements"
           />
-        </div>
-      </section>
-
-      {/* ── number badge ── */}
-      <section style={sectionStyle}>
-        <h2 style={h2Style}>NumberBadge</h2>
-        <hr style={hrStyle} />
-        <h3 style={h3Style}>Variants</h3>
-        <div style={rowStyle}>
-          <NumberBadge number={1} variant="default" />
-          <NumberBadge number="02" variant="gold" />
-          <NumberBadge number="IV" variant="light" />
-        </div>
-        <h3 style={h3Style}>Sizes</h3>
-        <div style={rowStyle}>
-          <NumberBadge number={3} size="sm" />
-          <NumberBadge number={3} size="md" />
-          <NumberBadge number={3} size="lg" />
         </div>
       </section>
 

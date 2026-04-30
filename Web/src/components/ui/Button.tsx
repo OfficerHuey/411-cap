@@ -1,5 +1,8 @@
 import { forwardRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Loader2 } from "lucide-react";
+import { useReducedMotion } from "../../hooks/useReducedMotion";
+import { buttonHover, buttonTap, buttonTransition, ease } from "../../Lib/motion";
 import styles from "./Button.module.css";
 
 type ButtonVariant = "primary" | "secondary" | "ghost" | "destructive" | "outline" | "link";
@@ -26,10 +29,18 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
     children,
     className,
     disabled,
+    style,
+    onAnimationStart: _onAnimationStart,
+    onDrag: _onDrag,
+    onDragEnd: _onDragEnd,
+    onDragStart: _onDragStart,
     ...rest
   },
   ref,
 ) {
+  const reduced = useReducedMotion();
+  const isDisabled = disabled || loading;
+
   const classes = [
     styles.btn,
     styles[variant],
@@ -42,17 +53,34 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
     .join(" ");
 
   return (
-    <button
+    <motion.button
       ref={ref}
       className={classes}
-      disabled={disabled || loading}
+      disabled={isDisabled}
       aria-busy={loading || undefined}
+      whileHover={!isDisabled && !reduced ? buttonHover : undefined}
+      whileTap={!isDisabled && !reduced ? buttonTap : undefined}
+      transition={buttonTransition}
+      style={style}
       {...rest}
     >
-      {loading && <Loader2 size={16} className={styles.spinner} />}
+      <AnimatePresence mode="wait">
+        {loading && (
+          <motion.span
+            key="spinner"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15, ease: ease.ios }}
+            style={{ display: "inline-flex" }}
+          >
+            <Loader2 size={16} className={styles.spinner} />
+          </motion.span>
+        )}
+      </AnimatePresence>
       {iconLeft && !loading && <span className={styles.iconSlot}>{iconLeft}</span>}
       {children && <span className={loading ? styles.loadingContent : undefined}>{children}</span>}
       {iconRight && <span className={styles.iconSlot}>{iconRight}</span>}
-    </button>
+    </motion.button>
   );
 });

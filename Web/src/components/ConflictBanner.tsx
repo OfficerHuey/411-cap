@@ -1,8 +1,9 @@
-import { useState } from "react";
-import { AlertTriangle, X, ChevronRight } from "lucide-react";
+import { useState, useEffect } from "react";
+import { AlertTriangle, CheckCircle, ChevronDown, ChevronUp } from "lucide-react";
 
 export interface ConflictEntry {
   sectionId: number;
+  conflictingSectionId?: number;
   type: string;
   severity: "Error" | "Warning" | "Info";
   message: string;
@@ -14,163 +15,190 @@ interface ConflictBannerProps {
 }
 
 export function ConflictBanner({ conflicts, onJumpTo }: ConflictBannerProps) {
-  const [dismissed, setDismissed] = useState(false);
+  const [expanded, setExpanded] = useState(false);
 
-  if (dismissed || conflicts.length === 0) return null;
+  //collapse whenever the list empties out
+  useEffect(() => {
+    if (conflicts.length === 0) setExpanded(false);
+  }, [conflicts.length]);
 
-  const hasHard = conflicts.some((c) => c.severity === "Error");
-  const bgColor = hasHard ? "rgba(220, 38, 38, 0.06)" : "rgba(217, 119, 6, 0.06)";
-  const borderColor = hasHard ? "rgba(220, 38, 38, 0.25)" : "rgba(217, 119, 6, 0.25)";
-  const accentColor = hasHard ? "#dc2626" : "#d97706";
-  const textColor = hasHard ? "#991b1b" : "#92400e";
+  const hasErrors = conflicts.some((c) => c.severity === "Error");
+  const isEmpty = conflicts.length === 0;
 
   return (
     <>
       <style>{`
-        .conflict-banner {
-          border-radius: 10px;
-          padding: 0.85rem 1rem;
-          margin-bottom: 0.75rem;
+        .conflict-bar-wrapper {
+          margin-bottom: 0.5rem;
+          border-radius: 8px;
+          overflow: hidden;
           font-family: 'Inter', sans-serif;
-          position: sticky;
-          top: 0;
-          z-index: 10;
         }
 
-        .conflict-banner-header {
+        .conflict-bar {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          margin-bottom: 0.5rem;
-        }
-
-        .conflict-banner-title {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          font-size: 0.85rem;
-          font-weight: 600;
-        }
-
-        .conflict-banner-dismiss {
-          background: none;
+          width: 100%;
+          padding: 0.5rem 0.85rem;
           border: none;
+          border-radius: 8px;
+          font-family: 'Inter', sans-serif;
+          font-size: 0.8rem;
+          font-weight: 500;
           cursor: pointer;
-          padding: 0.25rem;
-          border-radius: 4px;
-          display: flex;
-          align-items: center;
           transition: background 0.15s;
         }
 
-        .conflict-banner-dismiss:hover {
-          background: rgba(0, 0, 0, 0.08);
+        .conflict-bar:disabled {
+          cursor: default;
         }
 
-        .conflict-banner-list {
-          list-style: none;
-          margin: 0;
-          padding: 0;
+        .conflict-bar-left {
           display: flex;
-          flex-direction: column;
-          gap: 0.35rem;
+          align-items: center;
+          gap: 0.45rem;
         }
 
-        .conflict-banner-item {
+        .conflict-bar.clear {
+          background: rgba(26, 86, 50, 0.06);
+          color: #1A5632;
+        }
+
+        .conflict-bar.error {
+          background: rgba(220, 38, 38, 0.08);
+          color: #991b1b;
+        }
+
+        .conflict-bar.error:hover {
+          background: rgba(220, 38, 38, 0.12);
+        }
+
+        .conflict-bar.warning {
+          background: rgba(217, 119, 6, 0.08);
+          color: #92400e;
+        }
+
+        .conflict-bar.warning:hover {
+          background: rgba(217, 119, 6, 0.12);
+        }
+
+        .conflict-details {
+          max-height: 0;
+          overflow: hidden;
+          transition: max-height 0.25s ease-out;
+          background: rgba(0, 0, 0, 0.02);
+          border-radius: 0 0 8px 8px;
+        }
+
+        .conflict-details.open {
+          border-top: 1px solid rgba(0, 0, 0, 0.06);
+        }
+
+        .conflict-item {
           display: flex;
           align-items: center;
           justify-content: space-between;
+          padding: 0.45rem 0.85rem;
           font-size: 0.78rem;
-          line-height: 1.4;
-          padding: 0.3rem 0;
+          gap: 0.5rem;
         }
 
-        .conflict-banner-item-left {
+        .conflict-item + .conflict-item {
+          border-top: 1px solid rgba(0, 0, 0, 0.04);
+        }
+
+        .conflict-item-info {
           display: flex;
           align-items: center;
-          gap: 0.4rem;
+          gap: 0.35rem;
           flex: 1;
           min-width: 0;
         }
 
-        .conflict-banner-type {
+        .conflict-severity { flex-shrink: 0; }
+        .conflict-severity.error { color: #dc2626; }
+        .conflict-severity.warning { color: #d97706; }
+        .conflict-severity.info { color: #2563eb; }
+
+        .conflict-type {
           font-weight: 600;
           white-space: nowrap;
+          color: #374151;
         }
 
-        .conflict-banner-msg {
+        .conflict-msg {
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
+          color: #6b7280;
         }
 
-        .conflict-banner-jump {
+        .conflict-jump {
+          flex-shrink: 0;
           background: none;
           border: none;
           cursor: pointer;
           font-family: 'Inter', sans-serif;
           font-size: 0.72rem;
           font-weight: 500;
-          display: inline-flex;
-          align-items: center;
-          gap: 0.15rem;
+          color: #1A5632;
           padding: 0.15rem 0.4rem;
           border-radius: 4px;
           transition: background 0.15s;
           white-space: nowrap;
-          flex-shrink: 0;
         }
 
-        .conflict-banner-jump:hover {
-          background: rgba(0, 0, 0, 0.06);
-        }
-
-        @keyframes conflictFlash {
-          0% { box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.4); }
-          100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+        .conflict-jump:hover {
+          background: rgba(26, 86, 50, 0.08);
         }
       `}</style>
 
-      <div
-        className="conflict-banner"
-        style={{
-          background: bgColor,
-          border: `1px solid ${borderColor}`,
-        }}
-        role="alert"
-      >
-        <div className="conflict-banner-header">
-          <div className="conflict-banner-title" style={{ color: accentColor }}>
-            <AlertTriangle size={15} />
-            {conflicts.length} conflict{conflicts.length !== 1 ? "s" : ""} detected
+      <div className="conflict-bar-wrapper">
+        <button
+          className={`conflict-bar ${isEmpty ? "clear" : hasErrors ? "error" : "warning"}`}
+          onClick={() => !isEmpty && setExpanded(!expanded)}
+          disabled={isEmpty}
+          aria-expanded={expanded}
+        >
+          <div className="conflict-bar-left">
+            {isEmpty ? <CheckCircle size={14} /> : <AlertTriangle size={14} />}
+            <span>
+              {isEmpty
+                ? "No conflicts"
+                : `${conflicts.length} conflict${conflicts.length !== 1 ? "s" : ""} detected`}
+            </span>
           </div>
-          <button
-            className="conflict-banner-dismiss"
-            onClick={() => setDismissed(true)}
-            aria-label="Dismiss conflict banner"
-            style={{ color: textColor }}
-          >
-            <X size={14} />
-          </button>
-        </div>
-        <ul className="conflict-banner-list">
+          {!isEmpty && (expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />)}
+        </button>
+
+        <div
+          className={`conflict-details ${expanded ? "open" : ""}`}
+          style={{
+            maxHeight: expanded ? `${conflicts.length * 44 + 16}px` : "0",
+          }}
+        >
           {conflicts.map((c, i) => (
-            <li key={`${c.sectionId}-${i}`} className="conflict-banner-item" style={{ color: textColor }}>
-              <div className="conflict-banner-item-left">
-                <span className="conflict-banner-type">{c.type}:</span>
-                <span className="conflict-banner-msg">{c.message}</span>
+            <div key={`${c.sectionId}-${i}`} className="conflict-item">
+              <div className="conflict-item-info">
+                <span className={`conflict-severity ${c.severity.toLowerCase()}`}>
+                  {c.severity === "Error" ? "\u26A0" : c.severity === "Warning" ? "\u26A0" : "\u2139"}
+                </span>
+                <span className="conflict-type">{c.type}:</span>
+                <span className="conflict-msg">{c.message}</span>
               </div>
               <button
-                className="conflict-banner-jump"
-                style={{ color: accentColor }}
-                onClick={() => onJumpTo(c.sectionId)}
+                className="conflict-jump"
+                onClick={() => {
+                  onJumpTo(c.sectionId);
+                  setExpanded(false);
+                }}
               >
-                Jump to
-                <ChevronRight size={12} />
+                Jump to {"\u2192"}
               </button>
-            </li>
+            </div>
           ))}
-        </ul>
+        </div>
       </div>
     </>
   );

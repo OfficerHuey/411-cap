@@ -1,14 +1,19 @@
 import { useEffect, useState, useMemo } from "react";
+import { motion } from "framer-motion";
 import { Plus, Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown, GraduationCap, Upload } from "lucide-react";
 import { instructors as instructorsApi } from "../Lib/api";
 import type { Instructor, InstructorType } from "../Lib/Types";
 import { useToast } from "../Lib/ToastContext";
+import { useBreadcrumbs } from "../Lib/BreadcrumbContext";
 import { Modal } from "./ui/Modal";
 import { Button } from "./ui/Button";
 import { Input } from "./ui/Input";
 import { Select } from "./ui/Select";
 import type { SelectOption } from "./ui/Select";
+import { HairlineRule } from "./ui/HairlineRule";
+import { SectionHeading } from "./ui/SectionHeading";
 import { InstructorImportModal } from "./Imports/InstructorImportModal";
+import { Skeleton } from "./ui/Skeleton";
 import styles from "./InstructorsPage.module.css";
 
 const INSTRUCTOR_TYPES: InstructorType[] = ["FullTime", "Adjunct", "Overload"];
@@ -27,6 +32,7 @@ const typeLabel = (t: InstructorType) => (t === "FullTime" ? "Full Time" : t);
 
 export function InstructorsPage() {
   const { addToast } = useToast();
+  const { setItems: setBreadcrumbs } = useBreadcrumbs();
   const [list, setList] = useState<Instructor[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -51,6 +57,11 @@ export function InstructorsPage() {
       setSortDir("asc");
     }
   };
+
+  useEffect(() => {
+    setBreadcrumbs([{ label: "Instructors" }]);
+    return () => setBreadcrumbs([]);
+  }, [setBreadcrumbs]);
 
   useEffect(() => { loadInstructors(); }, []);
 
@@ -116,6 +127,16 @@ export function InstructorsPage() {
     }
   };
 
+  const typeCounts = useMemo(() => {
+    const counts = { FullTime: 0, Adjunct: 0, Overload: 0 };
+    list.forEach((i) => {
+      if (counts[i.type as keyof typeof counts] !== undefined) {
+        counts[i.type as keyof typeof counts]++;
+      }
+    });
+    return counts;
+  }, [list]);
+
   const filtered = useMemo(() => {
     let items = list.filter((i) => {
       const q = search.toLowerCase();
@@ -136,13 +157,19 @@ export function InstructorsPage() {
   return (
     <>
       <div className={styles.root}>
-        <div className={styles.header}>
-          <div>
-            <h1>Instructors</h1>
-            <div className={styles.headerDivider} />
-            <p>Manage faculty and adjunct instructors</p>
-          </div>
-          <div className={styles.headerActions}>
+        {/* editorial hero */}
+        <div className={styles.hero}>
+          <HairlineRule width="48px" color="gold" spacing="tight" />
+          <h1 className={styles.heroTitle}>
+            Faculty & <em>Instructors</em>
+          </h1>
+          <p className={styles.heroSubtitle}>
+            {list.length} faculty member{list.length !== 1 ? "s" : ""}
+            {typeCounts.FullTime > 0 && ` · ${typeCounts.FullTime} full-time`}
+            {typeCounts.Adjunct > 0 && ` · ${typeCounts.Adjunct} adjunct`}
+            {typeCounts.Overload > 0 && ` · ${typeCounts.Overload} overload`}
+          </p>
+          <div className={styles.heroActions}>
             <Button variant="outline" onClick={() => setShowImport(true)}>
               <Upload size={16} />
               Import
@@ -154,7 +181,33 @@ export function InstructorsPage() {
           </div>
         </div>
 
+        {/* faculty type stat strip — signature element */}
+        {list.length > 0 && (
+          <div className={styles.statStrip}>
+            {typeCounts.FullTime > 0 && (
+              <div className={`${styles.statCard} ${styles.fullTime}`}>
+                <p className={styles.statNumber}>{typeCounts.FullTime}</p>
+                <p className={styles.statLabel}>Full Time</p>
+              </div>
+            )}
+            {typeCounts.Adjunct > 0 && (
+              <div className={`${styles.statCard} ${styles.adjunct}`}>
+                <p className={styles.statNumber}>{typeCounts.Adjunct}</p>
+                <p className={styles.statLabel}>Adjunct</p>
+              </div>
+            )}
+            {typeCounts.Overload > 0 && (
+              <div className={`${styles.statCard} ${styles.overload}`}>
+                <p className={styles.statNumber}>{typeCounts.Overload}</p>
+                <p className={styles.statLabel}>Overload</p>
+              </div>
+            )}
+          </div>
+        )}
+
         {error && <div className={styles.errorBanner}>{error}</div>}
+
+        <SectionHeading number="02" title="All instructors" level="section" />
 
         <div className={styles.toolbar}>
           <input
@@ -165,9 +218,9 @@ export function InstructorsPage() {
           />
         </div>
 
-        <div className={styles.card}>
+        <div className={styles.tableCard}>
           {loading ? (
-            <div className={styles.empty}><span>Loading instructors&hellip;</span></div>
+            <Skeleton variant="tableRow" count={8} />
           ) : filtered.length === 0 ? (
             <div className={styles.empty}>
               <div className={styles.emptyIcon}><GraduationCap size={22} color="var(--green-700)" /></div>
@@ -175,7 +228,8 @@ export function InstructorsPage() {
               <p>{list.length === 0 ? "Add your first instructor using the button above" : "No instructors match your search"}</p>
             </div>
           ) : (
-            <table className={styles.table}>
+            <div className={styles.tableWrap}>
+              <table className={styles.table}>
               <thead>
                 <tr>
                   {([["name","Name"],["email","Email"],["type","Type"]] as const).map(([col, label]) => (
@@ -190,10 +244,15 @@ export function InstructorsPage() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((inst) => (
-                  <tr key={inst.id}>
+                {filtered.map((inst, idx) => (
+                  <motion.tr
+                    key={inst.id}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: Math.min(idx * 0.03, 0.5), duration: 0.25, ease: [0.32, 0.72, 0, 1] }}
+                  >
                     <td className={styles.nameCell}>{inst.name}</td>
-                    <td style={{ color: "var(--text-muted)" }}>{inst.email || "\u2014"}</td>
+                    <td className={styles.emailCell}>{inst.email || "\u2014"}</td>
                     <td><span className={`${styles.typeBadge} ${TYPE_CLASS[inst.type] || ""}`}>{typeLabel(inst.type)}</span></td>
                     <td style={{ textAlign: "right" }}>
                       <button className={`${styles.btnIcon} ${styles.edit}`} onClick={() => openEditModal(inst)}>
@@ -203,10 +262,11 @@ export function InstructorsPage() {
                         <Trash2 size={14} />
                       </button>
                     </td>
-                  </tr>
+                  </motion.tr>
                 ))}
               </tbody>
             </table>
+            </div>
           )}
         </div>
       </div>

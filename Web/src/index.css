@@ -1,34 +1,47 @@
 /* ===== design system tokens ===== */
 :root {
-  /* selu brand green scale */
-  --green-50: #f0faf5;
-  --green-100: #c6e8d8;
-  --green-200: #8fd4b5;
-  --green-300: #4dbd8a;
-  --green-400: #1a9e64;
-  --green-500: #00804a;
-  --green-600: #00563f;
-  --green-700: #003d2a;
-  --green-800: #002a1d;
-  --green-900: #001a12;
-  --green-950: #001a12;
-  --green-975: #000c08;
+  /* safe viewport height — browsers pick the last valid declaration */
+  /* mobile safari collapses 100vh when the address bar is visible; dvh tracks the dynamic viewport */
+  --vh-full: 100vh;
+  --vh-full: 100dvh;
 
-  /* selu gold accent */
-  --gold-200: #f5dfa4;
-  --gold-300: #e0b44c;
-  --gold-400: #C8952C;
-  --gold-500: #a67b1e;
-  --gold-600: #875f13;
-  --gold-700: #5e410a;
+  /* safe area insets for notched devices (iphone x and up, pixel, etc) */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
 
-  /* warm cream neutrals */
-  --cream-50: #fefdfb;
-  --cream-100: #faf8f3;
-  --cream-200: #f5f2ea;
-  --cream-300: #e8e4d9;
-  --cream-400: #d4cfc2;
-  --cream-500: #b8b2a2;
+  /* selu brand green scale — anchored on official #1A5632 (Pantone 357) */
+  --green-50: #f0f9f4;
+  --green-100: #c8e6d4;
+  --green-200: #91d0ac;
+  --green-300: #52b77f;
+  --green-400: #2d9a61;
+  --green-500: #1f7a4a;
+  --green-600: #1A5632;
+  --green-700: #144425;
+  --green-800: #0e331a;
+  --green-900: #0a2213;
+  --green-950: #06150c;
+  --green-975: #030a06;
+
+  /* selu gold accent — anchored on official #FFC629 (Pantone 123) */
+  --gold-200: #fff0b3;
+  --gold-300: #ffdd66;
+  --gold-400: #FFC629;
+  --gold-500: #dba61e;
+  --gold-600: #a87c14;
+  --gold-700: #755508;
+
+  /* cool neutral scale — retained under --cream-* names so every existing
+     call site (~100 references across modules) swaps in place. values are
+     now cool grays that sit on top of the #F9FAFB page background */
+  --cream-50: #FFFFFF;
+  --cream-100: #F9FAFB;
+  --cream-200: #F3F4F6;
+  --cream-300: #E5E7EB;
+  --cream-400: #D1D5DB;
+  --cream-500: #9CA3AF;
 
   /* neutrals */
   --gray-50: #fafaf9;
@@ -49,17 +62,24 @@
   --text-faint: #9ca3af;
 
   /* text on paper and dark surfaces */
-  --text-on-paper: #2a2620;
-  --text-on-paper-muted: #6b6558;
-  --text-on-dark: #faf8f3;
-  --text-on-dark-muted: rgba(250, 248, 243, 0.72);
-  --text-on-dark-faint: rgba(250, 248, 243, 0.48);
+  --text-on-paper: #111827;
+  --text-on-paper-muted: #6B7280;
+  --text-on-dark: #FFFFFF;
+  --text-on-dark-muted: rgba(255, 255, 255, 0.82);
+  --text-on-dark-faint: rgba(255, 255, 255, 0.6);
+  --text-on-light: #111827;
 
   /* semantic */
   --success: #059669;
   --warning: #d97706;
   --error: #991b1b;
   --info: var(--green-700);
+
+  /* red accent scale — used for "attention" / destructive accents */
+  --red-400: #f87171;
+  --red-500: #ef4444;
+  --red-600: #dc2626;
+  --red-700: #b91c1c;
 
   /* course type colors */
   --course-lecture: #3b82f6;
@@ -68,17 +88,24 @@
   --course-simlab: #f59e0b;
 
   /* surfaces */
-  --surface: #ffffff;
-  --surface-raised: #fafaf9;
-  --bg: #fafaf9;
-  --border: #e5e7eb;
-  --border-light: #f3f4f6;
+  --surface: #FFFFFF;
+  --surface-raised: #FFFFFF;
+  --bg: #F9FAFB;
+  --border: #E5E7EB;
+  --border-light: #F3F4F6;
 
-  /* paper surfaces */
-  --paper-base: #faf8f3;
-  --paper-raised: #fefdfa;
-  --paper-sunk: #f3f0e8;
-  --paper-ink: #2a2620;
+  /* paper surfaces — retained under legacy names but now cool neutrals */
+  --paper-base: #F9FAFB;
+  --paper-raised: #FFFFFF;
+  --paper-sunk: #F3F4F6;
+  --paper-ink: #111827;
+
+  /* semantic background/surface tokens */
+  --bg-primary: #F9FAFB;
+  --bg-surface: #FFFFFF;
+  --bg-surface-hover: #F3F4F6;
+  --bg-banner: linear-gradient(180deg, var(--green-900) 0%, var(--green-800) 40%, var(--green-700) 100%);
+  --border-default: #E5E7EB;
 
   /* radii */
   --radius-sm: 6px;
@@ -88,42 +115,59 @@
 
   /* shadows — layered for depth */
   --shadow-xs: 0 1px 2px rgba(0,0,0,0.04);
-  --shadow-sm: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06);
-  --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -2px rgba(0,0,0,0.05);
-  --shadow-lg: 0 1px 3px rgba(0,0,0,0.04), 0 6px 24px rgba(0,0,0,0.06);
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+  --shadow-md: 0 4px 6px rgba(0,0,0,0.07);
+  --shadow-lg: 0 1px 3px rgba(0,0,0,0.05), 0 6px 24px rgba(0,0,0,0.07);
   --shadow-xl: 0 20px 50px -12px rgba(0,0,0,0.15);
-  --shadow-hover: 0 1px 3px rgba(0,0,0,0.04), 0 12px 36px rgba(0,0,0,0.1);
+  --shadow-hover: 0 1px 3px rgba(0,0,0,0.05), 0 12px 36px rgba(0,0,0,0.10);
 
-  /* elevation system — layered shadows with inner highlights */
+  /* elevation system — layered shadows with inner highlights on every level */
   --elevation-1:
-    0 1px 2px rgba(30, 24, 12, 0.04),
-    0 2px 6px rgba(30, 24, 12, 0.04);
+    0 1px 3px rgba(30, 24, 12, 0.04),
+    0 4px 12px rgba(30, 24, 12, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
   --elevation-2:
-    0 2px 4px rgba(30, 24, 12, 0.05),
-    0 8px 20px rgba(30, 24, 12, 0.08),
+    0 2px 8px rgba(30, 24, 12, 0.06),
+    0 8px 24px rgba(30, 24, 12, 0.08),
     inset 0 1px 0 rgba(255, 255, 255, 0.9);
   --elevation-3:
-    0 4px 8px rgba(30, 24, 12, 0.06),
-    0 16px 40px rgba(30, 24, 12, 0.12),
+    0 4px 16px rgba(30, 24, 12, 0.08),
+    0 12px 40px rgba(30, 24, 12, 0.12),
     inset 0 1px 0 rgba(255, 255, 255, 0.95);
   --elevation-modal:
-    0 8px 20px rgba(30, 24, 12, 0.10),
-    0 32px 80px rgba(30, 24, 12, 0.25),
+    0 8px 32px rgba(30, 24, 12, 0.12),
+    0 24px 80px rgba(30, 24, 12, 0.20),
     inset 0 1px 0 rgba(255, 255, 255, 0.95);
 
   /* typography — families */
-  --font-display: 'Playfair Display', serif;
+  /* display is the SELU editorial headline font — Playfair Display carries
+     the brand's serif identity. Montserrat and Inter stay as fallbacks so
+     weight/character loss on slow connections is graceful */
+  --font-display: 'Playfair Display', 'Montserrat', Georgia, 'Times New Roman', serif;
   --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --font-mono: 'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace;
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', Menlo, Consolas, monospace;
+
+  /* typography — semantic role tokens (prompt-03 hierarchy upgrade) */
+  --title-page-size: clamp(2rem, 4vw, 2.75rem);
+  --title-page-weight: 800;
+  --title-page-tracking: -0.02em;
+  --title-hero-size: clamp(2.25rem, 5vw, 3.25rem);
+  --title-hero-weight: 800;
+  --title-hero-tracking: -0.02em;
+  --label-size: clamp(0.875rem, 1.5vw, 1rem);
+  --label-weight: 600;
+  --label-tracking: 0.04em;
+  --stat-number-size: clamp(1.5rem, 3vw, 2.25rem);
+  --stat-number-weight: 700;
 
   /* typography — body scale */
-  --text-xs: 0.75rem;
-  --text-sm: 0.8125rem;
-  --text-base: 0.875rem;
-  --text-lg: 1rem;
-  --text-xl: 1.125rem;
-  --text-2xl: 1.5rem;
-  --text-3xl: 2rem;
+  --text-xs: 0.8rem;
+  --text-sm: 0.875rem;
+  --text-base: 0.95rem;
+  --text-lg: 1.075rem;
+  --text-xl: 1.2rem;
+  --text-2xl: 1.55rem;
+  --text-3xl: 2.1rem;
 
   /* typography — display scale */
   --display-xs: 2rem;
@@ -133,19 +177,19 @@
   --display-xl: 6.5rem;
   --display-2xl: 8rem;
 
-  /* typography — tracking */
-  --tracking-tightest: -0.04em;
+  /* typography — tracking (relaxed for geometric sans-serif display) */
+  --tracking-tightest: -0.025em;
   --tracking-tighter: -0.02em;
   --tracking-tight: -0.01em;
   --tracking-normal: 0;
-  --tracking-wide: 0.02em;
+  --tracking-wide: 0.04em;
   --tracking-wider: 0.08em;
   --tracking-widest: 0.14em;
 
   /* typography — leading */
-  --leading-none: 1;
-  --leading-tight: 1.15;
-  --leading-snug: 1.3;
+  --leading-none: 0.9;
+  --leading-tight: 1.05;
+  --leading-snug: 1.2;
   --leading-normal: 1.5;
   --leading-relaxed: 1.7;
 
@@ -177,7 +221,18 @@
   --transition-fast: 150ms ease;
   --transition-base: 200ms ease;
   --transition-slow: 300ms ease;
+
+  /* breakpoints — use in media queries via hardcoded values since CSS vars cant be used in @media */
+  /* --bp-mobile: 480px */
+  /* --bp-tablet: 768px */
+  /* --bp-laptop: 1024px */
+  /* --bp-desktop: 1280px */
+  /* --bp-wide: 1536px */
 }
+
+/* CONTRAST RULE: On dark green backgrounds (--green-700 through --green-975),
+   all text must be at minimum rgba(255,255,255,0.88).
+   Semi-transparent white below 0.85 fails readability on textured green. */
 
 /* ===== reset ===== */
 *, *::before, *::after {
@@ -187,7 +242,10 @@
 }
 
 html {
+  height: 100%;
   font-size: 16px;
+  overflow-x: hidden;
+  scroll-behavior: smooth;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
@@ -195,29 +253,32 @@ html {
 
 body {
   margin: 0;
+  padding: 0;
   font-family: var(--font-body);
   font-size: var(--text-base);
-  line-height: 1.6;
-  color: var(--text-primary);
-  background-color: var(--paper-base);
+  line-height: var(--leading-normal);
+  color: var(--text-on-paper);
   min-width: 320px;
-}
+  min-height: var(--vh-full);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 
-body::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  background-image: url('/paper-grain.svg');
-  background-size: 400px 400px;
-  opacity: 0.035;
-  pointer-events: none;
-  z-index: 0;
-  mix-blend-mode: multiply;
-}
-
-body > * {
-  position: relative;
-  z-index: 1;
+  background-color: var(--bg-primary);
+  background-image:
+    /* whisper-faint gold lift top-left for warmth without tint */
+    radial-gradient(
+      ellipse at 12% 8%,
+      rgba(255, 198, 41, 0.035) 0%,
+      transparent 55%
+    ),
+    /* whisper-faint green lift bottom-right for depth */
+    radial-gradient(
+      ellipse at 88% 92%,
+      rgba(26, 86, 50, 0.028) 0%,
+      transparent 55%
+    );
+  background-attachment: fixed;
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -243,16 +304,21 @@ a:hover {
   text-decoration: underline;
 }
 
-/* ===== focus rings for accessibility ===== */
+/* ===== focus rings for accessibility — keyboard-only via :focus-visible ===== */
 :focus-visible {
-  outline: 2px solid var(--green-600);
+  outline: 2px solid var(--gold-400);
   outline-offset: 2px;
+  border-radius: var(--radius-sm);
 }
 
-button:focus:not(:focus-visible),
-input:focus:not(:focus-visible),
-select:focus:not(:focus-visible) {
+:focus:not(:focus-visible) {
   outline: none;
+}
+
+/* ===== branded text selection ===== */
+::selection {
+  background: rgba(255, 198, 41, 0.25);
+  color: var(--green-900);
 }
 
 /* ===== scrollbar styling ===== */

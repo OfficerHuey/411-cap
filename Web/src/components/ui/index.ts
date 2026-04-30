@@ -36,9 +36,6 @@ export { Select } from "./Select";
 export type { SelectProps, SelectOption } from "./Select";
 
 //editorial signatures
-export { NumberBadge } from "./NumberBadge";
-export type { NumberBadgeProps } from "./NumberBadge";
-
 export { HairlineRule } from "./HairlineRule";
 export type { HairlineRuleProps } from "./HairlineRule";
 
@@ -53,3 +50,7 @@ export { Breadcrumbs } from "./Breadcrumbs";
 export type { BreadcrumbsProps } from "./Breadcrumbs";
 
 export { LoadingBar, loadingBar } from "./LoadingBar";
+
+//decorative accents
+export { SeluBars } from "./SeluBars";
+export { SeluArcs } from "./SeluArcs";

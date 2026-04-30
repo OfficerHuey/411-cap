@@ -21,6 +21,9 @@ interface CourseDetailsModalProps {
   courses: Course[];
   locationDisplay: string | null;
   editSection?: Section;
+  //when provided on the create path, parent owns the api call so it can do an optimistic update
+  //the modal closes immediately after handing off the dto
+  onCreate?: (dto: CreateSectionDto) => void;
   onClose: () => void;
   onSuccess: () => void;
 }
@@ -37,6 +40,7 @@ export function CourseDetailsModal({
   courses,
   locationDisplay,
   editSection,
+  onCreate,
   onClose,
   onSuccess,
 }: CourseDetailsModalProps) {
@@ -176,6 +180,14 @@ export function CourseDetailsModal({
         semesterId,
         scheduleId,
       };
+
+      //optimistic path — hand the dto up to the parent and close immediately
+      //parent surfaces conflicts via toast after the real response comes back
+      if (onCreate) {
+        onCreate(dto);
+        onClose();
+        return;
+      }
 
       const result = await sectionsApi.createOrLink(dto);
 

@@ -240,7 +240,10 @@ namespace NursingScheduler.API.Controllers
             foreach (var item in items)
             {
                 var schedule = await _context.Schedules.FindAsync(item.Id);
-                if (schedule != null) schedule.SortOrder = item.SortOrder;
+                if (schedule == null) continue;
+                if (await IsSemesterLocked(schedule.SemesterId))
+                    return BadRequest("This semester is locked and cannot be modified");
+                schedule.SortOrder = item.SortOrder;
             }
             await _context.SaveChangesAsync();
             return NoContent();
@@ -317,19 +320,27 @@ namespace NursingScheduler.API.Controllers
         [HttpPut("{id}/capacity")]
         public async Task<ActionResult> UpdateCapacity(int id, [FromBody] int capacity)
         {
-            var schedule = await _context.Schedules.FindAsync(id);
+            var schedule = await _context.Schedules
+                .Include(s => s.Students)
+                .FirstOrDefaultAsync(s => s.Id == id);
             if (schedule == null) return NotFound();
             if (await IsSemesterLocked(schedule.SemesterId))
                 return BadRequest("This semester is locked and cannot be modified");
             if (capacity < 1) return BadRequest("Capacity must be at least 1");
 
+            var currentCount = schedule.Students.Count;
             schedule.Capacity = capacity;
             await _context.SaveChangesAsync();
 
             var username = User.GetUsername() ?? "unknown";
             await _auditService.LogChange("Schedule", schedule.Id, "Capacity updated", username, $"New capacity: {capacity}", schedule.SemesterId);
 
-            return Ok(new { schedule.Id, schedule.Capacity });
+            //warn if capacity is now below current student count
+            var warning = currentCount > capacity
+                ? $"Warning: this schedule has {currentCount} students which exceeds the new capacity of {capacity}"
+                : (string?)null;
+
+            return Ok(new { schedule.Id, schedule.Capacity, Warning = warning });
         }
     }
 }

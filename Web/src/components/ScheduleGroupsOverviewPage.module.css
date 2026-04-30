@@ -1,0 +1,259 @@
+/* schedule groups overview — all groups across all semesters */
+
+.root {
+  font-family: var(--font-body);
+  position: relative;
+  overflow: visible;
+  background: transparent;
+  min-height: 0;
+}
+
+.root > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* ── hero ── */
+.hero {
+  position: relative;
+  isolation: isolate;
+  margin: 0 0 1.5rem;
+  padding: 1.25rem 0 4rem;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.hero::before {
+  content: '';
+  position: absolute;
+  top: -1rem; bottom: 0;
+  left: -9999px; right: -9999px;
+  background-color: var(--green-900);
+  background-image:
+    radial-gradient(ellipse at 20% 20%, rgba(255, 198, 41, 0.08) 0%, transparent 55%),
+    repeating-linear-gradient(
+      -45deg,
+      transparent,
+      transparent 30px,
+      rgba(255, 198, 41, 0.035) 30px,
+      rgba(255, 198, 41, 0.035) 31px
+    ),
+    linear-gradient(180deg, var(--green-900) 0%, var(--green-800) 40%, var(--green-700) 100%);
+  pointer-events: none;
+  z-index: -1;
+}
+
+.hero::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: -9999px; right: -9999px;
+  height: 60px;
+  background: linear-gradient(180deg, transparent 0%, var(--bg-primary) 100%);
+  pointer-events: none;
+  z-index: -1;
+}
+
+.hero > * { position: relative; z-index: 1; }
+
+.heroTitle {
+  font-family: var(--font-display);
+  font-size: var(--title-hero-size);
+  font-weight: var(--title-hero-weight);
+  color: var(--paper-raised);
+  letter-spacing: var(--title-hero-tracking);
+  line-height: 1.05;
+  margin: 0;
+}
+
+.heroTitle em { font-style: italic; color: var(--gold-400); }
+
+.heroSubtitle {
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.92);
+  margin: 0.6rem 0 0;
+}
+
+/* ── toolbar ── */
+.toolbar {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.search {
+  flex: 1 1 260px;
+  padding: 10px 14px 10px 40px;
+  border: 1.5px solid var(--border-default);
+  border-radius: 10px;
+  font-family: var(--font-body);
+  font-size: 0.9375rem;
+  background-color: var(--bg-surface);
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%239CA3AF' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='11' cy='11' r='8'/><line x1='21' y1='21' x2='16.65' y2='16.65'/></svg>");
+  background-repeat: no-repeat;
+  background-position: left 14px center;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  outline: none;
+  color: var(--text-on-paper);
+  transition: border-color 180ms, box-shadow 180ms;
+}
+
+.search::placeholder { color: #9CA3AF; }
+.search:focus {
+  border-color: #00563f;
+  box-shadow: 0 0 0 3px rgba(0, 86, 63, 0.12);
+}
+
+/* ── semester group ── */
+.group {
+  margin-bottom: 2rem;
+}
+
+.groupHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.5rem 0 0.75rem;
+  border-bottom: 1px solid var(--border-default);
+  margin-bottom: 1rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.groupTitle {
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--text-on-paper);
+  letter-spacing: -0.01em;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.groupTitle em { font-style: italic; color: var(--gold-600); }
+
+.groupChevron {
+  transition: transform 180ms var(--ease-out-editorial, cubic-bezier(0.16, 1, 0.3, 1));
+  color: var(--text-on-paper-muted);
+}
+
+.groupChevronOpen { transform: rotate(90deg); }
+
+.groupCount {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-on-paper-muted);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 0.75rem;
+}
+
+/* ── schedule group card ── */
+.card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  transition: border-color 160ms, box-shadow 220ms;
+  position: relative;
+}
+
+.card:hover {
+  border-color: var(--gold-400);
+  box-shadow: var(--shadow-md);
+}
+
+.cardTopRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.cardLetter {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--gold-600);
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.cardStatusBadge {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  background: rgba(26, 86, 50, 0.08);
+  color: var(--green-700);
+  border: 1px solid rgba(26, 86, 50, 0.15);
+}
+
+.cardTitle {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-on-paper);
+  margin: 0 0 0.15rem;
+}
+
+.cardSemester {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text-on-paper-muted);
+  letter-spacing: 0.02em;
+  margin: 0 0 0.75rem;
+}
+
+.cardFooter {
+  display: flex;
+  gap: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px dashed var(--border-default);
+}
+
+.cardStat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.cardStatValue {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--text-on-paper);
+  line-height: 1;
+}
+
+.cardStatLabel {
+  font-family: var(--font-body);
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-on-paper-muted);
+}
+
+.empty {
+  padding: 3rem 1rem;
+  text-align: center;
+  color: var(--text-on-paper-muted);
+  font-size: 0.9rem;
+}

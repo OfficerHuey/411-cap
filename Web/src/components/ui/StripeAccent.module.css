@@ -1,0 +1,36 @@
+.stripe {
+  width: 100%;
+  flex-shrink: 0;
+}
+
+.full {
+  position: relative;
+  background: transparent;
+}
+
+.full::before {
+  content: '';
+  position: absolute;
+  top: 0; bottom: 0;
+  left: -9999px; right: -9999px;
+  background: linear-gradient(
+    90deg,
+    var(--green-600) 0%,
+    var(--green-600) 40%,
+    var(--gold-400) 60%,
+    var(--gold-400) 100%
+  );
+  pointer-events: none;
+  z-index: -1;
+}
+
+.contained {
+  border-radius: 2px;
+  background: linear-gradient(
+    90deg,
+    var(--green-600) 0%,
+    var(--green-600) 40%,
+    var(--gold-400) 60%,
+    var(--gold-400) 100%
+  );
+}

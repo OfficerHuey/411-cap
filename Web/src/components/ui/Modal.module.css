@@ -3,8 +3,9 @@
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(10, 15, 8, 0.6);
-  backdrop-filter: blur(4px);
+  background: rgba(0, 12, 8, 0.45);
+  backdrop-filter: blur(4px) saturate(0.9);
+  -webkit-backdrop-filter: blur(4px) saturate(0.9);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -116,9 +117,83 @@
 .footer {
   padding: 1.5rem 2.25rem;
   background: var(--paper-sunk);
-  border-top: 1px solid var(--cream-300);
+  border-top: 1px solid rgba(255, 198, 41, 0.15);
   display: flex;
   justify-content: flex-end;
   gap: var(--space-3);
   flex-shrink: 0;
+}
+
+/* ── responsive ── */
+@media (max-width: 768px) {
+  .overlay {
+    padding: 0.5rem;
+    align-items: flex-end;
+  }
+
+  .container {
+    max-height: 95vh;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  }
+
+  .sm,
+  .md,
+  .lg,
+  .xl {
+    max-width: 95vw;
+  }
+
+  .header {
+    padding: 1.25rem 1.25rem 0;
+    position: sticky;
+    top: 0;
+    background: var(--paper-raised);
+    z-index: 1;
+  }
+
+  .title {
+    font-size: 1.25rem;
+    padding-right: 2.5rem;
+  }
+
+  .body {
+    padding: 1.25rem;
+  }
+
+  .footer {
+    padding: 1rem 1.25rem;
+    position: sticky;
+    bottom: 0;
+  }
+
+  .closeButton {
+    top: 1rem;
+    right: 1rem;
+    width: 44px;
+    height: 44px;
+  }
+}
+
+@media (max-width: 480px) {
+  .overlay {
+    padding: 0;
+  }
+
+  .container {
+    max-height: var(--vh-full);
+    border-radius: 0;
+  }
+
+  .header {
+    padding: 1rem 1rem 0;
+  }
+
+  .body {
+    padding: 1rem;
+  }
+
+  .footer {
+    padding: 0.85rem 1rem;
+    flex-direction: column;
+  }
 }

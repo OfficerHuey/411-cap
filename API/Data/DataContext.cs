@@ -23,10 +23,76 @@ namespace NursingScheduler.API.Data
         public DbSet<SectionInstructor> SectionInstructors { get; set; }
         public DbSet<Note> Notes { get; set; }
         public DbSet<PasswordResetToken> PasswordResetTokens { get; set; }
+        public DbSet<AppFile> AppFiles { get; set; }
+        public DbSet<Conversation> Conversations { get; set; }
+        public DbSet<ConversationParticipant> ConversationParticipants { get; set; }
+        public DbSet<Message> Messages { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            //app-files — admin-managed file catalog
+            modelBuilder.Entity<AppFile>(b =>
+            {
+                b.Property(f => f.FileName).HasMaxLength(255).IsRequired();
+                b.Property(f => f.OriginalFileName).HasMaxLength(255).IsRequired();
+                b.Property(f => f.ContentType).HasMaxLength(255).IsRequired();
+                b.Property(f => f.StoragePath).HasMaxLength(500).IsRequired();
+                b.Property(f => f.Title).HasMaxLength(255);
+                b.Property(f => f.Description).HasMaxLength(1000);
+
+                b.HasIndex(f => f.UploadedByUserId);
+                b.HasIndex(f => f.IsDeleted);
+
+                b.HasOne(f => f.UploadedBy)
+                    .WithMany()
+                    .HasForeignKey(f => f.UploadedByUserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            //conversations + participants + messages — polling-based messaging
+            modelBuilder.Entity<Conversation>(b =>
+            {
+                b.Property(c => c.Title).HasMaxLength(200);
+                b.HasIndex(c => c.LastMessageAt);
+            });
+
+            modelBuilder.Entity<ConversationParticipant>(b =>
+            {
+                //each user appears at most once per conversation
+                b.HasIndex(p => new { p.ConversationId, p.UserId }).IsUnique();
+
+                b.HasOne(p => p.Conversation)
+                    .WithMany(c => c.Participants)
+                    .HasForeignKey(p => p.ConversationId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                //restrict — don't let a user row deletion wipe out their
+                //entire message history from other users' threads
+                b.HasOne(p => p.User)
+                    .WithMany()
+                    .HasForeignKey(p => p.UserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            modelBuilder.Entity<Message>(b =>
+            {
+                b.Property(m => m.Content).HasMaxLength(4000).IsRequired();
+                //composite index powers the "messages in this conversation by
+                //time" query that drives the thread paginator
+                b.HasIndex(m => new { m.ConversationId, m.SentAt });
+
+                b.HasOne(m => m.Conversation)
+                    .WithMany(c => c.Messages)
+                    .HasForeignKey(m => m.ConversationId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                b.HasOne(m => m.Sender)
+                    .WithMany()
+                    .HasForeignKey(m => m.SenderId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
 
             //set default capacity to 8 for lab groups
             modelBuilder.Entity<Schedule>()

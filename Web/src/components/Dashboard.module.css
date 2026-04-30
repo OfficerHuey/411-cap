@@ -2,24 +2,68 @@
 
 .root {
   font-family: var(--font-body);
+  position: relative;
+  overflow: visible;
+  background: transparent;
+  min-height: 0;
 }
 
-/* ── hero block ── */
+.root > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* ── hero block (full-bleed dark green — merges with statSection) ── */
+/*hero+statSection form a single continuous dark-green banner:
+  top edge of hero sits flush against the navbar (top: -1rem covers main's
+  top padding) and both pseudos use solid green-900 + matching black overlays
+  so the seam between hero and statSection is invisible*/
 .hero {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 1.5rem;
-  padding: 3.5rem 0 0;
+  position: relative;
+  isolation: isolate;
+  margin: 0;
+  /*tight top so greeting sits close to navbar; tight bottom because the
+    statSection below continues the banner without a break*/
+  padding: 1.25rem 0 1rem;
+}
+
+.hero::before {
+  content: '';
+  position: absolute;
+  top: -1rem;
+  bottom: 0;
+  left: -9999px;
+  right: -9999px;
+  background-color: var(--green-900);
+  background-image:
+    repeating-linear-gradient(
+      -45deg,
+      transparent,
+      transparent 30px,
+      rgba(255, 198, 41, 0.035) 30px,
+      rgba(255, 198, 41, 0.035) 31px
+    ),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, transparent 50%, rgba(0, 0, 0, 0.12) 100%);
+  pointer-events: none;
+  z-index: -1;
+}
+
+.hero > * {
+  position: relative;
+  z-index: 1;
 }
 
 .heroText h1 {
   font-family: var(--font-display);
-  font-size: clamp(2rem, 4vw, 3rem);
-  font-weight: 500;
-  color: var(--text-on-paper);
-  letter-spacing: var(--tracking-tighter);
+  font-size: var(--title-hero-size);
+  font-weight: var(--title-hero-weight);
+  color: var(--paper-raised);
+  letter-spacing: var(--title-hero-tracking);
   line-height: var(--leading-tight);
   margin: 0;
 }
@@ -27,32 +71,321 @@
 .heroText h1 em {
   font-style: italic;
   font-family: var(--font-display);
-  color: var(--gold-500);
+  color: var(--gold-400);
 }
 
 .heroSubtitle {
   font-family: var(--font-body);
-  font-size: 0.95rem;
-  color: var(--text-muted);
-  margin: var(--space-2) 0 0;
+  font-size: 0.98rem;
+  color: rgba(255, 255, 255, 0.92);
+  margin: 0.6rem 0 0;
   font-weight: 400;
 }
 
-/* ── stat strip ── */
-.statStrip {
-  margin-top: 2rem;
+/*featured-card placeholder — reserves the ~120px of vertical space the
+  real featured card will occupy once data arrives, eliminating the
+  initial-load gap between the green banner and "All semesters"*/
+.featuredSkeleton {
+  height: 120px;
+  margin-bottom: 2rem;
+  border-radius: 22px;
+  overflow: hidden;
 }
 
 .statGrid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 1.5rem;
   padding: 2rem;
+  container-type: inline-size;
+  container-name: stat-grid;
+}
+
+/* ── dark green stat band (merges with hero into one continuous surface) ── */
+.statSection {
+  position: relative;
+  isolation: isolate;
+  margin: 0 0 2rem;
+  /*tight top to sit close to hero; deep bottom so stat tiles clear the
+    60px fade-to-white zone and text/numbers stay on solid green*/
+  padding: 1rem 0 4rem;
+  border-radius: 0;
+}
+
+/*continues the hero's banner: black overlay starts at the same 12% end value
+  the hero reached, then deepens by another 12% — eye reads one gradient*/
+.statSection::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -9999px;
+  right: -9999px;
+  background-color: var(--green-900);
+  background-image: linear-gradient(180deg, rgba(0, 0, 0, 0.12) 0%, rgba(0, 0, 0, 0.28) 100%);
+  pointer-events: none;
+  z-index: -1;
+}
+
+/*smooth green-to-white transition at banner base — 60px fade from the
+  banner's terminal color into the page background*/
+.statSection::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: -9999px;
+  right: -9999px;
+  height: 60px;
+  background: linear-gradient(180deg, transparent 0%, var(--bg-primary) 100%);
+  pointer-events: none;
+  z-index: -1;
+}
+
+.statSection > * {
+  position: relative;
+  z-index: 1;
+}
+
+.statSectionGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.5rem;
+  max-width: 1440px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
+}
+
+/*analytics tiles — consistent white cards on the dark banner
+  each tile has one distinct colored top accent that grows on hover,
+  plus a left-edge accent that materialises from the top bar on hover.
+  colors by position match brief: green-700 / gold-500 / green-500 / red-500*/
+
+.statSectionGrid > * [class*="tile"] {
+  background: var(--bg-surface);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+  padding: 1.5rem 1.75rem;
+  position: relative;
+  overflow: hidden;
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.22),
+    0 1px 0 rgba(255, 255, 255, 0.04);
+  transition: transform 220ms var(--ease-out-editorial, cubic-bezier(0.16, 1, 0.3, 1)),
+              box-shadow 220ms ease-out;
+}
+
+/*top accent — present at rest (2px), grows on hover (5px)*/
+.statSectionGrid > * [class*="tile"]::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  transition: height 220ms var(--ease-out-editorial, cubic-bezier(0.16, 1, 0.3, 1));
+  pointer-events: none;
+  z-index: 1;
+}
+
+/*left-edge accent — appears on hover only, categorical color*/
+.statSectionGrid > * [class*="tile"]::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 3px;
+  transform: scaleY(0);
+  transform-origin: top;
+  transition: transform 260ms var(--ease-out-editorial, cubic-bezier(0.16, 1, 0.3, 1));
+  pointer-events: none;
+  z-index: 1;
+}
+
+/*transform owned by framer motion whileHover — css only handles shadow
+  and the accent bar animations so the two systems don't fight each other*/
+.statSectionGrid > * [class*="tile"]:hover,
+.statSectionGrid > .statTileClickable:hover [class*="tile"] {
+  box-shadow:
+    0 10px 32px rgba(0, 0, 0, 0.28),
+    0 2px 4px rgba(0, 0, 0, 0.12);
+}
+
+.statSectionGrid > * [class*="tile"]:hover::before,
+.statSectionGrid > .statTileClickable:hover [class*="tile"]::before {
+  height: 5px;
+}
+
+.statSectionGrid > * [class*="tile"]:hover::after,
+.statSectionGrid > .statTileClickable:hover [class*="tile"]::after {
+  transform: scaleY(1);
+}
+
+/*click-target wrapper for the analytics tiles — framer motion handles
+  the y/scale spring, this block provides pointer affordance and the
+  "View details →" hint that fades in on hover*/
+.statTileClickable {
+  position: relative;
+  cursor: pointer;
+  outline: none;
+  border-radius: 16px;
+}
+
+.statTileClickable:focus-visible {
+  box-shadow: 0 0 0 3px rgba(255, 198, 41, 0.65);
+}
+
+/*subtle breathing pulse — drives attention without flicker. only applied when
+  attentionCount > 0 from Dashboard.tsx*/
+.attentionPulse {
+  animation: attentionBreathe 3s ease-in-out infinite;
+}
+
+@keyframes attentionBreathe {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+  50% { box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.08); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .attentionPulse { animation: none; }
+}
+
+.statTileHint {
+  position: absolute;
+  bottom: 12px;
+  right: 16px;
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--text-on-paper-muted);
+  opacity: 0;
+  transform: translateX(-4px);
+  transition: opacity 180ms ease-out, transform 220ms var(--ease-out-editorial, cubic-bezier(0.16, 1, 0.3, 1));
+  pointer-events: none;
+  z-index: 2;
+}
+
+.statTileClickable:hover .statTileHint,
+.statTileClickable:focus-visible .statTileHint {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/*text on white: override the dark-banner inherited rules*/
+.statSectionGrid > * [class*="label"] { color: var(--text-on-paper-muted); }
+.statSectionGrid > * [class*="value"] { color: var(--text-on-paper); }
+.statSectionGrid > * [class*="trend"] { color: var(--text-on-paper-muted); }
+
+/*per-tile accent colors — category + distinct hover per prompt*/
+/*tile1 active semesters — green-700*/
+.statSectionGrid > *:nth-child(1) [class*="tile"]::before { background: var(--green-700); }
+.statSectionGrid > *:nth-child(1) [class*="tile"]::after { background: var(--green-700); }
+.statSectionGrid > *:nth-child(1) [class*="tile"] [class*="label"] { color: var(--green-700); }
+
+/*tile2 schedule groups — gold-500*/
+.statSectionGrid > *:nth-child(2) [class*="tile"]::before { background: var(--gold-500); }
+.statSectionGrid > *:nth-child(2) [class*="tile"]::after { background: var(--gold-500); }
+.statSectionGrid > *:nth-child(2) [class*="tile"] [class*="label"] { color: var(--gold-600); }
+
+/*tile3 students placed — green-500*/
+.statSectionGrid > *:nth-child(3) [class*="tile"]::before { background: var(--green-500); }
+.statSectionGrid > *:nth-child(3) [class*="tile"]::after { background: var(--green-500); }
+.statSectionGrid > *:nth-child(3) [class*="tile"] [class*="label"] { color: var(--green-600); }
+
+/*tile4 attention needed — red-500*/
+.statSectionGrid > *:nth-child(4) [class*="tile"]::before { background: var(--red-500); }
+.statSectionGrid > *:nth-child(4) [class*="tile"]::after { background: var(--red-500); }
+.statSectionGrid > *:nth-child(4) [class*="tile"] [class*="label"] { color: var(--red-600); }
+
+/*"Jump back in" eyebrow above the featured semester card — replaces a
+  full SectionHeading; lighter so it reads as a contextual lead-in rather
+  than a structural section divider*/
+.jumpBackInLabel {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-on-paper-muted);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 2rem 0 0.75rem;
+}
+
+/*small gold eyebrow inside the card itself*/
+.featuredContext {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--gold-500);
+  margin-bottom: 0.25rem;
+}
+
+/*quick stats row — schedule groups + students*/
+.featuredStats {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  color: var(--text-on-paper-muted);
+  margin-top: 0.5rem;
+}
+
+.featuredStatsDot {
+  color: var(--cream-400);
 }
 
 /* ── featured semester hero ── */
 .featured {
-  margin-top: 2rem;
+  margin-top: 0;
+  background: linear-gradient(135deg, var(--bg-surface) 0%, var(--bg-surface) 50%, rgba(255, 198, 41, 0.05) 100%);
+  border: 1px solid var(--border-default);
+  border-radius: 22px;
+  overflow: hidden;
+  position: relative;
+  box-shadow: var(--shadow-md);
+  transition: all 350ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* interior corner accent two gold chevron lines */
+.featured::before {
+  content: '';
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 60px;
+  height: 60px;
+  background:
+    linear-gradient(225deg, transparent 44%, rgba(255, 198, 41, 0.25) 44%, rgba(255, 198, 41, 0.25) 46%, transparent 46%),
+    linear-gradient(225deg, transparent 52%, rgba(255, 198, 41, 0.15) 52%, rgba(255, 198, 41, 0.15) 54%, transparent 54%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/*unexpected bottom-edge gradient gold green gold unique to featured*/
+.featured::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 20px;
+  right: 20px;
+  height: 3px;
+  background: linear-gradient(90deg, var(--gold-400) 0%, var(--green-500) 50%, var(--gold-400) 100%);
+  border-radius: 0 0 22px 22px;
+  pointer-events: none;
+}
+
+/*transform owned by framer motion magnetic hover; keep only color/shadow hover states*/
+.featured:hover {
+  background: linear-gradient(135deg, var(--bg-surface) 0%, var(--bg-surface) 40%, rgba(255, 198, 41, 0.09) 100%);
+  border-color: rgba(255, 198, 41, 0.45);
+  box-shadow: var(--shadow-hover);
 }
 
 .featuredInner {
@@ -72,7 +405,7 @@
 .featuredTitle {
   font-family: var(--font-display);
   font-size: clamp(1.8rem, 3vw, 2.5rem);
-  font-weight: 500;
+  font-weight: 600;
   color: var(--text-on-paper);
   letter-spacing: var(--tracking-tighter);
   margin: 0;
@@ -105,28 +438,96 @@
 .progressFill {
   height: 100%;
   background: var(--gold-400);
-  border-radius: 2px;
+  border-radius: 0;
   transition: width 400ms ease-out;
 }
 
 /* ── semester card grid ── */
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 1.75rem;
   margin-top: 1rem;
+  /* container queries — grid tracks size against its wrapper, not viewport */
+  container-type: inline-size;
+  container-name: semester-grid;
 }
 
 /* individual semester card */
 .cardBody {
-  padding: 1.75rem;
+  padding: 1.75rem 1.75rem 1.75rem 2.25rem;
+  border-radius: 22px;
+  overflow: hidden;
+  position: relative;
+  transition: all 280ms cubic-bezier(0.32, 0.72, 0, 1);
+  box-shadow: inset 0 0 40px rgba(255, 198, 41, 0.03);
+}
+
+/*alternating warm/cool tints across semester grid*/
+.grid > *:nth-child(odd) > * {
+  background: linear-gradient(135deg, var(--paper-raised) 0%, rgba(255, 198, 41, 0.03) 100%);
+}
+
+.grid > *:nth-child(even) > * {
+  background: linear-gradient(135deg, var(--paper-raised) 0%, rgba(26, 86, 50, 0.03) 100%);
+}
+
+/*sharp L-corner bracket mark — mixed tension inside soft card*/
+.cardBody::before {
+  content: '';
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  width: 16px;
+  height: 16px;
+  border-top: 3px solid var(--gold-400);
+  border-left: 3px solid var(--gold-400);
+  border-radius: 0;
+  opacity: 0.5;
+  transition: opacity 300ms ease-out;
+}
+
+/*small pulsing dot in top-right as corner accent*/
+.cardBody::after {
+  content: '';
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 6px;
+  height: 6px;
+  border-radius: 2px;
+  background: var(--green-500);
+  opacity: 0.4;
+  transition: all 280ms ease-out;
+}
+
+.cardBody:hover {
+  transform: translateY(-4px);
+  background: linear-gradient(135deg, var(--paper-raised) 0%, rgba(255, 198, 41, 0.05) 100%);
+  box-shadow:
+    0 4px 16px rgba(30, 24, 12, 0.06),
+    0 12px 40px rgba(30, 24, 12, 0.08);
+}
+
+.cardBody:hover::before {
+  opacity: 1;
+}
+
+.cardBody:hover::after {
+  opacity: 0.9;
+  background: var(--gold-400);
 }
 
 .cardTopRow {
   display: flex;
   align-items: flex-start;
-  justify-content: space-between;
+  justify-content: flex-end;
+  min-height: 1px;
   margin-bottom: var(--space-3);
+}
+
+.cardTopRow:empty {
+  display: none;
 }
 
 .cardActions {
@@ -141,7 +542,7 @@
   cursor: pointer;
   color: var(--cream-400);
   padding: 0.3rem;
-  border-radius: 6px;
+  border-radius: 4px;
   display: flex;
   align-items: center;
   transition: all 150ms ease-out;
@@ -160,7 +561,7 @@
 .cardTitle {
   font-family: var(--font-display);
   font-size: 1.35rem;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--text-on-paper);
   letter-spacing: -0.01em;
   margin: 0;
@@ -175,8 +576,10 @@
 }
 
 .cardDate {
-  font-family: var(--font-body);
-  font-size: 0.8rem;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
   color: var(--text-muted);
 }
 
@@ -215,13 +618,31 @@
 }
 
 /* ── responsive ── */
-@media (max-width: 900px) {
-  .hero { padding-top: 2rem; }
-  .statGrid { grid-template-columns: repeat(2, 1fr); }
-  .featuredInner { flex-direction: column; align-items: flex-start; }
-  .grid { grid-template-columns: 1fr; }
+@media (max-width: 768px) {
+  .hero {
+    padding-top: 1rem;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .statGrid {
+    padding: 1.25rem;
+    gap: 1rem;
+  }
+  .featuredInner {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 1.5rem;
+  }
+  .progressTrack {
+    width: 100%;
+  }
 }
 
-@media (max-width: 600px) {
-  .statGrid { grid-template-columns: 1fr; }
+@media (max-width: 480px) {
+  .statGrid {
+    padding: 1rem;
+  }
+  .cardBody {
+    padding: 1.25rem;
+  }
 }

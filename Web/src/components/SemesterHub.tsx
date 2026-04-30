@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Plus, Trash2, Lock, Copy, Download, History, Upload, ChevronRight, MapPin, Calendar, StickyNote } from "lucide-react";
+import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
+import { Plus, Trash2, Lock, Unlock, Copy, Download, History, Upload, ChevronRight, MapPin, Calendar, StickyNote } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
 import { authService } from "../Lib/Auth";
 import { semesters as semestersApi, schedules as schedulesApi, exports as exportsApi } from "../Lib/api";
@@ -11,9 +12,10 @@ import { StudentImportModal } from "./StudentImportModal";
 import { CapacityMeter } from "./CapacityMeter";
 import { useBreadcrumbs } from "../Lib/BreadcrumbContext";
 import { useToast } from "../Lib/ToastContext";
+import { useReducedMotion } from "../hooks/useReducedMotion";
+import { heroStagger, heroChild, staggerContainer, cardVariants, physics } from "../Lib/motion";
 import { Button } from "./ui/Button";
 import { Card } from "./ui/Card";
-import { NumberBadge } from "./ui/NumberBadge";
 import { HairlineRule } from "./ui/HairlineRule";
 import { SectionHeading } from "./ui/SectionHeading";
 import { Badge } from "./ui/Badge";
@@ -163,6 +165,18 @@ export function SemesterHub() {
     }
   };
 
+  const handleUnlock = async () => {
+    try {
+      const result = await semestersApi.toggleLock(semIdNum);
+      if (!result.isLocked) {
+        addToast("success", "Semester unlocked");
+        await loadSemester();
+      }
+    } catch (err: any) {
+      addToast("error", err.message || "Failed to unlock semester");
+    }
+  };
+
   const handleCloneSchedule = async (schedId: number) => {
     const sched = scheduleList.find((s) => s.id === schedId);
     if (!sched) return;
@@ -201,15 +215,22 @@ export function SemesterHub() {
   const progress = semester ? weekProgress(semester.startDate, semester.endDate) : null;
   const activeLevelNum = levelToNumber(activeLevel);
 
+  const reduced = useReducedMotion();
+
   return (
     <div className={styles.root}>
       {/* ── hero ── */}
-      <div className={styles.hero}>
+      <motion.div
+        className={styles.hero}
+        layoutId={reduced || !semester ? undefined : `semester-hero-${semester.id}`}
+        variants={reduced ? undefined : heroStagger}
+        initial="hidden"
+        animate="visible"
+      >
         <div>
-          <NumberBadge number={semester?.id ?? "\u2014"} variant="gold" size="sm" />
-          <HairlineRule width="48px" color="gold" spacing="normal" />
+          <motion.div variants={reduced ? undefined : heroChild}><HairlineRule width="48px" color="gold" spacing="normal" /></motion.div>
 
-          <h1 className={styles.heroTitle}>
+          <motion.h1 variants={reduced ? undefined : heroChild} className={styles.heroTitle}>
             {renderTitleWithItalic(semester?.name)}
             {isLocked && (
               <Badge variant="red" size="md">
@@ -217,10 +238,10 @@ export function SemesterHub() {
                 Archived
               </Badge>
             )}
-          </h1>
+          </motion.h1>
 
           {semester && (
-            <div className={styles.heroMeta}>
+            <motion.div variants={reduced ? undefined : heroChild} className={styles.heroMeta}>
               <span className={styles.heroDateRange}>
                 {formatDateLong(semester.startDate)} &mdash; {formatDateLong(semester.endDate)}
               </span>
@@ -232,11 +253,21 @@ export function SemesterHub() {
                   Week {progress.week} of {progress.total}
                 </span>
               )}
-            </div>
+            </motion.div>
           )}
         </div>
 
-        <div className={styles.heroActions}>
+        <motion.div variants={reduced ? undefined : heroChild} className={styles.heroActions}>
+          {isLocked && canEdit && (
+            <Button
+              variant="secondary"
+              size="md"
+              iconLeft={<Unlock size={14} />}
+              onClick={handleUnlock}
+            >
+              Unlock Semester
+            </Button>
+          )}
           <Button
             variant="ghost"
             size="md"
@@ -302,8 +333,8 @@ export function SemesterHub() {
               Add Schedule Group
             </Button>
           )}
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
 
       {error && <div className={styles.errorBanner}>{error}</div>}
 
@@ -327,31 +358,33 @@ export function SemesterHub() {
         })}
       </div>
 
-      {/* ── section heading + grid ── */}
+      {/* ── section heading + grid — heading and grid wrapper always rendered ── */}
+      <SectionHeading
+        number={String(activeLevelNum)}
+        title={loading ? "Loading schedule groups…" : `${scheduleList.length} schedule group${scheduleList.length !== 1 ? "s" : ""}`}
+        level="subsection"
+        action={
+          canEdit && !isLocked && !loading ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              iconLeft={<Plus size={14} />}
+              onClick={() => setShowCreateModal(true)}
+            >
+              Add Schedule Group
+            </Button>
+          ) : undefined
+        }
+      />
+
       {loading ? (
-        <div style={{ marginTop: "1rem" }}>
-          <Skeleton variant="card" height={200} />
+        <div className={styles.grid}>
+          {[1, 2, 3, 4].map((i) => (
+            <Skeleton key={i} variant="scheduleCard" />
+          ))}
         </div>
       ) : (
         <>
-          <SectionHeading
-            number={String(activeLevelNum)}
-            title={`${scheduleList.length} schedule group${scheduleList.length !== 1 ? "s" : ""}`}
-            level="subsection"
-            action={
-              canEdit && !isLocked ? (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  iconLeft={<Plus size={14} />}
-                  onClick={() => setShowCreateModal(true)}
-                >
-                  Add Schedule Group
-                </Button>
-              ) : undefined
-            }
-          />
-
           {scheduleList.length === 0 ? (
             <EmptyState
               icon={<Calendar size={32} />}
@@ -371,66 +404,87 @@ export function SemesterHub() {
               }
             />
           ) : (
-            <div className={styles.grid}>
-              {scheduleList.map((schedule, idx) => {
-                const letter = String.fromCharCode(65 + idx);
-                return (
-                  <Card
-                    key={schedule.id}
-                    variant="raised"
-                    accentColor="gold"
-                    interactive
-                    onClick={() => navigate(`/schedule-builder/${schedule.id}`)}
-                  >
-                    <div className={styles.cardBody}>
-                      <div className={styles.cardTopRow}>
-                        <NumberBadge number={letter} size="sm" variant="gold" />
-                        {canEdit && !isLocked && (
-                          <div className={styles.cardActions} onClick={(e) => e.stopPropagation()}>
-                            <button
-                              className={styles.cardActionBtn}
-                              onClick={() => setCloneScheduleId(schedule.id)}
-                              title="Clone schedule"
-                            >
-                              <Copy size={14} />
-                            </button>
-                            <button
-                              className={`${styles.cardActionBtn} ${styles.cardActionBtnDanger}`}
-                              onClick={() => setDeleteConfirm(schedule.id)}
-                              title="Delete schedule"
-                            >
-                              <Trash2 size={14} />
-                            </button>
-                          </div>
-                        )}
-                      </div>
+            <LayoutGroup>
+              <motion.div
+                className={styles.grid}
+                variants={reduced ? undefined : staggerContainer(0.05)}
+                initial="hidden"
+                animate="visible"
+              >
+                <AnimatePresence mode="popLayout">
+                  {scheduleList.map((schedule, idx) => {
+                    const letter = String.fromCharCode(65 + idx);
+                    return (
+                      <motion.div
+                        key={schedule.id}
+                        layout={!reduced}
+                        layoutId={reduced ? undefined : `schedule-hero-${schedule.id}`}
+                        variants={reduced ? undefined : cardVariants}
+                        initial={reduced ? undefined : { opacity: 0, scale: 0.95 }}
+                        animate={reduced ? undefined : { opacity: 1, scale: 1 }}
+                        exit={reduced ? undefined : { opacity: 0, scale: 0.92 }}
+                        whileHover={reduced ? undefined : { y: -5, scale: 1.01, transition: physics.magnetic }}
+                        whileTap={reduced ? undefined : { scale: 0.995, transition: physics.instant }}
+                        transition={reduced ? undefined : physics.standard}
+                      >
+                        <Card
+                          variant="raised"
+                          accentColor="gold"
+                          interactive
+                          onClick={() => navigate(`/schedule-builder/${schedule.id}`)}
+                        >
+                      <div className={styles.cardBody}>
+                        <div className={styles.cardTopRow}>
+                          <span className={styles.cardLetter}>{letter}</span>
+                          {canEdit && !isLocked && (
+                            <div className={styles.cardActions} onClick={(e) => e.stopPropagation()}>
+                              <button
+                                className={styles.cardActionBtn}
+                                onClick={() => setCloneScheduleId(schedule.id)}
+                                title="Clone schedule"
+                              >
+                                <Copy size={14} />
+                              </button>
+                              <button
+                                className={`${styles.cardActionBtn} ${styles.cardActionBtnDanger}`}
+                                onClick={() => setDeleteConfirm(schedule.id)}
+                                title="Delete schedule"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+                          )}
+                        </div>
 
-                      <h3 className={styles.cardTitle}>{schedule.name}</h3>
-                      <div className={styles.cardMeta}>
-                        <MapPin size={12} />
-                        <span>{schedule.locationDisplay}</span>
-                      </div>
+                        <h3 className={styles.cardTitle}>{schedule.name}</h3>
+                        <div className={styles.cardMeta}>
+                          <MapPin size={12} />
+                          <span>{schedule.locationDisplay}</span>
+                        </div>
 
-                      <div className={styles.cardCapacity}>
-                        <CapacityMeter
-                          currentCount={schedule.students.length}
-                          capacity={schedule.capacity}
-                        />
-                      </div>
+                        <div className={styles.cardCapacity}>
+                          <CapacityMeter
+                            currentCount={schedule.students.length}
+                            capacity={schedule.capacity}
+                          />
+                        </div>
 
-                      <HairlineRule color="muted" spacing="normal" />
-                      <div className={styles.cardCta}>
-                        <span className={styles.cardCtaText}>
-                          {schedule.sections?.length ?? 0} section{(schedule.sections?.length ?? 0) !== 1 ? "s" : ""} scheduled
-                        </span>
-                        <ChevronRight size={16} className={styles.cardCtaChevron} />
+                        <HairlineRule color="muted" spacing="normal" />
+                        <div className={styles.cardCta}>
+                          <span className={styles.cardCtaText}>
+                            {schedule.sections?.length ?? 0} section{(schedule.sections?.length ?? 0) !== 1 ? "s" : ""} scheduled
+                          </span>
+                          <ChevronRight size={16} className={styles.cardCtaChevron} />
+                        </div>
+                        <EditAttribution entityType="Schedule" entityId={schedule.id} />
                       </div>
-                      <EditAttribution entityType="Schedule" entityId={schedule.id} />
-                    </div>
-                  </Card>
-                );
-              })}
-            </div>
+                    </Card>
+                      </motion.div>
+                    );
+                  })}
+                </AnimatePresence>
+              </motion.div>
+            </LayoutGroup>
           )}
         </>
       )}

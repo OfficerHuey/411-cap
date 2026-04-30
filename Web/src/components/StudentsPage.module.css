@@ -1,0 +1,496 @@
+/* students page — student directory */
+
+.root {
+  font-family: var(--font-body);
+  position: relative;
+  overflow: visible;
+  background: transparent;
+  min-height: 0;
+}
+
+.root > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* ── hero (full-bleed dark green band) ── */
+.hero {
+  position: relative;
+  isolation: isolate;
+  margin: 0 0 1.5rem;
+  /*content sits close to navbar at top, well above fade zone at bottom*/
+  padding: 1.25rem 0 4rem;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.hero::before {
+  content: '';
+  position: absolute;
+  top: -1rem; bottom: 0;
+  left: -9999px; right: -9999px;
+  background-color: var(--green-900);
+  background-image:
+    radial-gradient(ellipse at top left, rgba(255, 198, 41, 0.08) 0%, transparent 60%),
+    repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 32px,
+      rgba(255, 198, 41, 0.035) 32px,
+      rgba(255, 198, 41, 0.035) 33px
+    ),
+    linear-gradient(180deg, var(--green-900) 0%, var(--green-800) 40%, var(--green-700) 100%);
+  pointer-events: none;
+  z-index: -1;
+}
+
+/*smooth green-to-white transition at hero base — 60px fade*/
+.hero::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: -9999px; right: -9999px;
+  height: 60px;
+  background: linear-gradient(180deg, transparent 0%, var(--bg-primary) 100%);
+  pointer-events: none;
+  z-index: -1;
+}
+
+.hero > * {
+  position: relative;
+  z-index: 1;
+}
+
+.heroTitle {
+  font-family: var(--font-display);
+  font-size: var(--title-hero-size);
+  font-weight: var(--title-hero-weight);
+  color: var(--paper-raised);
+  letter-spacing: var(--title-hero-tracking);
+  line-height: 1.05;
+  margin: 0;
+}
+
+.heroTitle em {
+  font-style: italic;
+  color: var(--gold-400);
+}
+
+.heroSubtitle {
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.92);
+  margin: 0.6rem 0 0;
+}
+
+/* ── workspace tabs (Directory / Survey Placement) ── */
+.workspaceTabs {
+  display: inline-flex;
+  gap: 0.25rem;
+  padding: 0.3rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: 10px;
+  box-shadow: var(--shadow-sm);
+  margin: 0 0 1.25rem;
+}
+
+.workspaceTab {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.5rem 1.1rem;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-on-paper-muted);
+  background: transparent;
+  cursor: pointer;
+  transition: color 160ms, background 160ms, box-shadow 160ms;
+}
+
+.workspaceTab:hover:not(.workspaceTabActive) {
+  color: var(--text-on-paper);
+  background: var(--bg-surface-hover);
+}
+
+.workspaceTabActive {
+  background: var(--green-700);
+  color: #FFFFFF;
+  border-color: var(--green-800);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+/* ── stat strip ── */
+.statStrip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.75rem;
+  margin: 1.5rem 0;
+  container-type: inline-size;
+  container-name: students-stat-strip;
+}
+
+.statCard {
+  background: var(--paper-raised);
+  border: 1px solid var(--cream-300);
+  border-radius: 22px;
+  padding: 1.25rem 1.5rem;
+  box-shadow:
+    0 1px 4px rgba(30, 24, 12, 0.03),
+    0 4px 16px rgba(30, 24, 12, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  position: relative;
+  overflow: hidden;
+  transition: all 250ms ease-out;
+}
+
+.statCard:hover {
+  transform: translateY(-3px);
+  box-shadow:
+    0 4px 12px rgba(30, 24, 12, 0.06),
+    0 8px 28px rgba(30, 24, 12, 0.06);
+}
+
+.statCard::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 40%;
+  background: linear-gradient(90deg, transparent, rgba(255, 198, 41, 0.02));
+  pointer-events: none;
+}
+
+/*top-edge gradient accent — every stat card gets a stripe.
+  bug fix: prior CSS only defined ::before for nth-child 1..4, so cards 5+
+  rendered with no stripe. hoisting the common declaration to every child
+  and cycling the gradient every 8 means all 8+ cells (Total + 5 semester
+  levels + N campuses) consistently display a colored top stripe*/
+.statStrip > *::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  border-radius: 22px 22px 0 0;
+  pointer-events: none;
+  /*fallback solid gold fade so cells always have a stripe even if the
+    nth-child rules below fail to match in older browsers*/
+  background: linear-gradient(90deg, var(--gold-400) 0%, transparent 80%);
+}
+
+/*eight distinct gradients cycle across the grid. each uses SELU gold or
+  green in a different direction/position so neighbors feel related but
+  read as their own tile*/
+.statStrip > *:nth-child(8n+1)::before {
+  background: linear-gradient(90deg, var(--gold-400) 0%, transparent 80%);
+}
+.statStrip > *:nth-child(8n+2)::before {
+  background: linear-gradient(90deg, transparent 20%, var(--green-500) 100%);
+}
+.statStrip > *:nth-child(8n+3)::before {
+  background: linear-gradient(90deg, transparent 10%, var(--gold-400) 50%, transparent 90%);
+}
+.statStrip > *:nth-child(8n+4)::before {
+  background: linear-gradient(90deg, var(--green-500) 0%, transparent 70%);
+}
+.statStrip > *:nth-child(8n+5)::before {
+  background: linear-gradient(90deg, var(--green-600) 0%, var(--gold-400) 100%);
+}
+.statStrip > *:nth-child(8n+6)::before {
+  background: linear-gradient(90deg, var(--gold-400) 0%, transparent 60%);
+}
+.statStrip > *:nth-child(8n+7)::before {
+  background: linear-gradient(90deg, transparent 0%, var(--green-500) 50%, transparent 100%);
+}
+.statStrip > *:nth-child(8n+8)::before {
+  background: linear-gradient(90deg, var(--gold-400) 0%, var(--green-600) 100%);
+}
+
+.statNumber {
+  font-family: var(--font-display);
+  font-size: 2.25rem;
+  font-weight: 800;
+  color: var(--text-on-paper);
+  line-height: 1;
+  margin: 0;
+  letter-spacing: -0.03em;
+}
+
+.statLabel {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin: 0.35rem 0 0;
+}
+
+/* ── toolbar ── */
+.toolbar {
+  display: grid;
+  grid-template-columns: minmax(240px, 1.5fr) repeat(3, minmax(150px, 1fr));
+  gap: 0.75rem;
+  align-items: end;
+  margin-bottom: 1.25rem;
+}
+
+@media (max-width: 900px) {
+  .toolbar {
+    grid-template-columns: 1fr 1fr;
+  }
+  .toolbar .searchWrap {
+    grid-column: 1 / -1;
+  }
+}
+
+/*search input uses a real rendered icon (from lucide) inside a relatively
+  positioned wrapper, matching the prompt's position:absolute icon pattern*/
+.searchWrap {
+  position: relative;
+}
+
+.search {
+  padding: 10px 14px 10px 40px;
+  border: 1.5px solid var(--border-default);
+  border-radius: 10px;
+  font-family: var(--font-body);
+  font-size: 0.9375rem;
+  outline: none;
+  width: 100%;
+  background: var(--bg-surface);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  color: var(--text-on-paper);
+  transition: border-color 180ms, box-shadow 180ms;
+}
+
+.search::placeholder { color: #9CA3AF; }
+
+.search:hover:not(:focus) { border-color: #9CA3AF; }
+
+.search:focus {
+  border-color: #00563f;
+  box-shadow: 0 0 0 3px rgba(0, 86, 63, 0.12);
+}
+
+.searchIcon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #9CA3AF;
+  pointer-events: none;
+}
+
+/* ── result count ── */
+.resultCount {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  margin: 0 0 0.75rem;
+  text-transform: uppercase;
+}
+
+/* ── table card ── */
+.tableCard {
+  background: var(--paper-raised);
+  border: 1px solid var(--cream-300);
+  border-radius: 22px;
+  overflow: hidden;
+  box-shadow:
+    0 1px 4px rgba(30, 24, 12, 0.03),
+    0 6px 20px rgba(30, 24, 12, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+/*sharp header edges inside soft card*/
+.table thead th:first-child,
+.table thead th:last-child {
+  border-radius: 0;
+}
+
+.tableWrap {
+  overflow-x: auto;
+  overflow-y: visible;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+  min-width: 760px;
+}
+
+.table thead th {
+  background: linear-gradient(180deg, #1a4a30 0%, #0e331a 100%);
+  border-bottom: 3px solid var(--gold-400);
+  color: var(--paper-raised);
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 1rem 1.25rem;
+  text-align: left;
+}
+
+.table tbody tr {
+  border-bottom: 1px solid var(--cream-200);
+  transition: all 200ms ease-out;
+}
+
+.table tbody tr:nth-child(even) {
+  background: rgba(26, 86, 50, 0.015);
+}
+
+.table tbody tr:hover {
+  background: linear-gradient(90deg, rgba(255, 198, 41, 0.08) 0%, rgba(255, 198, 41, 0.03) 100%);
+  box-shadow: inset 4px 0 0 var(--gold-400);
+}
+
+.table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.table tbody td {
+  padding: 0.9rem 1.25rem;
+  font-size: 0.9rem;
+  border-bottom: 1px solid var(--cream-200);
+  color: var(--text-on-paper);
+  vertical-align: middle;
+}
+
+.nameCell {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--text-on-paper);
+  cursor: pointer;
+  transition: color 0.12s;
+}
+
+.nameCell:hover {
+  color: var(--green-700);
+  text-decoration: underline;
+}
+
+.wnumber {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  letter-spacing: 0.02em;
+  color: var(--text-on-paper);
+}
+
+.email {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: color 0.12s;
+}
+
+.email:hover {
+  color: var(--green-700);
+  text-decoration: underline;
+}
+
+.scheduleLink {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: 0.88rem;
+  color: var(--green-700);
+  text-align: left;
+  transition: color 0.12s;
+}
+
+.scheduleLink:hover {
+  text-decoration: underline;
+  color: var(--green-800);
+}
+
+.levelBadge {
+  display: inline-block;
+  padding: 0.15rem 0.55rem;
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  background: rgba(26, 86, 50, 0.08);
+  color: var(--green-800);
+  border: 1px solid rgba(26, 86, 50, 0.15);
+}
+
+.campusPill {
+  display: inline-block;
+  padding: 0.15rem 0.55rem;
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  background: var(--paper-sunk);
+  color: var(--text-muted);
+  border: 1px solid var(--cream-300);
+}
+
+.muted {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.actionsCell {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.btnIcon {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--cream-400);
+  padding: 0.3rem;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  transition: color 0.15s, background 0.15s;
+}
+
+.btnIcon.view:hover {
+  color: var(--green-700);
+  background: rgba(26, 86, 50, 0.06);
+}
+
+.btnIcon.delete:hover {
+  color: var(--error);
+  background: rgba(220, 38, 38, 0.06);
+}
+
+/* ── empty/loading ── */
+.empty {
+  text-align: center;
+  padding: 3rem 2rem;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+}
+
+.errorBanner {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-left: 3px solid var(--error);
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1.5rem;
+  font-size: 0.85rem;
+  color: #991b1b;
+}

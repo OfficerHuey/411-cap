@@ -5,7 +5,6 @@ import { forgotPassword } from "../Lib/api";
 import { Card } from "./ui/Card";
 import { Input } from "./ui/Input";
 import { Button } from "./ui/Button";
-import { NumberBadge } from "./ui/NumberBadge";
 import { HairlineRule } from "./ui/HairlineRule";
 import styles from "./ForgotPassword.module.css";
 
@@ -32,7 +31,6 @@ export function ForgotPassword() {
   return (
     <div className={styles.root}>
       <Card variant="elevated" className={styles.card}>
-        <NumberBadge number="01" variant="gold" size="sm" />
         <HairlineRule width="48px" color="gold" spacing="normal" />
 
         {sent ? (

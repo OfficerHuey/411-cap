@@ -1,0 +1,286 @@
+/* attention page — aggregates capacity/rostering warnings */
+
+.root {
+  font-family: var(--font-body);
+  position: relative;
+  overflow: visible;
+  background: transparent;
+  min-height: 0;
+}
+
+.root > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* ── hero with a slightly warmer gold tint to match "attention" tone ── */
+.hero {
+  position: relative;
+  isolation: isolate;
+  margin: 0 0 1.5rem;
+  padding: 1.25rem 0 4rem;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.hero::before {
+  content: '';
+  position: absolute;
+  top: -1rem; bottom: 0;
+  left: -9999px; right: -9999px;
+  background-color: var(--green-900);
+  background-image:
+    radial-gradient(ellipse at 50% 20%, rgba(239, 68, 68, 0.08) 0%, transparent 55%),
+    radial-gradient(ellipse at 80% 80%, rgba(255, 198, 41, 0.06) 0%, transparent 55%),
+    linear-gradient(180deg, var(--green-900) 0%, var(--green-800) 40%, var(--green-700) 100%);
+  pointer-events: none;
+  z-index: -1;
+}
+
+.hero::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: -9999px; right: -9999px;
+  height: 60px;
+  background: linear-gradient(180deg, transparent 0%, var(--bg-primary) 100%);
+  pointer-events: none;
+  z-index: -1;
+}
+
+.hero > * { position: relative; z-index: 1; }
+
+.heroTitle {
+  font-family: var(--font-display);
+  font-size: var(--title-hero-size);
+  font-weight: var(--title-hero-weight);
+  color: var(--paper-raised);
+  letter-spacing: var(--title-hero-tracking);
+  line-height: 1.05;
+  margin: 0;
+}
+
+.heroTitle em { font-style: italic; color: var(--gold-400); }
+
+.heroSubtitle {
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.92);
+  margin: 0.6rem 0 0;
+}
+
+/* ── all-clear state ── */
+.allClear {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: 16px;
+  padding: 3rem 2rem;
+  text-align: center;
+  box-shadow: var(--shadow-sm);
+}
+
+.allClearIcon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: rgba(26, 86, 50, 0.08);
+  color: var(--green-700);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.allClearTitle {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--text-on-paper);
+  margin: 0 0 0.5rem;
+}
+
+.allClearDescription {
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  color: var(--text-on-paper-muted);
+  margin: 0;
+}
+
+/* ── semester group section ── */
+.group {
+  margin-bottom: 1.75rem;
+}
+
+.groupHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.5rem 0 0.75rem;
+  border-bottom: 1px solid var(--border-default);
+  margin-bottom: 1rem;
+}
+
+.groupTitle {
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--text-on-paper);
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.groupTitle em { font-style: italic; color: var(--gold-600); }
+
+.groupCount {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.2rem 0.6rem;
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--red-700);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 999px;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+/* ── issue card ── */
+.issue {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-left: 4px solid var(--red-500);
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  cursor: pointer;
+  transition: border-color 160ms, box-shadow 220ms;
+}
+
+.issue:hover {
+  border-color: var(--red-500);
+  border-left-color: var(--red-600);
+  box-shadow: var(--shadow-md);
+}
+
+.issueWarning {
+  border-left-color: var(--warning);
+}
+
+.issueWarning:hover {
+  border-left-color: #b45309;
+}
+
+.issueMain {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.issueIcon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.issueIconError {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--red-600);
+}
+
+.issueIconWarning {
+  background: rgba(217, 119, 6, 0.1);
+  color: var(--warning);
+}
+
+.issueText {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.issueTitle {
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-on-paper);
+  margin: 0;
+}
+
+.issueTitle em { font-style: italic; color: var(--gold-600); }
+
+.issueDescription {
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  color: var(--text-on-paper-muted);
+  margin: 0;
+}
+
+.issueJump {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--green-700);
+  flex-shrink: 0;
+  letter-spacing: 0.01em;
+  transition: color 160ms;
+}
+
+.issue:hover .issueJump {
+  color: var(--green-800);
+}
+
+/* ── severity summary header ── */
+.summary {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.summaryCard {
+  flex: 1 1 180px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.summaryValue {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--text-on-paper);
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.summaryLabel {
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-on-paper-muted);
+  margin-top: 0.35rem;
+}

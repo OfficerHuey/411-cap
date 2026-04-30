@@ -1,12 +1,11 @@
 import { useEffect, useState } from "react";
-import { Trash2, Plus, Users, Upload } from "lucide-react";
+import { Trash2, Plus, Users, Upload, AlertTriangle } from "lucide-react";
 import { authService } from "../Lib/Auth";
 import { students as studentsApi } from "../Lib/api";
 import type { Student } from "../Lib/Types";
 import { StudentImportModal } from "./StudentImportModal";
 import { useToast } from "../Lib/ToastContext";
 import { Card } from "./ui/Card";
-import { NumberBadge } from "./ui/NumberBadge";
 import { Button } from "./ui/Button";
 import { Input } from "./ui/Input";
 import { Avatar } from "./ui/Avatar";
@@ -156,7 +155,6 @@ export function StudentRosterView({ scheduleId, semesterId, isLocked, capacity =
         {/* ── header ── */}
         <div className={styles.header}>
           <div className={styles.headerLeft}>
-            <NumberBadge number="02" variant="gold" size="sm" />
             <h3 className={styles.headerTitle}>Student Roster</h3>
             <p className={styles.headerSubtitle}>
               {studentList.length} of {capacity} students
@@ -200,7 +198,7 @@ export function StudentRosterView({ scheduleId, semesterId, isLocked, capacity =
           <>
             {/* ── table header ── */}
             <div className={styles.tableHeader}>
-              <span className={styles.tableHeaderLabel}>N&#186;</span>
+              <span className={styles.tableHeaderLabel}>#</span>
               <span className={styles.tableHeaderLabel}>W#</span>
               <span className={styles.tableHeaderLabel}>Name</span>
               <span className={styles.tableHeaderLabel}>Email</span>
@@ -331,7 +329,7 @@ export function StudentRosterView({ scheduleId, semesterId, isLocked, capacity =
               Cancel
             </Button>
             <Button
-              variant="destructive"
+              variant="primary"
               onClick={handleConfirmOverride}
               disabled={overrideReason.length < 10}
             >
@@ -341,15 +339,30 @@ export function StudentRosterView({ scheduleId, semesterId, isLocked, capacity =
         }
       >
         <div>
-          <p style={{ color: "var(--text-muted)", lineHeight: 1.6, margin: "0 0 0.75rem 0" }}>
-            This schedule already has {overrideState?.currentCount} students — Ashley's firm cap
-            is {overrideState?.capacity}. Adding a {(overrideState?.currentCount ?? 0) + 1}th student is
-            allowed only as an intentional override. Please enter a reason so the audit log has context.
-          </p>
+          <div
+            style={{
+              display: "flex",
+              gap: "0.6rem",
+              alignItems: "flex-start",
+              padding: "0.75rem",
+              marginBottom: "0.85rem",
+              background: "rgba(217, 119, 6, 0.08)",
+              border: "1px solid rgba(217, 119, 6, 0.2)",
+              borderRadius: "8px",
+            }}
+          >
+            <AlertTriangle size={18} style={{ color: "#d97706", flexShrink: 0, marginTop: "2px" }} />
+            <p style={{ color: "var(--text)", lineHeight: 1.55, margin: 0, fontSize: "0.85rem" }}>
+              This schedule already has {overrideState?.currentCount} students — Ashley's firm cap
+              is {overrideState?.capacity}. Adding a {(overrideState?.currentCount ?? 0) + 1}th student is
+              allowed only as an intentional override. Please enter a reason so the audit log has context.
+            </p>
+          </div>
           <textarea
             value={overrideReason}
             onChange={(e) => setOverrideReason(e.target.value)}
             placeholder="Reason for override (minimum 10 characters)..."
+            maxLength={500}
             style={{
               width: "100%",
               minHeight: "80px",
@@ -362,11 +375,25 @@ export function StudentRosterView({ scheduleId, semesterId, isLocked, capacity =
               outline: "none",
             }}
           />
-          {overrideReason.length > 0 && overrideReason.length < 10 && (
-            <p style={{ fontSize: "0.75rem", color: "var(--error)", marginTop: "0.25rem" }}>
-              {10 - overrideReason.length} more characters needed
-            </p>
-          )}
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              marginTop: "0.3rem",
+              fontSize: "0.72rem",
+            }}
+          >
+            <span style={{ color: overrideReason.length > 0 && overrideReason.length < 10 ? "var(--error)" : "var(--text-muted)" }}>
+              {overrideReason.length > 0 && overrideReason.length < 10
+                ? `${10 - overrideReason.length} more characters needed`
+                : overrideReason.length >= 10
+                ? "Ready to submit"
+                : "Minimum 10 characters"}
+            </span>
+            <span style={{ color: "var(--text-muted)" }}>
+              {overrideReason.length}/500
+            </span>
+          </div>
         </div>
       </Modal>
 

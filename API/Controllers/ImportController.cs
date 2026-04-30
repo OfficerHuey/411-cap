@@ -33,6 +33,10 @@ namespace NursingScheduler.API.Controllers
         [HttpPost("students/{semesterId}")]
         public async Task<ActionResult<ImportResultDto>> ImportStudents(int semesterId, IFormFile file)
         {
+            var semester = await _context.Semesters.FindAsync(semesterId);
+            if (semester?.IsLocked == true)
+                return BadRequest("This semester is locked and cannot be modified");
+
             if (file == null || file.Length == 0)
                 return BadRequest("No file uploaded");
 
@@ -192,8 +196,16 @@ namespace NursingScheduler.API.Controllers
             var scheduleIds = assignments.Select(a => a.ScheduleId).Distinct().ToList();
             var schedules = await _context.Schedules
                 .Include(s => s.Students)
+                .Include(s => s.Semester)
                 .Where(s => scheduleIds.Contains(s.Id))
                 .ToDictionaryAsync(s => s.Id);
+
+            //check if any target semester is locked
+            foreach (var schedule in schedules.Values)
+            {
+                if (schedule.Semester?.IsLocked == true)
+                    return BadRequest("This semester is locked and cannot be modified");
+            }
 
             //track how many we're adding per schedule during this commit
             var addedPerSchedule = new Dictionary<int, int>();

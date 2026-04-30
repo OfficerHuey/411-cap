@@ -79,3 +79,28 @@
   padding: 1rem 1.25rem;
   border-top: 1px solid var(--cream-300);
 }
+
+/* ── responsive ── */
+@media (max-width: 768px) {
+  .panel {
+    width: 100vw !important;
+  }
+
+  .header {
+    position: sticky;
+    top: 0;
+    background: var(--paper-raised);
+    z-index: 1;
+  }
+
+  .closeBtn {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .footer {
+    position: sticky;
+    bottom: 0;
+    background: var(--paper-raised);
+  }
+}

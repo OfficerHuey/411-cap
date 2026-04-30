@@ -62,14 +62,14 @@ export function CloneSemesterModal({ source, onClose, onSuccess }: CloneSemester
           overflow: hidden;
         }
         .clone-header {
-          background: #00563f;
+          background: #1A5632;
           padding: 1.25rem 1.5rem;
           display: flex;
           align-items: flex-start;
           justify-content: space-between;
         }
         .clone-header h2 {
-          font-family: 'Playfair Display', serif;
+          font-family: 'Montserrat', 'Inter', sans-serif;
           font-size: 1.2rem;
           font-weight: 600;
           color: #ffffff;
@@ -121,8 +121,8 @@ export function CloneSemesterModal({ source, onClose, onSuccess }: CloneSemester
           background: #fafafa;
         }
         .clone-input:focus {
-          border-color: #00563f;
-          box-shadow: 0 0 0 3px rgba(0, 86, 63, 0.1);
+          border-color: #1A5632;
+          box-shadow: 0 0 0 3px rgba(26, 86, 50, 0.1);
           background: #ffffff;
         }
         .clone-date-row {
@@ -156,7 +156,7 @@ export function CloneSemesterModal({ source, onClose, onSuccess }: CloneSemester
           align-items: center;
           gap: 0.4rem;
           padding: 0.6rem 1.5rem;
-          background: #00563f;
+          background: #1A5632;
           color: #ffffff;
           border: none;
           border-radius: 8px;
@@ -166,7 +166,7 @@ export function CloneSemesterModal({ source, onClose, onSuccess }: CloneSemester
           cursor: pointer;
           transition: background 0.15s;
         }
-        .clone-btn-submit:hover { background: #003d2a; }
+        .clone-btn-submit:hover { background: #144425; }
         .clone-btn-submit:disabled { background: #6b7280; cursor: not-allowed; }
         .clone-btn-submit .btn-spinner { animation: clone-spin 0.7s linear infinite; }
         @keyframes clone-spin { to { transform: rotate(360deg); } }

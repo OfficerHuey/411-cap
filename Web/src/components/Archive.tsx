@@ -1,15 +1,29 @@
 import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
 import "../App.css";
-import { ArrowLeft, Calendar, Lock, ArrowRight, Archive as ArchiveIcon } from "lucide-react";
+import { ArrowLeft, Lock, Unlock, ArrowRight, Archive as ArchiveIcon } from "lucide-react";
 import { semesters as semestersApi } from "../Lib/api";
 import type { Semester } from "../Lib/Types";
 import { useNavigate } from "react-router-dom";
+import { useReducedMotion } from "../hooks/useReducedMotion";
+import { staggerContainer, cardVariants, heroStagger, heroChild } from "../Lib/motion";
+import { useToast } from "../Lib/ToastContext";
+import { useBreadcrumbs } from "../Lib/BreadcrumbContext";
+import { SeluLogo } from "./ui/SeluLogo";
 
 export function Archive() {
   const navigate = useNavigate();
+  const reduced = useReducedMotion();
+  const { addToast } = useToast();
+  const { setItems: setBreadcrumbs } = useBreadcrumbs();
   const [semesterList, setSemesterList] = useState<Semester[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    setBreadcrumbs([{ label: "Archive" }]);
+    return () => setBreadcrumbs([]);
+  }, [setBreadcrumbs]);
 
   useEffect(() => {
     loadSemesters();
@@ -25,6 +39,18 @@ export function Archive() {
       setError(err.message || "Failed to load semesters");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleUnlock = async (id: number) => {
+    try {
+      const result = await semestersApi.toggleLock(id);
+      if (!result.isLocked) {
+        addToast("success", "Semester unlocked and moved to active dashboard");
+        await loadSemesters();
+      }
+    } catch (err: any) {
+      addToast("error", err.message || "Failed to unlock semester");
     }
   };
 
@@ -44,15 +70,69 @@ export function Archive() {
   return (
     <>
       <style>{`
-        .archive-root { font-family: 'Inter', sans-serif; }
+        .archive-root {
+          font-family: 'Inter', sans-serif;
+          position: relative;
+          overflow: visible;
+          background: transparent;
+          min-height: 0;
+        }
+
+        .archive-root > * {
+          position: relative;
+          z-index: 1;
+        }
 
         .archive-header {
           display: flex;
           align-items: flex-end;
           justify-content: space-between;
-          margin-bottom: 2.5rem;
           flex-wrap: wrap;
           gap: 1rem;
+          position: relative;
+          isolation: isolate;
+          margin: 0 0 2.5rem;
+          /*tight top padding + deep bottom padding keeps header content
+            close to the navbar and well above the 60px fade-to-white zone*/
+          padding: 1.25rem 0 4rem;
+          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        }
+
+        .archive-header::before {
+          content: '';
+          position: absolute;
+          top: -1rem; bottom: 0;
+          left: -9999px; right: -9999px;
+          background-color: var(--green-900);
+          background-image:
+            radial-gradient(ellipse at top right, rgba(255, 198, 41, 0.08) 0%, transparent 60%),
+            repeating-linear-gradient(
+              -45deg,
+              transparent,
+              transparent 30px,
+              rgba(255, 198, 41, 0.035) 30px,
+              rgba(255, 198, 41, 0.035) 31px
+            ),
+            linear-gradient(180deg, var(--green-900) 0%, var(--green-800) 40%, var(--green-700) 100%);
+          pointer-events: none;
+          z-index: -1;
+        }
+
+        /*smooth green-to-white transition at hero base — 60px fade*/
+        .archive-header::after {
+          content: '';
+          position: absolute;
+          bottom: 0;
+          left: -9999px; right: -9999px;
+          height: 60px;
+          background: linear-gradient(180deg, transparent 0%, var(--bg-primary) 100%);
+          pointer-events: none;
+          z-index: -1;
+        }
+
+        .archive-header > * {
+          position: relative;
+          z-index: 1;
         }
 
         .archive-header-left {
@@ -64,43 +144,49 @@ export function Archive() {
         .archive-btn-back {
           width: 36px;
           height: 36px;
-          background: #ffffff;
-          border: 1.5px solid #e5e7eb;
+          background: rgba(255, 255, 255, 0.08);
+          border: 1.5px solid rgba(255, 255, 255, 0.15);
           border-radius: 10px;
           display: flex;
           align-items: center;
           justify-content: center;
           cursor: pointer;
-          color: #6b7280;
+          color: rgba(255, 255, 255, 0.85);
           transition: all 0.2s;
           flex-shrink: 0;
         }
 
         .archive-btn-back:hover {
-          background: #00563f;
-          color: #ffffff;
-          border-color: #00563f;
+          background: var(--gold-400);
+          color: var(--green-900);
+          border-color: var(--gold-400);
         }
 
         .archive-header-text h1 {
-          font-family: 'Playfair Display', serif;
-          font-size: 1.85rem;
-          font-weight: 600;
-          color: #111827;
+          font-family: var(--font-display);
+          font-size: var(--title-hero-size);
+          font-weight: var(--title-hero-weight);
+          color: var(--paper-raised);
           margin: 0 0 0.3rem 0;
-          letter-spacing: -0.01em;
+          letter-spacing: var(--title-hero-tracking);
+          line-height: var(--leading-tight);
+        }
+
+        .archive-header-text h1 em {
+          font-style: italic;
+          color: var(--gold-400);
         }
 
         .archive-header-text p {
-          color: #9ca3af;
-          font-size: 0.88rem;
+          color: rgba(255, 255, 255, 0.7);
+          font-size: 0.9rem;
           margin: 0;
           font-weight: 400;
         }
 
         .archive-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+          grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
           gap: 1.25rem;
         }
 
@@ -158,10 +244,12 @@ export function Archive() {
         }
 
         .archive-card-dates {
+          font-family: var(--font-mono);
           font-size: 0.78rem;
+          font-weight: 500;
+          letter-spacing: 0.02em;
           color: #9ca3af;
           margin: 0;
-          font-weight: 400;
         }
 
         .archive-badges {
@@ -176,9 +264,9 @@ export function Archive() {
           display: inline-flex;
           align-items: center;
           padding: 0.2rem 0.65rem;
-          background: rgba(200, 149, 44, 0.08);
+          background: rgba(255, 198, 41, 0.08);
           color: #92400e;
-          border: 1px solid rgba(200, 149, 44, 0.2);
+          border: 1px solid rgba(255, 198, 41, 0.2);
           border-radius: 20px;
           font-size: 0.72rem;
           font-weight: 500;
@@ -217,9 +305,30 @@ export function Archive() {
         }
 
         .archive-btn-open:hover {
-          background: #00563f;
+          background: #1A5632;
           color: #ffffff;
-          border-color: #00563f;
+          border-color: #1A5632;
+        }
+
+        .archive-btn-unlock {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.4rem;
+          padding: 0.5rem 1rem;
+          background: rgba(26, 86, 50, 0.08);
+          border: 1px solid rgba(26, 86, 50, 0.2);
+          border-radius: 8px;
+          font-family: 'Inter', sans-serif;
+          font-size: 0.82rem;
+          font-weight: 500;
+          color: #1A5632;
+          cursor: pointer;
+          transition: all 0.15s;
+        }
+
+        .archive-btn-unlock:hover {
+          background: rgba(26, 86, 50, 0.15);
+          border-color: rgba(26, 86, 50, 0.35);
         }
 
         .archive-empty {
@@ -247,7 +356,7 @@ export function Archive() {
         }
 
         .archive-empty h3 {
-          font-family: 'Playfair Display', serif;
+          font-family: 'Montserrat', 'Inter', sans-serif;
           font-size: 1.25rem;
           color: #111827;
           margin: 0 0 0.4rem 0;
@@ -269,37 +378,54 @@ export function Archive() {
           font-size: 0.85rem;
           color: #991b1b;
         }
+
+        @media (max-width: 768px) {
+          .archive-header { margin-bottom: 1.5rem; }
+          .archive-card-body { padding: 1.25rem; }
+        }
       `}</style>
 
       <div className="archive-root">
-        <div className="archive-header">
+        <motion.div
+          className="archive-header"
+          variants={reduced ? undefined : heroStagger}
+          initial="hidden"
+          animate="visible"
+        >
           <div className="archive-header-left">
-            <button className="archive-btn-back" onClick={() => navigate("/")}>
-              <ArrowLeft size={16} />
-            </button>
+            <motion.div variants={reduced ? undefined : heroChild}>
+              <button className="archive-btn-back" onClick={() => navigate("/")}>
+                <ArrowLeft size={16} />
+              </button>
+            </motion.div>
             <div className="archive-header-text">
-              <h1>Archive</h1>
-              <p>
+              <motion.h1 variants={reduced ? undefined : heroChild}>Archive</motion.h1>
+              <motion.p variants={reduced ? undefined : heroChild}>
                 {loading ? "Loading..." : `${semesterList.length} archived semester${semesterList.length !== 1 ? "s" : ""}`}
-              </p>
+              </motion.p>
             </div>
           </div>
-        </div>
+        </motion.div>
 
         {error && <div className="error-banner">{error}</div>}
 
         {loading ? (
           <div className="loading-spinner"><span>Loading archived semesters…</span></div>
         ) : (
-          <div className="archive-grid">
+          <motion.div
+            className="archive-grid"
+            variants={reduced ? undefined : staggerContainer(0.05)}
+            initial="hidden"
+            animate="visible"
+          >
             {semesterList.map((semester) => (
-              <div key={semester.id} className="archive-card">
+              <motion.div key={semester.id} className="archive-card" variants={reduced ? undefined : cardVariants}>
                 <div className="archive-card-accent" />
                 <div className="archive-card-body">
                   <div className="archive-card-top">
                     <div className="archive-card-title-group">
                       <div className="archive-card-icon">
-                        <Calendar size={18} color="#6b7280" />
+                        <SeluLogo size={28} framed={false} />
                       </div>
                       <div>
                         <h3 className="archive-card-title">{semester.name}</h3>
@@ -322,15 +448,24 @@ export function Archive() {
                     </span>
                   </div>
 
-                  <button
-                    className="archive-btn-open"
-                    onClick={() => navigate(`/semester/${semester.id}`)}
-                  >
-                    Open
-                    <ArrowRight size={14} />
-                  </button>
+                  <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.75rem" }}>
+                    <button
+                      className="archive-btn-unlock"
+                      onClick={(e) => { e.stopPropagation(); handleUnlock(semester.id); }}
+                    >
+                      <Unlock size={14} />
+                      Unlock
+                    </button>
+                    <button
+                      className="archive-btn-open"
+                      onClick={() => navigate(`/semester/${semester.id}`)}
+                    >
+                      Open
+                      <ArrowRight size={14} />
+                    </button>
+                  </div>
                 </div>
-              </div>
+              </motion.div>
             ))}
 
             {semesterList.length === 0 && (
@@ -342,7 +477,7 @@ export function Archive() {
                 <p>Locked semesters will appear here once they're finalized</p>
               </div>
             )}
-          </div>
+          </motion.div>
         )}
       </div>
     </>

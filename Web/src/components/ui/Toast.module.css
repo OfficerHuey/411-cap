@@ -73,3 +73,17 @@
   background: var(--paper-sunk);
   color: var(--text-on-paper);
 }
+
+/* ── responsive ── */
+@media (max-width: 768px) {
+  .container {
+    right: var(--space-3);
+    left: var(--space-3);
+    max-width: none;
+  }
+
+  .closeBtn {
+    width: 44px;
+    height: 44px;
+  }
+}

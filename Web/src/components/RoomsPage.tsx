@@ -1,14 +1,19 @@
 import { useEffect, useState, useMemo } from "react";
+import { motion } from "framer-motion";
 import { Plus, Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown, DoorOpen, Upload } from "lucide-react";
 import { rooms as roomsApi } from "../Lib/api";
 import type { Room, RoomType } from "../Lib/Types";
 import { useToast } from "../Lib/ToastContext";
+import { useBreadcrumbs } from "../Lib/BreadcrumbContext";
 import { Modal } from "./ui/Modal";
 import { Button } from "./ui/Button";
 import { Input } from "./ui/Input";
 import { Select } from "./ui/Select";
 import type { SelectOption } from "./ui/Select";
+import { HairlineRule } from "./ui/HairlineRule";
+import { SectionHeading } from "./ui/SectionHeading";
 import { RoomImportModal } from "./Imports/RoomImportModal";
+import { Skeleton } from "./ui/Skeleton";
 import styles from "./RoomsPage.module.css";
 
 const ROOM_TYPES: RoomType[] = ["Lecture", "Lab", "SimLab", "Clinical", "Online"];
@@ -24,6 +29,7 @@ const TYPE_CLASS: Record<string, string> = {
 
 export function RoomsPage() {
   const { addToast } = useToast();
+  const { setItems: setBreadcrumbs } = useBreadcrumbs();
   const [roomList, setRoomList] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -48,6 +54,11 @@ export function RoomsPage() {
       setSortDir("asc");
     }
   };
+
+  useEffect(() => {
+    setBreadcrumbs([{ label: "Rooms" }]);
+    return () => setBreadcrumbs([]);
+  }, [setBreadcrumbs]);
 
   useEffect(() => { loadRooms(); }, []);
 
@@ -113,6 +124,23 @@ export function RoomsPage() {
     }
   };
 
+  const campusCounts = useMemo(() => {
+    const counts = { Hammond: 0, "Baton Rouge": 0, "St. Tammany": 0, Other: 0 };
+    roomList.forEach((r) => {
+      const campus = r.campus?.toLowerCase() || "";
+      if (campus.includes("hammond")) counts.Hammond++;
+      else if (campus.includes("baton rouge") || campus.includes("brc")) counts["Baton Rouge"]++;
+      else if (campus.includes("tammany")) counts["St. Tammany"]++;
+      else counts.Other++;
+    });
+    return counts;
+  }, [roomList]);
+
+  const activeCampusCount = useMemo(
+    () => Object.values(campusCounts).filter((v) => v > 0).length,
+    [campusCounts],
+  );
+
   const filtered = useMemo(() => {
     let list = roomList.filter((r) => {
       const q = search.toLowerCase();
@@ -138,13 +166,17 @@ export function RoomsPage() {
   return (
     <>
       <div className={styles.root}>
-        <div className={styles.header}>
-          <div>
-            <h1>Rooms</h1>
-            <div className={styles.headerDivider} />
-            <p>Manage classrooms, labs, and clinical sites</p>
-          </div>
-          <div className={styles.headerActions}>
+        {/* editorial hero */}
+        <div className={styles.hero}>
+          <HairlineRule width="48px" color="gold" spacing="tight" />
+          <h1 className={styles.heroTitle}>
+            <em>Rooms</em> & Facilities
+          </h1>
+          <p className={styles.heroSubtitle}>
+            {roomList.length} space{roomList.length !== 1 ? "s" : ""} across {activeCampusCount} campus
+            {activeCampusCount !== 1 ? "es" : ""}
+          </p>
+          <div className={styles.heroActions}>
             <Button variant="outline" onClick={() => setShowImport(true)}>
               <Upload size={16} />
               Import
@@ -156,7 +188,39 @@ export function RoomsPage() {
           </div>
         </div>
 
+        {/* campus stat strip — signature element */}
+        {roomList.length > 0 && (
+          <div className={styles.statStrip}>
+            {campusCounts.Hammond > 0 && (
+              <div className={`${styles.statCard} ${styles.hammond}`}>
+                <p className={styles.statNumber}>{campusCounts.Hammond}</p>
+                <p className={styles.statLabel}>Hammond</p>
+              </div>
+            )}
+            {campusCounts["Baton Rouge"] > 0 && (
+              <div className={`${styles.statCard} ${styles.batonRouge}`}>
+                <p className={styles.statNumber}>{campusCounts["Baton Rouge"]}</p>
+                <p className={styles.statLabel}>Baton Rouge</p>
+              </div>
+            )}
+            {campusCounts["St. Tammany"] > 0 && (
+              <div className={`${styles.statCard} ${styles.stTammany}`}>
+                <p className={styles.statNumber}>{campusCounts["St. Tammany"]}</p>
+                <p className={styles.statLabel}>St. Tammany</p>
+              </div>
+            )}
+            {campusCounts.Other > 0 && (
+              <div className={`${styles.statCard} ${styles.other}`}>
+                <p className={styles.statNumber}>{campusCounts.Other}</p>
+                <p className={styles.statLabel}>Other</p>
+              </div>
+            )}
+          </div>
+        )}
+
         {error && <div className={styles.errorBanner}>{error}</div>}
+
+        <SectionHeading number="02" title="All rooms" level="section" />
 
         <div className={styles.toolbar}>
           <input
@@ -167,9 +231,9 @@ export function RoomsPage() {
           />
         </div>
 
-        <div className={styles.card}>
+        <div className={styles.tableCard}>
           {loading ? (
-            <div className={styles.empty}><span>Loading rooms&hellip;</span></div>
+            <Skeleton variant="tableRow" count={8} />
           ) : filtered.length === 0 ? (
             <div className={styles.empty}>
               <div className={styles.emptyIcon}><DoorOpen size={22} color="var(--green-700)" /></div>
@@ -177,40 +241,47 @@ export function RoomsPage() {
               <p>{roomList.length === 0 ? "Add your first room using the button above" : "No rooms match your search"}</p>
             </div>
           ) : (
-            <table className={styles.table}>
-              <thead>
-                <tr>
-                  {([["roomNumber","Room Number"],["building","Building"],["campus","Campus"],["type","Type"],["capacity","Capacity"]] as const).map(([col, label]) => (
-                    <th key={col} onClick={() => toggleSort(col)}>
-                      {label}
-                      <span className={`${styles.sortIcon} ${sortCol === col ? styles.sortIconActive : ""}`}>
-                        {sortCol === col ? (sortDir === "asc" ? <ArrowUp size={11} /> : <ArrowDown size={11} />) : <ArrowUpDown size={11} />}
-                      </span>
-                    </th>
-                  ))}
-                  <th style={{ textAlign: "right", cursor: "default" }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((room) => (
-                  <tr key={room.id}>
-                    <td className={styles.nameCell}>{room.roomNumber}</td>
-                    <td>{room.building}</td>
-                    <td>{room.campus}</td>
-                    <td><span className={`${styles.typeBadge} ${TYPE_CLASS[room.type] || ""}`}>{room.type}</span></td>
-                    <td>{room.capacity}</td>
-                    <td style={{ textAlign: "right" }}>
-                      <button className={`${styles.btnIcon} ${styles.edit}`} onClick={() => openEditModal(room)}>
-                        <Pencil size={14} />
-                      </button>
-                      <button className={`${styles.btnIcon} ${styles.delete}`} onClick={() => setDeleteConfirm(room)}>
-                        <Trash2 size={14} />
-                      </button>
-                    </td>
+            <div className={styles.tableWrap}>
+              <table className={styles.table}>
+                <thead>
+                  <tr>
+                    {([["roomNumber","Room Number"],["building","Building"],["campus","Campus"],["type","Type"],["capacity","Capacity"]] as const).map(([col, label]) => (
+                      <th key={col} onClick={() => toggleSort(col)}>
+                        {label}
+                        <span className={`${styles.sortIcon} ${sortCol === col ? styles.sortIconActive : ""}`}>
+                          {sortCol === col ? (sortDir === "asc" ? <ArrowUp size={11} /> : <ArrowDown size={11} />) : <ArrowUpDown size={11} />}
+                        </span>
+                      </th>
+                    ))}
+                    <th style={{ textAlign: "right", cursor: "default" }}>Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {filtered.map((room, idx) => (
+                    <motion.tr
+                      key={room.id}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: Math.min(idx * 0.03, 0.5), duration: 0.25, ease: [0.32, 0.72, 0, 1] }}
+                    >
+                      <td className={styles.roomNumber}>{room.roomNumber}</td>
+                      <td>{room.building}</td>
+                      <td>{room.campus}</td>
+                      <td><span className={`${styles.typeBadge} ${TYPE_CLASS[room.type] || ""}`}>{room.type}</span></td>
+                      <td className={styles.capacityCell}>{room.capacity}</td>
+                      <td style={{ textAlign: "right" }}>
+                        <button className={`${styles.btnIcon} ${styles.edit}`} onClick={() => openEditModal(room)}>
+                          <Pencil size={14} />
+                        </button>
+                        <button className={`${styles.btnIcon} ${styles.delete}`} onClick={() => setDeleteConfirm(room)}>
+                          <Trash2 size={14} />
+                        </button>
+                      </td>
+                    </motion.tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       </div>
