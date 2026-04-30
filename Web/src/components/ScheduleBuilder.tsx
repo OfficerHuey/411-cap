@@ -331,7 +331,7 @@ export function ScheduleBuilder() {
               </button>
             </div>
             <Button
-              variant="ghost"
+              variant="secondary"
               size="md"
               iconLeft={<StickyNote size={14} />}
               onClick={() => setShowNotes(true)}

@@ -245,7 +245,7 @@ export function SemesterHub() {
               <span className={styles.heroDateRange}>
                 {formatDateLong(semester.startDate)} &mdash; {formatDateLong(semester.endDate)}
               </span>
-              <Badge variant="gold" size="md">
+              <Badge variant="gold" size="md" className={styles.heroClinicalDaysBadge}>
                 Clinical Days: {semester.clinicalDays}
               </Badge>
               {isActive && progress && (
@@ -269,7 +269,7 @@ export function SemesterHub() {
             </Button>
           )}
           <Button
-            variant="ghost"
+            variant="secondary"
             size="md"
             iconLeft={<StickyNote size={14} />}
             onClick={() => setShowNotes(true)}
@@ -280,7 +280,7 @@ export function SemesterHub() {
             )}
           </Button>
           <Button
-            variant="ghost"
+            variant="secondary"
             size="md"
             iconLeft={<History size={14} />}
             onClick={() => navigate(`/changelog/${semIdNum}`)}

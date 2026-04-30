@@ -110,6 +110,10 @@
   font-weight: 500;
 }
 
+.heroClinicalDaysBadge.heroClinicalDaysBadge {
+  color: var(--gold-400);
+}
+
 .heroActions {
   display: flex;
   align-items: center;
